@@ -9,7 +9,7 @@ return {
       vim.cmd('colorscheme gruvbox')
     end
   },
-  
+
   -- Status line
   {
     'nvim-lualine/lualine.nvim',
@@ -32,7 +32,7 @@ return {
       }
     end
   },
-  
+
   -- File finder
   {
     'nvim-telescope/telescope.nvim',
@@ -41,7 +41,7 @@ return {
     config = function()
       local builtin = require('telescope.builtin')
       local actions = require("telescope.actions")
-      
+
       require("telescope").setup({
         defaults = {
           mappings = {
@@ -58,7 +58,7 @@ return {
       vim.keymap.set('n', '<leader>fb', builtin.buffers, { desc = 'Buffers' })
     end
   },
-  
+
   -- Git integration
   {
     'tpope/vim-fugitive',
@@ -69,4 +69,15 @@ return {
       vim.keymap.set('n', '<Space>gd', ':Gvdiffsplit<CR>', { desc = 'Git diff' })
     end
   },
+
+  -- Highlighter
+  {
+    't9md/vim-quickhl',
+    config = function()
+      vim.keymap.set('n', ',h', '<Plug>(quickhl-manual-this)', { desc = 'highlight cursor word' })
+      vim.keymap.set('x', ',h', '<Plug>(quickhl-manual-this)', { desc = 'highlight cursor word' })
+      vim.keymap.set('n', ',H', '<Plug>(quickhl-manual-reset)', { desc = 'rm highlight cursor word' })
+      vim.keymap.set('x', ',H', '<Plug>(quickhl-manual-reset)', { desc = 'rm highlight cursor word' })
+    end
+  }
 }

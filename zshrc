@@ -1,15 +1,15 @@
 # 🔧 Initialize completion system
 autoload -Uz compinit && compinit
 
+# 🪄 Pixi
+export PATH="$HOME/.pixi/bin:$PATH"
+eval "$(pixi completion --shell zsh)"
+
 # 🎩 Zsh Plugin Manager
 eval "$(sheldon source)"
 
 # 🎨 ColorTheme (shared with nvim)
 base16_gruvbox-dark-hard
-
-# 🪄 Pixi
-export PATH="$HOME/.pixi/bin:$PATH"
-eval "$(pixi completion --shell zsh)"
 
 # 🌀 zoxide
 eval "$(zoxide init zsh)"

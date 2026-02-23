@@ -1,6 +1,9 @@
 # 🔧 Initialize completion system
 autoload -Uz compinit && compinit
 
+# 👾 For shell tools like Claude
+export PATH="$HOME/.local/bin:$PATH"
+
 # 🪄 Pixi
 export PATH="$HOME/.pixi/bin:$PATH"
 eval "$(pixi completion --shell zsh)"

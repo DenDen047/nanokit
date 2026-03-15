@@ -177,6 +177,7 @@ The following tools are available through [pixi-global.toml](pixi-global.toml):
 |-|------|-------------|-----------------|---------|
 | 🔀| **git** | Version control system | `git`, `git-cvsserver`, `git-receive-pack`, `git-shell`, `git-upload-archive`, `git-upload-pack`, `gitk`, `scalar` | [git/git](https://github.com/git/git) |
 | :octocat: | **gh** | GitHub CLI | `gh` | [cli/cli](https://github.com/cli/cli) |
+| 🔀| **git-lfs** | Version control system | `git-lfs` | [git/git](https://github.com/git-lfs/git-lfs) |
 | 🔀 | **tig** | TUI client for Git | `tig` | [jonas/tig](https://github.com/jonas/tig) |
 | 🐚 | **zsh** | Z shell | `zsh`, `zsh-5.9` | [zsh-users/zsh](https://github.com/zsh-users/zsh) |
 | 🎩 | **sheldon** | Fast and configurable shell plugin manager | `sheldon` | [rossmacarthur/sheldon](https://github.com/rossmacarthur/sheldon) |

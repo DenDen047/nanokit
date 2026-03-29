@@ -5,6 +5,7 @@ depends = []
 
 [default.files]
 nvim = { target = "$HOME/.config/nvim", type = "symbolic", recurse = false }
+zshenv = "$HOME/.zshenv"
 zshrc = "$HOME/.zshrc"
 tigrc = "$HOME/.tigrc"
 "pixi-global.toml" = "$HOME/.pixi/manifests/pixi-global.toml"

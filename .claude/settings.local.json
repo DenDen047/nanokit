@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tmux -V)",
+      "Bash(tmux start-server:*)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(tmux -vvvv new-session -d)",
+      "Bash(tmux list-sessions:*)",
+      "Bash(command -v log)",
+      "Bash(whence -w log)",
+      "Bash(zsh -c 'disable log' 2>&1)",
+      "Bash(zsh --version 2>&1)",
+      "Bash(/Users/ikuta/.pixi/bin/zsh -c 'echo $module_path')",
+      "Read(//Users/ikuta/.pixi/lib/**)",
+      "Read(//Users/ikuta/.pixi/**)",
+      "Bash(/Users/ikuta/.pixi/bin/zsh -c 'builtin enable')",
+      "Bash(dotter -d)",
+      "Bash(dotter deploy:*)",
+      "Bash(tmux kill-server:*)",
+      "Bash(tmux new-session:*)",
+      "Bash(tmux capture-pane:*)",
+      "Bash(pixi completion:*)",
+      "Bash(sheldon source:*)",
+      "Bash(zoxide init:*)",
+      "Bash(starship init:*)",
+      "Bash(awk *)",
+      "Bash(/Users/ikuta/.pixi/bin/zsh -c 'zmodload zsh/parameter 2>&1; echo \"parameter: $?\"; zmodload zsh/datetime 2>&1; echo \"datetime: $?\"; zmodload zsh/mathfunc 2>&1; echo \"mathfunc: $?\"')",
+      "Bash(/Users/ikuta/.pixi/bin/zsh -c 'zmodload zsh/datetime; \\(\\( val = ${EPOCHREALTIME/./} / 1000 \\)\\); echo $val' 2>&1)",
+      "Bash(gh search:*)",
+      "WebSearch",
+      "Bash(gh issue:*)",
+      "Bash(pixi info:*)",
+      "Bash(zsh --version)",
+      "Bash(ls -la /Users/ikuta/.pixi/envs/*/lib/zsh/)",
+      "Bash(gh pr:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:deepwiki.com)"
+    ]
+  }
+}

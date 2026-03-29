@@ -51,5 +51,8 @@ alias ll="lsd -l"
 # 🤖 Claude Code
 alias cc="claude --allow-dangerously-skip-permissions"
 
+# 📦 direnv
+eval "$(direnv hook zsh)"
+
 # 💬 discord webhook
 export WEBHOOK_URL=

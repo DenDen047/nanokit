@@ -20,7 +20,8 @@
       "WebFetch(domain:deepwiki.com)",
       "Bash(echo \"$PATH\")",
       "WebFetch(domain:www.notion.so)",
-      "mcp__claude_ai_Notion__notion-fetch"
+      "mcp__claude_ai_Notion__notion-fetch",
+      "Bash(pixi search:*)"
     ]
   }
 }

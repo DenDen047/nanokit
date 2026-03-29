@@ -1,6 +1,4 @@
 -- US keyboard Setting
-vim.keymap.set('n', ';', ':')
-vim.keymap.set('n', ':', ';')
 vim.keymap.set('i', 'jj', '<ESC>', { noremap = true, silent = true })
 
 -- comment line

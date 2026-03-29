@@ -18,8 +18,8 @@
 [Powered by Pixi](https://pixi.sh)
 [License: MIT](https://opensource.org/licenses/MIT)
 
-- ⚡ A lightweight, fast, and efficient **cross-platform** development setup for Linux (x86/arm), OSX  
-- ✨ **No sudo required** - Everything installs to `$HOME/.pixi`, completely user-local  
+- ⚡ A lightweight, fast, and efficient **cross-platform** development setup for Linux (x86/arm), OSX
+- ✨ **No sudo required** - Everything installs to `$HOME/.pixi`, completely user-local
 - 🪄 **Pixi** as a [shell tool manager](https://prefix.dev/blog/using-pixi-as-a-system-package-manager-with-shortcuts-and-completions) - Keep your tools up-to-date by declarative management
 - 🦀 **dotter** as a simple [dotfile manager](.dotter/global.toml) that links / unlinks dotfiles in nanokit
 - 🐚 **zsh** 🎩 **[sheldon](https://sheldon.cli.rs/)** 🚀 **[starship](https://starship.rs/)** - Modern shell experience with plugin management
@@ -333,7 +333,7 @@ Basic commands to get started:
 - `vi` - Launch Neovim
 - `:q` - Quit Neovim
 - `:checkhealth` - Check Neovim configuration
-- `:Lazy` - Plugin manager interface  
+- `:Lazy` - Plugin manager interface
 - `Ctrl+P` - Fuzzy file finder
 
 ## 🧪 Try nanokit in your OS
@@ -352,3 +352,6 @@ su - nanokit
 sudo userdel -r nanokit    # Remove user and home directory
 ```
 
+## References
+
+- [Shell Tools を Rust 製に固めてｼﾝﾌﾟﾙに管理する](https://denkiwakame.notion.site/Shell-Tools-Rust-1693175c6b6a80319e06c71dea5162db)

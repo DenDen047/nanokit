@@ -336,6 +336,43 @@ Basic commands to get started:
 - `:Lazy` - Plugin manager interface
 - `Ctrl+P` - Fuzzy file finder
 
+## 🤖 Claude Code Configuration (Optional)
+
+nanokit can manage [Claude Code](https://claude.ai/code) global configuration (`~/.claude/settings.json`, `~/.claude/CLAUDE.md`, custom scripts) via dotter symlinks.
+
+> [!NOTE]
+> Claude Code itself is installed via npm, not pixi. Only the **configuration files** are managed by nanokit.
+
+### Setup
+
+```bash
+# Install Claude Code first
+curl -fsSL https://claude.ai/install.sh | bash
+
+# Setup configuration and plugins
+./nanokit claude-setup
+```
+
+This will:
+1. Symlink configuration files from `nanokit/claude/` to `~/.claude/`
+2. Install Claude Code plugins (everything-claude-code, understand-anything, scientific-skills)
+
+### What is managed
+
+| File | Description |
+|------|-------------|
+| `claude/settings.json` | Global settings (hooks, env vars, plugins, statusLine) |
+| `claude/CLAUDE.md` | Global instructions |
+| `claude/scripts/zotero-mcp-server.sh` | Zotero MCP server lifecycle script |
+
+Plugin-managed files (`agents/`, `skills/`, `commands/`, `rules/`, `hooks/`) and runtime data are **not** tracked -- they are managed by Claude Code and its plugins.
+
+### Post-setup
+
+Configure machine-specific settings manually:
+- MCP servers: `~/.claude/mcp-configs/mcp-servers.json`
+- Local overrides: `~/.claude/settings.local.json`
+
 ## 🧪 Try nanokit in your OS
 
 Want to test nanokit without affecting your current setup? Create a temporary user:

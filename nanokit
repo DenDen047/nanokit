@@ -63,9 +63,10 @@ show_help() {
     echo "  nanokit <command>"
     echo ""
     echo -e "${CYAN}Commands:${NC}"
-    echo "  install     🚀 Install and setup nanokit environment"
-    echo "  uninstall   🗑️ Uninstall nanokit and remove all configurations"
-    echo "  --help      📖 Show this help message"
+    echo "  install       🚀 Install and setup nanokit environment"
+    echo "  claude-setup  🤖 Setup Claude Code configuration and plugins"
+    echo "  uninstall     🗑️ Uninstall nanokit and remove all configurations"
+    echo "  --help        📖 Show this help message"
     echo ""
     echo -e "${CYAN}Examples:${NC}"
     echo "  nanokit install"
@@ -109,7 +110,9 @@ install() {
     
     print_success "🎉 Setup completed successfully!"
     echo ""
-    
+    print_info "For Claude Code setup, run: nanokit claude-setup"
+    echo ""
+
     # Ask to launch zsh
     read -p "🚀 Launch zsh now? (Y/n): " -n 1 -r
     echo ""
@@ -163,11 +166,51 @@ uninstall() {
     fi
 }
 
+# Setup Claude Code configuration and plugins
+claude_setup() {
+    print_ascii_art
+
+    print_step "Setting up Claude Code configuration..."
+    echo ""
+
+    # Check if claude CLI is available
+    if ! command -v claude &> /dev/null; then
+        print_warning "Claude Code is not installed."
+        print_info "Install with: npm install -g @anthropic-ai/claude-code"
+        print_info "Then re-run: nanokit claude-setup"
+        exit 1
+    fi
+
+    # Deploy config symlinks via dotter
+    print_step "Deploying Claude Code config symlinks..."
+    dotter deploy
+    print_success "Config symlinks deployed"
+    echo ""
+
+    # Install plugins
+    print_step "Installing Claude Code plugins..."
+    claude plugin install --marketplace everything-claude-code everything-claude-code 2>/dev/null || true
+    claude plugin install --marketplace understand-anything understand-anything 2>/dev/null || true
+    claude plugin install --marketplace claude-scientific-skills scientific-skills 2>/dev/null || true
+    print_success "Plugins installed"
+    echo ""
+
+    # Show next steps
+    print_info "Next steps:"
+    print_info "  1. Configure MCP servers: ~/.claude/mcp-configs/mcp-servers.json"
+    print_info "  2. Configure local settings: ~/.claude/settings.local.json"
+    echo ""
+    print_success "🤖 Claude Code setup completed!"
+}
+
 # Main function
 main() {
     case "${1:-}" in
         "install")
             install
+            ;;
+        "claude-setup")
+            claude_setup
             ;;
         "uninstall")
             uninstall

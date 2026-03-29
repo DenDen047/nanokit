@@ -57,3 +57,4 @@ Temporary Items
 .understand-anything/
 *.log
 .dotter/cache.toml
+.claude/settings.local.json

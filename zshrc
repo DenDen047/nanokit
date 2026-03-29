@@ -9,6 +9,7 @@ autoload -Uz compinit && compinit
 
 # 👾 For shell tools like Claude
 export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/.bun/bin:$PATH"
 
 # 🪄 Pixi
 export PATH="$HOME/.pixi/bin:$PATH"

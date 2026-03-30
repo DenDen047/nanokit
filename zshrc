@@ -54,5 +54,8 @@ alias cc="claude --allow-dangerously-skip-permissions"
 # 📦 direnv
 eval "$(direnv hook zsh)"
 
+# 🥟 bun
+alias bunx="bun x"
+
 # 💬 discord webhook
 export WEBHOOK_URL=

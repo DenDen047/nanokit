@@ -155,6 +155,11 @@ channels = ["conda-forge"]
 dependencies = { direnv = "*" }
 exposed = { direnv = "direnv" }
 
+[envs.bun]
+channels = ["conda-forge"]
+dependencies = { bun = "*" }
+exposed = { bun = "bun" }
+
 [envs.ffmpeg]
 channels = ["conda-forge"]
 dependencies = { ffmpeg = "*" }

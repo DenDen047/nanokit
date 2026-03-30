@@ -187,11 +187,19 @@ claude_setup() {
     print_success "Config symlinks deployed"
     echo ""
 
+    # Register plugin marketplaces
+    print_step "Registering plugin marketplaces..."
+    claude plugin marketplace add affaan-m/everything-claude-code 2>/dev/null || true
+    claude plugin marketplace add Lum1104/Understand-Anything 2>/dev/null || true
+    claude plugin marketplace add DenDen047/claude-scientific-skills 2>/dev/null || true
+    print_success "Marketplaces registered"
+    echo ""
+
     # Install plugins
     print_step "Installing Claude Code plugins..."
-    claude plugin install --marketplace everything-claude-code everything-claude-code 2>/dev/null || true
-    claude plugin install --marketplace understand-anything understand-anything 2>/dev/null || true
-    claude plugin install --marketplace claude-scientific-skills scientific-skills 2>/dev/null || true
+    claude plugin install everything-claude-code@everything-claude-code 2>/dev/null || true
+    claude plugin install understand-anything@understand-anything 2>/dev/null || true
+    claude plugin install scientific-skills@claude-scientific-skills 2>/dev/null || true
     print_success "Plugins installed"
     echo ""
 

@@ -48,7 +48,7 @@ wget -qO- https://pixi.sh/install.sh | sh
 Install GitHub CLI (recommended) or git:
 
 ```bash
-cd ~/.pixi/bin/
+export PATH="${HOME}/.pixi/bin/:$PATH"
 pixi global install gh
 # or
 pixi global install git

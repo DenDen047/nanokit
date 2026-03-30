@@ -355,7 +355,33 @@ curl -fsSL https://claude.ai/install.sh | bash
 
 This will:
 1. Symlink configuration files from `nanokit/claude/` to `~/.claude/`
-2. Install Claude Code plugins (everything-claude-code, understand-anything, scientific-skills)
+2. Register plugin marketplaces and install plugins
+
+### Plugins
+
+`./nanokit claude-setup` で自動インストールされます。別の環境で手動インストールする場合は以下を実行してください。
+
+**Step 1: マーケットプレイスの登録**
+
+```bash
+claude plugin marketplace add affaan-m/everything-claude-code
+claude plugin marketplace add Lum1104/Understand-Anything
+claude plugin marketplace add DenDen047/claude-scientific-skills
+```
+
+**Step 2: プラグインのインストール**
+
+```bash
+claude plugin install everything-claude-code@everything-claude-code
+claude plugin install understand-anything@understand-anything
+claude plugin install scientific-skills@claude-scientific-skills
+```
+
+| Plugin | Marketplace (GitHub) | Description |
+|--------|---------------------|-------------|
+| **everything-claude-code** | [affaan-m/everything-claude-code](https://github.com/affaan-m/everything-claude-code) | Agent, skill, rule の包括的コレクション |
+| **understand-anything** | [Lum1104/Understand-Anything](https://github.com/Lum1104/Understand-Anything) | コードベースの知識グラフ生成・探索 |
+| **scientific-skills** | [DenDen047/claude-scientific-skills](https://github.com/DenDen047/claude-scientific-skills) | 科学計算スキル (データ分析, 可視化, LaTeX 等) |
 
 ### What is managed
 

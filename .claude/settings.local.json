@@ -21,7 +21,9 @@
       "Bash(echo \"$PATH\")",
       "WebFetch(domain:www.notion.so)",
       "mcp__claude_ai_Notion__notion-fetch",
-      "Bash(pixi search:*)"
+      "Bash(pixi search:*)",
+      "Bash(claude plugins:*)",
+      "Bash(claude plugin:*)"
     ]
   }
 }

@@ -23,7 +23,8 @@
       "mcp__claude_ai_Notion__notion-fetch",
       "Bash(pixi search:*)",
       "Bash(claude plugins:*)",
-      "Bash(claude plugin:*)"
+      "Bash(claude plugin:*)",
+      "Bash(echo:*)"
     ]
   }
 }

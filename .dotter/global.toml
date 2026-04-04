@@ -15,6 +15,11 @@ tigrc = "$HOME/.tigrc"
 "claude/settings.json" = "$HOME/.claude/settings.json"
 "claude/CLAUDE.md" = "$HOME/.claude/CLAUDE.md"
 "claude/scripts/zotero-mcp-server.sh" = "$HOME/.claude/scripts/zotero-mcp-server.sh"
+"claude/skills/git-commits" = { target = "$HOME/.claude/skills/git-commits", type = "symbolic" }
+"claude/skills/code-comments" = { target = "$HOME/.claude/skills/code-comments", type = "symbolic" }
+"claude/skills/code-review-etiquette" = { target = "$HOME/.claude/skills/code-review-etiquette", type = "symbolic" }
+"claude/skills/readme-writing" = { target = "$HOME/.claude/skills/readme-writing", type = "symbolic" }
+"claude/skills/ai-code-changes" = { target = "$HOME/.claude/skills/ai-code-changes", type = "symbolic" }
 
 [default.variables]
 

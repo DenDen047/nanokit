@@ -9,6 +9,7 @@ autoload -Uz compinit && compinit
 
 # 👾 For shell tools like Claude
 export PATH="$HOME/.local/bin:$PATH"
+export PATH="/usr/local/bin:$PATH"
 export PATH="$HOME/.bun/bin:$PATH"
 
 # 🪄 Pixi
@@ -29,6 +30,16 @@ if ! zmodload -e zsh/mathfunc 2>/dev/null; then
         STARSHIP_CAPTURED_TIME=${STARSHIP_CAPTURED_TIME%.*}
     }
 fi
+
+# λ lambda cloud command
+lambda-cloud() {
+  if [[ -n "$1" ]]; then
+    sed -i '' 's/HostName .*/HostName '"$1"'/' ~/.ssh/config.d/lambda
+    echo "Lambda IP → $1"
+  fi
+  # Open Remote SSH on Cursor
+  cursor --remote ssh-remote+lambda /home/ubuntu/SyncHuman
+}
 
 # 🎨 ColorTheme (shared with nvim)
 base16_gruvbox-dark-hard

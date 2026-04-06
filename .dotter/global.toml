@@ -21,6 +21,7 @@ tigrc = "$HOME/.tigrc"
 "claude/skills/readme-writing" = { target = "$HOME/.claude/skills/readme-writing", type = "symbolic" }
 "claude/skills/ai-code-changes" = { target = "$HOME/.claude/skills/ai-code-changes", type = "symbolic" }
 "claude/skills/pixi-env" = { target = "$HOME/.claude/skills/pixi-env", type = "symbolic" }
+"claude/ccstatusline/settings.json" = "$HOME/.config/ccstatusline/settings.json"
 
 [default.variables]
 

@@ -49,6 +49,7 @@ else
     fi
     ok "GitHub authenticated"
 fi
+git config --global credential.helper store
 
 # --- 4. git config (from GitHub profile) ---
 if git config --global user.name &>/dev/null && git config --global user.email &>/dev/null; then

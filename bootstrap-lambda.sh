@@ -50,7 +50,17 @@ else
     ok "GitHub authenticated"
 fi
 
-# --- 4. nanokit ---
+# --- 4. git config (from GitHub profile) ---
+if git config --global user.name &>/dev/null && git config --global user.email &>/dev/null; then
+    ok "git config already set"
+else
+    step "Configuring git user from GitHub profile..."
+    git config --global user.name "$(gh api user --jq .name)"
+    git config --global user.email "$(gh api user/emails --jq '[.[] | select(.primary)] | .[0].email')"
+    ok "git config: $(git config --global user.name) <$(git config --global user.email)>"
+fi
+
+# --- 5. nanokit ---
 NANOKIT_DIR="${HOME}/nanokit"
 if [[ -d "${NANOKIT_DIR}" ]]; then
     ok "nanokit already cloned"

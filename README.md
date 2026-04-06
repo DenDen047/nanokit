@@ -80,7 +80,7 @@ cd nanokit
 **Using 🔀 git:**
 
 ```bash
-git clone https://github.com/denkiwakame/nanokit.git
+git clone https://github.com/DenDen047/nanokit.git
 cd nanokit
 ```
 
@@ -418,4 +418,4 @@ sudo userdel -r nanokit    # Remove user and home directory
 
 ## References
 
-- [Shell Tools を Rust 製に固めてｼﾝﾌﾟﾙに管理する](https://denkiwakame.notion.site/Shell-Tools-Rust-1693175c6b6a80319e06c71dea5162db)
+- [Shell Tools を Rust 製に固めてｼﾝﾌﾟﾙに管理する](https://.notion.site/Shell-Tools-Rust-1693175c6b6a80319e06c71dea5162db)

@@ -108,9 +108,16 @@ install() {
     print_success "Global packages synced"
     echo ""
     
-    print_success "🎉 Setup completed successfully!"
+    # Install Claude Code
+    print_step "Installing Claude Code..."
+    curl -fsSL https://claude.ai/install.sh | bash
+    print_success "Claude Code installed"
     echo ""
-    print_info "For Claude Code setup, run: nanokit claude-setup"
+
+    # Setup Claude Code configuration and plugins
+    claude_setup
+
+    print_success "🎉 Setup completed successfully!"
     echo ""
 
     # Ask to launch zsh

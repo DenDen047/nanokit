@@ -57,7 +57,7 @@ pixi global install git
 **Using 🔀 git:**
 
 ```bash
-git clone https://github.com/denkiwakame/nanokit.git
+git clone https://github.com/DenDen047/nanokit.git
 cd nanokit
 ```
 
@@ -73,7 +73,7 @@ gh auth login
 ```
 
 ```bash
-gh repo clone denkiwakame/nanokit
+gh repo clone DenDen047/nanokit
 cd nanokit
 ```
 

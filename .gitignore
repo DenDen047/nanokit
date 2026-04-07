@@ -58,3 +58,4 @@ Temporary Items
 *.log
 .dotter/cache.toml
 .claude/settings.local.json
+.claude/worktrees/

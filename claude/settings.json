@@ -58,5 +58,9 @@
   "effortLevel": "high",
   "autoUpdatesChannel": "latest",
   "voiceEnabled": true,
+  "voice": {
+    "enabled": true,
+    "mode": "hold"
+  },
   "skipDangerousModePermissionPrompt": true
 }

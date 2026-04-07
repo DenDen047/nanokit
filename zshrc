@@ -70,3 +70,6 @@ alias bunx="bun x"
 
 # 💬 discord webhook
 export WEBHOOK_URL=
+
+# comfy-env
+source "$HOME/.comfy-env-profile"

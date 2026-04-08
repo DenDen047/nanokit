@@ -1,0 +1,4 @@
+# Unset TERMINFO so pixi's ncurses (hex-encoded dirs) can find
+# terminfo entries in ~/.terminfo/ instead of the snap's single-char dirs.
+# No-op on platforms where Ghostty doesn't set TERMINFO (e.g. macOS).
+env = TERMINFO=

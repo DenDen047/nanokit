@@ -74,6 +74,29 @@ show_help() {
     echo ""
 }
 
+# Setup terminfo entries for pixi's ncurses (hex-encoded dirs)
+setup_terminfo() {
+    local tic="$HOME/.pixi/envs/tmux/bin/tic"
+    if [[ ! -x "$tic" ]]; then
+        print_warning "pixi tmux env not found, skipping terminfo setup"
+        return 0
+    fi
+
+    print_step "Setting up terminfo for pixi tools..."
+
+    local term_name="${TERM:-xterm-256color}"
+    local terminfo_src
+    terminfo_src="$(infocmp -x "$term_name" 2>/dev/null)" || true
+
+    if [[ -n "$terminfo_src" ]]; then
+        echo "$terminfo_src" | "$tic" -x -o "$HOME/.terminfo" - 2>/dev/null
+        print_success "terminfo '$term_name' installed to ~/.terminfo/"
+    else
+        print_warning "Could not read terminfo for '$term_name', skipping"
+    fi
+    echo ""
+}
+
 # Install nanokit
 install() {
     print_ascii_art
@@ -108,6 +131,13 @@ install() {
     print_success "Global packages synced"
     echo ""
     
+    # Setup terminfo for pixi tools
+    # pixi's ncurses (conda-forge) uses hex-encoded dirs (78/) while some
+    # terminal emulators (e.g. Ghostty snap) ship terminfo with single-char
+    # dirs (x/). Install terminal's terminfo into ~/.terminfo/ using pixi's
+    # tic so it writes the hex format that pixi tools (tmux, zsh) can read.
+    setup_terminfo
+
     # Install Claude Code
     print_step "Installing Claude Code..."
     curl -fsSL https://claude.ai/install.sh | bash

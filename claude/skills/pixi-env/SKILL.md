@@ -634,6 +634,50 @@ pixi run python -m pytest tests/test_environment.py -v
 - CUDA headers (cuda_runtime.h) と nvcc が存在すること (Stage 3)
 - 全 native extension が importable であること
 
+## CLAUDE.md への環境要件記録
+
+`pixi install` が成功したら、対象プロジェクトの `CLAUDE.md` に環境メモを残す。
+バージョンや依存一覧など **toml / lock を読めば分かる情報は書かない**。
+
+### 記録タイミング
+
+- `pixi init` + 初回 `pixi install` 完了後
+- conda vs PyPI の判断や platform 分離など設計判断を行った後
+
+### 記録する内容
+
+1. **設定ファイルへのポインタ**: どの toml を見ればよいか (`pixi.toml` or `pyproject.toml [tool.pixi.*]`)
+2. **非自明な設計判断とその理由**: toml を読むだけでは分からない「なぜ」
+   - conda vs PyPI の選択理由 (例: tokenizers ABI 不整合回避で PyPI 統一)
+   - platform 分離の理由 (例: kaolin に aarch64 ビルドなし)
+   - no-build-isolation の背景 (例: ビルド時に環境の torch/CUDA を参照)
+   - dependency-overrides の経緯 (例: 上流の numpy 上限が間違い)
+3. **セットアップ手順**: `pixi install` 以外に必要なステップがあれば
+
+### 記録フォーマット例
+
+````markdown
+## Pixi environment
+
+設定: `pyproject.toml` (`[tool.pixi.*]`)
+
+設計判断:
+- `transformers` / `tokenizers` は PyPI 統一 — conda-forge 版は tokenizers の Rust ABI 不整合を起こす
+- `flash-attn` は pre-build wheel URL 指定 — ソースビルドに 30 分以上かかるため
+- `kaolin` は `[target.linux-64.dependencies]` に分離 — aarch64 ビルドが存在しない
+
+```bash
+pixi install -a
+```
+````
+
+### 記録ルール
+
+1. **コンパクトに**: 10–15 行以内を目安
+2. **理由を残す**: 「何を」ではなく「なぜそうしたか」を書く
+3. **既存の `## Pixi environment` セクションがあれば上書き、なければ末尾に追加**
+4. **CLAUDE.md の他のセクションを壊さない**
+
 ## 環境のリセット
 
 ```bash

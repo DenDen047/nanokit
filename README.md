@@ -241,9 +241,19 @@ Manage plugins by editing [zshrc](zshrc) and [sheldon.toml](sheldon.toml).
 
 For more plugin management options, see the [Sheldon documentation](https://sheldon.cli.rs/).
 
+### 👻 Ghostty Configuration
+
+[Ghostty](https://ghostty.org/) terminal configuration is managed in [ghostty/config](ghostty/config) and symlinked to `~/.config/ghostty/config`.
+
+> [!NOTE]
+> pixi's ncurses (conda-forge) uses hex-encoded terminfo directories (`78/`) instead of standard single-char directories (`x/`).
+> Some terminal emulators (e.g. Ghostty snap on Linux) set `TERMINFO` to a path with single-char dirs, which pixi tools can't read.
+> `nanokit install` handles this automatically by running `setup_terminfo` to compile the terminal's terminfo into `~/.terminfo/` using pixi's `tic`.
+> If tmux fails with "can't find terminfo database" after a fresh install, re-run `./nanokit install`.
+
 ### 🦀 Dotfiles Management
 
-Manage symlinks for dotfiles by editing [.dotter/global.toml](./dotter/global.toml).
+Manage symlinks for dotfiles by editing [.dotter/global.toml](.dotter/global.toml).
 
 For detailed configuration options, see the [dotter documentation](https://github.com/SuperCuber/dotter/wiki).
 

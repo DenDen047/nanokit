@@ -24,5 +24,7 @@ pixi global sync         # Install/sync tools from pixi-global.toml
 
 - Files in this repo are symlinked to their targets (see `.dotter/global.toml`). Editing `zshrc` here directly changes `~/.zshrc`.
 - `claude/` directory files are symlinked to `~/.claude/`. Changes affect the global Claude Code config immediately.
+- `ghostty/config` is symlinked to `~/.config/ghostty/config`. Changes affect Ghostty immediately.
 - The `nanokit` CLI is a Bash script. Always run uninstall from system bash, not pixi-installed zsh.
 - pixi-installed zsh should NOT be set as login shell -- if pixi env breaks, login becomes impossible.
+- pixi's ncurses (conda-forge) uses hex-encoded terminfo dirs (`78/`), not standard single-char dirs (`x/`). `nanokit install` runs `setup_terminfo` to compile the current terminal's terminfo into `~/.terminfo/` using pixi's `tic`. If tmux fails with "can't find terminfo database", re-run `nanokit install` or manually run `infocmp -x $TERM | ~/.pixi/envs/tmux/bin/tic -x -o ~/.terminfo -`.

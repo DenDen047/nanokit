@@ -715,3 +715,46 @@ pixi global install dua-cli diskonaut
 | lockfile と toml の不整合 | 手動編集後に lock 未更新 | `pixi clean && rm pixi.lock && pixi install -a` |
 | `pixi install` が終わらない | solver の探索空間が広い | version range を狭める、`build = "..."` で絞る |
 | ストレージ逼迫 | .pixi が肥大化 | `dua i` で特定、`pixi clean` |
+
+
+## JIT コンパイル系ライブラリと conda CUDA (aarch64)
+
+spconv / cumm 等の pccm ベースのライブラリは、初回 import 時に CUDA カーネルを
+JIT コンパイルする。conda/pixi 管理の CUDA 環境では追加対応が必要。
+
+### conda CUDA と `/usr/local/cuda` の乖離
+
+JIT 系ライブラリは `/usr/local/cuda/` をハードコードしている。
+conda では CUDA が `$CONDA_PREFIX` 配下にインストールされるため、JIT がヘッダーやライブラリを見つけられない。
+
+```bash
+# aarch64 の場合 (sbsa-linux)
+sudo cp -rsf $CONDA_PREFIX/targets/sbsa-linux/include/* /usr/local/cuda/include/
+for f in "$CONDA_PREFIX"/lib/libcuda*.so* "$CONDA_PREFIX"/lib/libnvrtc*.so*; do
+    sudo ln -sf "$f" "/usr/local/cuda/lib64/$(basename "$f")"
+done
+
+# x86_64 の場合
+sudo cp -rsf $CONDA_PREFIX/targets/x86_64-linux/include/* /usr/local/cuda/include/
+```
+
+### editable install が必須
+
+cumm は JIT コンパイル時に自身の C++ ヘッダー (`include/tensorview/`) を参照する。
+通常の wheel install ではヘッダーが含まれないため、git clone + editable install が必要。
+
+```bash
+pixi add pip
+git clone --recursive https://github.com/FindDefinition/cumm.git /tmp/cumm-src
+pixi run python -m pip install --no-build-isolation -e /tmp/cumm-src
+git clone --recursive https://github.com/traveller59/spconv.git /tmp/spconv-src
+pixi run python -m pip install --no-build-isolation --no-deps -e /tmp/spconv-src
+```
+
+> pixi の宣言的設定 (`[pypi-dependencies]`) では editable git install + `--no-deps` を
+> 表現できないため、pixi task 化して再現可能にする。
+
+### pixi 環境内の pip 解決
+
+pixi タスク内の bare `pip` はシステムの `/usr/bin/pip` に解決される場合がある。
+`pixi add pip` で環境に pip を入れた上で `python -m pip` を使う。

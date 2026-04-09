@@ -4,13 +4,8 @@
 
 - github.com にアクセスする際には、`gh`コマンドを利用する
 
-## 信頼できる情報源
+## 参照すべき情報源
 
-### ガジェット系
-- https://www.youtube.com/@Fantasticworkspace
-
-### Claude Code
-- https://nyosegawa.com/posts/harness-engineering-best-practices-2026/
-
-### プログラミング
-- [Pythonプログラミング VTuber サプー](https://www.youtube.com/@pythonvtuber9917)
+- CLAUDE.md を編集する時
+  - https://code.claude.com/docs/en/best-practices
+  - https://nyosegawa.com/posts/harness-engineering-best-practices-2026/

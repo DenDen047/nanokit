@@ -5,14 +5,21 @@
   },
   "permissions": {
     "allow": [
+      "Bash(ls:*)",
       "Bash(find:*)",
+      "Bash(cat:*)",
       "Bash(ps:*)",
       "Read(/tmp/*)",
       "Write(/tmp/*)",
       "Edit(/tmp/*)",
-      "Bash(ls /tmp*)",
-      "Bash(cat /tmp*)",
-      "Bash(rm /tmp*)"
+      "Bash(rm /tmp*)",
+      "Read(**/.claude/settings.json)",
+      "Read(**/.claude/settings.local.json)",
+      "Edit(**/.claude/settings.json)",
+      "Edit(**/.claude/settings.local.json)",
+      "Write(**/.claude/settings.local.json)",
+      "WebSearch",
+      "WebFetch"
     ]
   },
   "model": "opus[1m]",

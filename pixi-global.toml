@@ -174,3 +174,8 @@ exposed = { 7z = "7z", 7za = "7za", 7zr = "7zr" }
 channels = ["conda-forge"]
 dependencies = { watch = "*" }
 exposed = { watch = "watch" }
+
+[envs.t-rec]
+channels = ["conda-forge"]
+dependencies = { t-rec = "*" }
+exposed = { t-rec = "t-rec" }

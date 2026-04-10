@@ -169,3 +169,8 @@ exposed = { ffmpeg = "ffmpeg", ffprobe = "ffprobe" }
 channels = ["conda-forge"]
 dependencies = { p7zip = "*" }
 exposed = { 7z = "7z", 7za = "7za", 7zr = "7zr" }
+
+[envs.watch]
+channels = ["conda-forge"]
+dependencies = { watch = "*" }
+exposed = { watch = "watch" }

@@ -1,5 +1,21 @@
 # グローバル設定
 
+## シンボリックリンク構造
+
+このファイル (`~/.claude/CLAUDE.md`) は nanokit リポジトリから dotter によってシンボリックリンクされている。
+編集元は `<nanokit>/claude/CLAUDE.md` であり、`~/.claude/` 配下の以下のファイルも同様:
+
+| リポジトリ内パス | シンボリックリンク先 |
+|---|---|
+| `claude/CLAUDE.md` | `~/.claude/CLAUDE.md` |
+| `claude/settings.json` | `~/.claude/settings.json` |
+| `claude/scripts/zotero-mcp-server.sh` | `~/.claude/scripts/zotero-mcp-server.sh` |
+| `claude/ccstatusline/settings.json` | `~/.config/ccstatusline/settings.json` |
+| `claude/skills/*` | `~/.claude/skills/*` |
+
+したがって `~/.claude/` 配下のファイルを直接編集すると nanokit リポジトリのワーキングツリーが変更される。
+設定を変更する場合は nanokit リポジトリ側で編集し `dotter deploy` で反映するのが正しいワークフロー。
+
 ## 環境管理ポリシー
 
 - **pixi-only**: シェルツールはすべて `pixi global` (conda-forge) で管理する。`brew`, `cargo install`, `pip install`, `go install` でツールを追加しない。

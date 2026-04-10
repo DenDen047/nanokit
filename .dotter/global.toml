@@ -15,17 +15,18 @@ tigrc = "$HOME/.tigrc"
 "claude/settings.json" = "$HOME/.claude/settings.json"
 "claude/CLAUDE.md" = "$HOME/.claude/CLAUDE.md"
 "claude/scripts/zotero-mcp-server.sh" = "$HOME/.claude/scripts/zotero-mcp-server.sh"
-"claude/skills/git-commits" = { target = "$HOME/.claude/skills/git-commits", type = "symbolic" }
-"claude/skills/code-comments" = { target = "$HOME/.claude/skills/code-comments", type = "symbolic" }
-"claude/skills/code-review-etiquette" = { target = "$HOME/.claude/skills/code-review-etiquette", type = "symbolic" }
-"claude/skills/readme-writing" = { target = "$HOME/.claude/skills/readme-writing", type = "symbolic" }
-"claude/skills/ai-code-changes" = { target = "$HOME/.claude/skills/ai-code-changes", type = "symbolic" }
-"claude/skills/pixi-env" = { target = "$HOME/.claude/skills/pixi-env", type = "symbolic" }
-"claude/skills/clip" = { target = "$HOME/.claude/skills/clip", type = "symbolic" }
+"claude/skills/git-commits" = { target = "$HOME/.claude/skills/git-commits", type = "symbolic", recurse = false }
+"claude/skills/code-comments" = { target = "$HOME/.claude/skills/code-comments", type = "symbolic", recurse = false }
+"claude/skills/code-review-etiquette" = { target = "$HOME/.claude/skills/code-review-etiquette", type = "symbolic", recurse = false }
+"claude/skills/readme-writing" = { target = "$HOME/.claude/skills/readme-writing", type = "symbolic", recurse = false }
+"claude/skills/ai-code-changes" = { target = "$HOME/.claude/skills/ai-code-changes", type = "symbolic", recurse = false }
+"claude/skills/pixi-env" = { target = "$HOME/.claude/skills/pixi-env", type = "symbolic", recurse = false }
+"claude/skills/clip" = { target = "$HOME/.claude/skills/clip", type = "symbolic", recurse = false }
+"claude/skills/notion-writing" = { target = "$HOME/.claude/skills/notion-writing", type = "symbolic", recurse = false }
+"claude/skills/windows-zip-extract" = { target = "$HOME/.claude/skills/windows-zip-extract", type = "symbolic", recurse = false }
 "claude/ccstatusline/settings.json" = "$HOME/.config/ccstatusline/settings.json"
 
 [default.variables]
 
 [settings]
 default_target_type = "symbolic"
-recurse = false

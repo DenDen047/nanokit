@@ -5,7 +5,13 @@
   },
   "permissions": {
     "allow": [
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Read(/tmp/*)",
+      "Write(/tmp/*)",
+      "Edit(/tmp/*)",
+      "Bash(ls /tmp*)",
+      "Bash(cat /tmp*)",
+      "Bash(rm /tmp*)"
     ]
   },
   "model": "opus[1m]",

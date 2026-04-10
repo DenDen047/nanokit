@@ -6,6 +6,7 @@
   "permissions": {
     "allow": [
       "Bash(find:*)",
+      "Bash(ps:*)",
       "Read(/tmp/*)",
       "Write(/tmp/*)",
       "Edit(/tmp/*)",

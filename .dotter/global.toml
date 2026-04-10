@@ -24,6 +24,7 @@ tigrc = "$HOME/.tigrc"
 "claude/skills/clip" = { target = "$HOME/.claude/skills/clip", type = "symbolic", recurse = false }
 "claude/skills/notion-writing" = { target = "$HOME/.claude/skills/notion-writing", type = "symbolic", recurse = false }
 "claude/skills/windows-zip-extract" = { target = "$HOME/.claude/skills/windows-zip-extract", type = "symbolic", recurse = false }
+"claude/skills/cto-briefing" = { target = "$HOME/.claude/skills/cto-briefing", type = "symbolic", recurse = false }
 "claude/ccstatusline/settings.json" = "$HOME/.config/ccstatusline/settings.json"
 
 [default.variables]

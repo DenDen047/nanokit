@@ -179,3 +179,8 @@ exposed = { watch = "watch" }
 channels = ["conda-forge"]
 dependencies = { t-rec = "*" }
 exposed = { t-rec = "t-rec" }
+
+[envs.imagemagick]
+channels = ["conda-forge"]
+dependencies = { imagemagick = "*" }
+exposed = { "Magick++-config" = "Magick++-config", MagickCore-config = "MagickCore-config", MagickWand-config = "MagickWand-config", animate = "animate", compare = "compare", composite = "composite", conjure = "conjure", convert = "convert", display = "display", identify = "identify", import = "import", magick = "magick", magick-script = "magick-script", mogrify = "mogrify", montage = "montage", stream = "stream" }

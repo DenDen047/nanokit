@@ -249,6 +249,21 @@ ARIS_REPO="https://github.com/wanshuiyin/Auto-claude-code-research-in-sleep.git"
 ARIS_DIR="$NANOKIT_ROOT/claude/external/aris"
 ARIS_SKILLS_DIR="$HOME/.claude/skills"
 
+# Directories under ARIS skills/ that are alternative-stack packages (Codex-as-main,
+# Gemini-as-reviewer, etc.), NOT Claude Code skills. The default ARIS flow is Claude Code
+# as executor + Codex as reviewer via Codex MCP, so these should be excluded from the
+# ~/.claude/skills/ symlink loop.
+ARIS_NON_CLAUDE_PACKAGES=(skills-codex skills-codex-claude-review skills-codex-gemini-review)
+
+aris_is_non_claude_package() {
+    local name="$1"
+    local pkg
+    for pkg in "${ARIS_NON_CLAUDE_PACKAGES[@]}"; do
+        [[ "$name" == "$pkg" ]] && return 0
+    done
+    return 1
+}
+
 aris_install() {
     print_ascii_art
 
@@ -276,6 +291,19 @@ aris_install() {
         exit 1
     fi
 
+    # Clean up stale non-Claude package symlinks left by earlier nanokit versions
+    # that indiscriminately symlinked every subdirectory of skills/.
+    if [[ -d "$ARIS_SKILLS_DIR" ]]; then
+        local pkg
+        for pkg in "${ARIS_NON_CLAUDE_PACKAGES[@]}"; do
+            local stale="$ARIS_SKILLS_DIR/$pkg"
+            if [[ -L "$stale" ]]; then
+                rm "$stale"
+                print_warning "Removed stale Claude symlink: $stale"
+            fi
+        done
+    fi
+
     mkdir -p "$ARIS_SKILLS_DIR"
 
     print_step "Symlinking ARIS skills into $ARIS_SKILLS_DIR..."
@@ -285,6 +313,11 @@ aris_install() {
         [[ -d "$skill_path" ]] || continue
         local name
         name="$(basename "$skill_path")"
+
+        if aris_is_non_claude_package "$name"; then
+            continue
+        fi
+
         local target="$ARIS_SKILLS_DIR/$name"
 
         if [[ -e "$target" && ! -L "$target" ]]; then
@@ -301,8 +334,61 @@ aris_install() {
     fi
     echo ""
 
+    # ARIS uses Codex as the external reviewer via Codex MCP registered in Claude Code.
+    aris_codex_mcp_setup
+
     print_info "ARIS docs: https://github.com/wanshuiyin/Auto-claude-code-research-in-sleep"
     print_success "🌙 ARIS installed. Restart Claude Code to load new skills."
+}
+
+# Set up the Codex reviewer path for ARIS:
+#  1. Ensure Codex CLI is installed
+#  2. Register Codex as an MCP server in Claude Code (`claude mcp add codex -s user -- codex mcp-server`)
+#  3. Remind the user to run interactive setup (`codex login`, `codex setup`)
+aris_codex_mcp_setup() {
+    print_step "Setting up Codex MCP reviewer for ARIS..."
+    echo ""
+
+    # 1. Ensure Codex CLI is installed
+    if ! command -v codex &> /dev/null; then
+        print_warning "Codex CLI not found. Installing..."
+        codex_install
+        echo ""
+        if ! command -v codex &> /dev/null; then
+            print_error "Codex CLI install failed. Run: ./nanokit codex-install"
+            return 1
+        fi
+    else
+        print_info "Codex CLI present: $(codex --version 2>/dev/null || echo 'unknown')"
+    fi
+    echo ""
+
+    # 2. Register Codex as an MCP in Claude Code
+    if ! command -v claude &> /dev/null; then
+        print_warning "Claude Code CLI not found — cannot register Codex MCP."
+        print_info "Run './nanokit claude-setup' first, then './nanokit aris-install' again."
+        return 1
+    fi
+
+    if claude mcp list 2>/dev/null | grep -q '^codex\b'; then
+        print_info "Claude MCP 'codex' already registered."
+    else
+        print_step "Registering Codex as an MCP in Claude Code..."
+        if claude mcp add codex -s user -- codex mcp-server 2>&1; then
+            print_success "Codex MCP registered"
+        else
+            print_warning "Failed to auto-register Codex MCP. Run manually:"
+            print_info "  claude mcp add codex -s user -- codex mcp-server"
+        fi
+    fi
+    echo ""
+
+    # 3. Remind about interactive setup
+    print_info "Next steps (interactive, run manually):"
+    print_info "  1. codex login        # authenticate Codex"
+    print_info "  2. codex setup        # select gpt-5.4 as the default model"
+    print_info "  3. Restart Claude Code to load the new MCP server"
+    echo ""
 }
 
 aris_update() {

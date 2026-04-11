@@ -60,3 +60,4 @@ Temporary Items
 .claude/settings.local.json
 .claude/worktrees/
 claude/mcp-servers/*/.pixi/
+claude/external/

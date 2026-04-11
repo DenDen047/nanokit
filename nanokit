@@ -5,8 +5,8 @@
 
 set -e  # Exit on any error
 
-# Resolve the directory where this script lives (= nanokit repo root)
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve nanokit repo root (directory of this script)
+NANOKIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Colors for output
 RED='\033[0;31m'
@@ -66,10 +66,13 @@ show_help() {
     echo "  nanokit <command>"
     echo ""
     echo -e "${CYAN}Commands:${NC}"
-    echo "  install       🚀 Install and setup nanokit environment"
-    echo "  claude-setup  🤖 Setup Claude Code configuration and plugins"
-    echo "  uninstall     🗑️ Uninstall nanokit and remove all configurations"
-    echo "  --help        📖 Show this help message"
+    echo "  install         🚀 Install and setup nanokit environment"
+    echo "  claude-setup    🤖 Setup Claude Code configuration and plugins"
+    echo "  aris-install    🌙 Install ARIS research skills into ~/.claude/skills (optional)"
+    echo "  aris-update     🔄 Update ARIS skills to the latest version"
+    echo "  aris-uninstall  🧹 Remove ARIS skills and clone"
+    echo "  uninstall       🗑️ Uninstall nanokit and remove all configurations"
+    echo "  --help          📖 Show this help message"
     echo ""
     echo -e "${CYAN}Examples:${NC}"
     echo "  nanokit install"
@@ -215,7 +218,7 @@ claude_setup() {
 
     # Setup Scrapling MCP server
     print_step "Setting up Scrapling MCP server..."
-    local scrapling_dir="$SCRIPT_DIR/claude/mcp-servers/scrapling"
+    local scrapling_dir="$NANOKIT_ROOT/claude/mcp-servers/scrapling"
     if [[ -f "$scrapling_dir/pixi.toml" ]]; then
         pixi install --manifest-path "$scrapling_dir/pixi.toml" 2>/dev/null && \
             print_success "Scrapling pixi environment installed" || \
@@ -238,6 +241,110 @@ claude_setup() {
     print_success "🤖 Claude Code setup completed!"
 }
 
+# ARIS (Auto-Research-In-Sleep) optional setup
+ARIS_REPO="https://github.com/wanshuiyin/Auto-claude-code-research-in-sleep.git"
+ARIS_DIR="$NANOKIT_ROOT/claude/external/aris"
+ARIS_SKILLS_DIR="$HOME/.claude/skills"
+
+aris_install() {
+    print_ascii_art
+
+    print_step "Installing ARIS (Auto-Research-In-Sleep) skills..."
+    echo ""
+
+    if ! command -v git &> /dev/null; then
+        print_error "git is required. Install with: pixi global install git"
+        exit 1
+    fi
+
+    if [[ -d "$ARIS_DIR/.git" ]]; then
+        print_step "Updating existing ARIS clone..."
+        git -C "$ARIS_DIR" pull --ff-only
+    else
+        print_step "Cloning ARIS repository to $ARIS_DIR..."
+        mkdir -p "$(dirname "$ARIS_DIR")"
+        git clone --depth 1 "$ARIS_REPO" "$ARIS_DIR"
+    fi
+    print_success "ARIS repository ready"
+    echo ""
+
+    if [[ ! -d "$ARIS_DIR/skills" ]]; then
+        print_error "ARIS skills directory not found at $ARIS_DIR/skills"
+        exit 1
+    fi
+
+    mkdir -p "$ARIS_SKILLS_DIR"
+
+    print_step "Symlinking ARIS skills into $ARIS_SKILLS_DIR..."
+    local count=0
+    local skipped=0
+    for skill_path in "$ARIS_DIR"/skills/*/; do
+        [[ -d "$skill_path" ]] || continue
+        local name
+        name="$(basename "$skill_path")"
+        local target="$ARIS_SKILLS_DIR/$name"
+
+        if [[ -e "$target" && ! -L "$target" ]]; then
+            print_warning "Skipping '$name' (existing non-symlink)"
+            skipped=$((skipped + 1))
+            continue
+        fi
+        ln -sfn "${skill_path%/}" "$target"
+        count=$((count + 1))
+    done
+    print_success "Linked $count ARIS skill(s)"
+    if [[ $skipped -gt 0 ]]; then
+        print_warning "$skipped skill(s) skipped due to name collision"
+    fi
+    echo ""
+
+    print_info "ARIS docs: https://github.com/wanshuiyin/Auto-claude-code-research-in-sleep"
+    print_success "🌙 ARIS installed. Restart Claude Code to load new skills."
+}
+
+aris_update() {
+    if [[ ! -d "$ARIS_DIR/.git" ]]; then
+        print_error "ARIS is not installed. Run: ./nanokit aris-install"
+        exit 1
+    fi
+    aris_install
+}
+
+aris_uninstall() {
+    print_ascii_art
+
+    print_warning "This will remove ARIS symlinks and the clone at $ARIS_DIR"
+    read -p "🗑️  Proceed? (y/N): " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        print_info "Cancelled"
+        return 0
+    fi
+
+    if [[ -d "$ARIS_SKILLS_DIR" ]]; then
+        print_step "Removing ARIS symlinks from $ARIS_SKILLS_DIR..."
+        local removed=0
+        for link in "$ARIS_SKILLS_DIR"/*; do
+            [[ -L "$link" ]] || continue
+            local resolved
+            resolved="$(readlink "$link")"
+            if [[ "$resolved" == "$ARIS_DIR"/* ]]; then
+                rm "$link"
+                removed=$((removed + 1))
+            fi
+        done
+        print_success "Removed $removed ARIS symlink(s)"
+    fi
+
+    if [[ -d "$ARIS_DIR" ]]; then
+        print_step "Removing ARIS clone..."
+        rm -rf "$ARIS_DIR"
+        print_success "Removed $ARIS_DIR"
+    fi
+
+    print_success "🧹 ARIS uninstalled"
+}
+
 # Main function
 main() {
     case "${1:-}" in
@@ -246,6 +353,15 @@ main() {
             ;;
         "claude-setup")
             claude_setup
+            ;;
+        "aris-install")
+            aris_install
+            ;;
+        "aris-update")
+            aris_update
+            ;;
+        "aris-uninstall")
+            aris_uninstall
             ;;
         "uninstall")
             uninstall

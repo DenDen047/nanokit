@@ -407,6 +407,36 @@ Configure machine-specific settings manually:
 - MCP servers: `~/.claude/mcp-configs/mcp-servers.json`
 - Local overrides: `~/.claude/settings.local.json`
 
+## 🌙 ARIS - Auto-Research-In-Sleep (Optional)
+
+[ARIS](https://github.com/wanshuiyin/Auto-claude-code-research-in-sleep) は、自律的な ML リサーチ用の Markdown-only スキル集（論文レビューループ、アイデア探索、実験自動化など 50+ 個）です。Claude plugin marketplace には対応していないため、nanokit では **optional なサブコマンド** として管理します。
+
+> [!NOTE]
+> ARIS は `./nanokit install` では導入されません。必要なときだけ明示的に `aris-install` を叩いてください。
+
+### Install
+
+```bash
+./nanokit aris-install
+```
+
+これにより以下が行われます:
+
+1. `nanokit/claude/external/aris/` に ARIS リポジトリを shallow clone（`.gitignore` 済み）
+2. `skills/*/` の各スキルを `~/.claude/skills/<skill-name>` へ symlink
+3. 既存の同名ファイル（非 symlink）があれば衝突回避のためスキップ
+
+clone 先を nanokit リポジトリ配下に置くことで、どこから持ってきた symlink なのかを後から辿りやすくしています。dotter の管轄外なので、`claude/skills/*` の固定 symlink とは独立に追加・削除できます。
+
+### Update / Uninstall
+
+```bash
+./nanokit aris-update      # git pull + symlink 再リンク
+./nanokit aris-uninstall   # ARIS symlink と clone を削除
+```
+
+`aris-uninstall` は `~/.claude/skills/` 配下のうち **`nanokit/claude/external/aris/` を指している symlink のみ** を削除するため、他のスキルには影響しません。
+
 ## 🧪 Try nanokit in your OS
 
 Want to test nanokit without affecting your current setup? Create a temporary user:

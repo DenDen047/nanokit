@@ -71,6 +71,9 @@ show_help() {
     echo "  aris-install    🌙 Install ARIS research skills into ~/.claude/skills (optional)"
     echo "  aris-update     🔄 Update ARIS skills to the latest version"
     echo "  aris-uninstall  🧹 Remove ARIS skills and clone"
+    echo "  codex-install   🧠 Install OpenAI Codex CLI via npm (optional)"
+    echo "  codex-update    🔄 Update Codex CLI to the latest version"
+    echo "  codex-uninstall 🧹 Remove Codex CLI"
     echo "  uninstall       🗑️ Uninstall nanokit and remove all configurations"
     echo "  --help          📖 Show this help message"
     echo ""
@@ -345,6 +348,103 @@ aris_uninstall() {
     print_success "🧹 ARIS uninstalled"
 }
 
+# Codex CLI (OpenAI) optional setup — installed via npm to get the latest upstream release,
+# since conda-forge tends to lag. Uses the nodejs env managed by pixi-global.toml.
+CODEX_NPM_PACKAGE="@openai/codex"
+
+# Expose a binary installed into the pixi nodejs env by symlinking it into ~/.pixi/bin,
+# which pixi already puts on PATH. Keeps npm-installed CLIs discoverable without editing
+# pixi-global.toml's [envs.nodejs] exposed table (which would be overwritten by `pixi global sync`).
+codex_link_binary() {
+    local npm_prefix bin_src bin_dst
+    npm_prefix="$(npm prefix -g 2>/dev/null)"
+    if [[ -z "$npm_prefix" ]]; then
+        print_warning "Could not determine npm global prefix."
+        return 1
+    fi
+    bin_src="$npm_prefix/bin/codex"
+    bin_dst="$HOME/.pixi/bin/codex"
+
+    if [[ ! -x "$bin_src" ]]; then
+        print_warning "codex binary not found at $bin_src"
+        return 1
+    fi
+
+    mkdir -p "$HOME/.pixi/bin"
+    ln -sfn "$bin_src" "$bin_dst"
+    print_success "Linked $bin_dst -> $bin_src"
+}
+
+codex_install() {
+    print_ascii_art
+
+    print_step "Installing OpenAI Codex CLI ($CODEX_NPM_PACKAGE)..."
+    echo ""
+
+    if ! command -v npm &> /dev/null; then
+        print_error "npm is required. Install with: pixi global install nodejs"
+        exit 1
+    fi
+
+    npm install -g "$CODEX_NPM_PACKAGE"
+    print_success "Codex CLI installed"
+    echo ""
+
+    codex_link_binary
+    echo ""
+
+    if command -v codex &> /dev/null; then
+        print_info "Version: $(codex --version 2>/dev/null || echo 'unknown')"
+        print_info "Run 'codex --help' to get started."
+    else
+        print_warning "codex command not found on PATH. Ensure ~/.pixi/bin is on PATH."
+    fi
+    print_success "🧠 Codex CLI setup completed!"
+}
+
+codex_update() {
+    if ! command -v npm &> /dev/null; then
+        print_error "npm is required. Install with: pixi global install nodejs"
+        exit 1
+    fi
+
+    print_step "Updating Codex CLI to latest..."
+    npm install -g "$CODEX_NPM_PACKAGE@latest"
+    print_success "Codex CLI updated"
+    codex_link_binary
+    if command -v codex &> /dev/null; then
+        print_info "Version: $(codex --version 2>/dev/null || echo 'unknown')"
+    fi
+}
+
+codex_uninstall() {
+    print_ascii_art
+
+    print_warning "This will remove Codex CLI ($CODEX_NPM_PACKAGE) from npm global."
+    read -p "🗑️  Proceed? (y/N): " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        print_info "Cancelled"
+        return 0
+    fi
+
+    if ! command -v npm &> /dev/null; then
+        print_error "npm is not available; nothing to uninstall via npm."
+        exit 1
+    fi
+
+    print_step "Removing Codex CLI..."
+    npm uninstall -g "$CODEX_NPM_PACKAGE" || true
+
+    local bin_dst="$HOME/.pixi/bin/codex"
+    if [[ -L "$bin_dst" ]]; then
+        rm -f "$bin_dst"
+        print_success "Removed $bin_dst"
+    fi
+
+    print_success "🧹 Codex CLI uninstalled"
+}
+
 # Main function
 main() {
     case "${1:-}" in
@@ -362,6 +462,15 @@ main() {
             ;;
         "aris-uninstall")
             aris_uninstall
+            ;;
+        "codex-install")
+            codex_install
+            ;;
+        "codex-update")
+            codex_update
+            ;;
+        "codex-uninstall")
+            codex_uninstall
             ;;
         "uninstall")
             uninstall

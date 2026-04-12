@@ -5,6 +5,9 @@
 
 set -e  # Exit on any error
 
+# Resolve the directory where this script lives (= nanokit repo root)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -210,10 +213,27 @@ claude_setup() {
     print_success "Plugins installed"
     echo ""
 
+    # Setup Scrapling MCP server
+    print_step "Setting up Scrapling MCP server..."
+    local scrapling_dir="$SCRIPT_DIR/claude/mcp-servers/scrapling"
+    if [[ -f "$scrapling_dir/pixi.toml" ]]; then
+        pixi install --manifest-path "$scrapling_dir/pixi.toml" 2>/dev/null && \
+            print_success "Scrapling pixi environment installed" || \
+            print_warning "Scrapling pixi install failed"
+        pixi run --manifest-path "$scrapling_dir/pixi.toml" install-browsers 2>/dev/null && \
+            print_success "Scrapling browser dependencies installed" || \
+            print_warning "Scrapling browser install failed (non-critical, basic scraping still works)"
+        claude mcp add -s user scrapling -- pixi run --manifest-path "$scrapling_dir/pixi.toml" mcp 2>/dev/null && \
+            print_success "Scrapling MCP server registered" || \
+            print_warning "Scrapling MCP registration failed"
+    else
+        print_warning "Scrapling pixi.toml not found at $scrapling_dir"
+    fi
+    echo ""
+
     # Show next steps
     print_info "Next steps:"
-    print_info "  1. Configure MCP servers: ~/.claude/mcp-configs/mcp-servers.json"
-    print_info "  2. Configure local settings: ~/.claude/settings.local.json"
+    print_info "  1. Configure local settings: ~/.claude/settings.local.json"
     echo ""
     print_success "🤖 Claude Code setup completed!"
 }

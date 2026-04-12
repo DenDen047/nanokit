@@ -27,7 +27,16 @@
       "Edit(**/.claude/settings.local.json)",
       "Write(**/.claude/settings.local.json)",
       "WebSearch",
-      "WebFetch"
+      "WebFetch",
+      "mcp__scrapling__get",
+      "mcp__scrapling__bulk_get",
+      "mcp__scrapling__fetch",
+      "mcp__scrapling__bulk_fetch",
+      "mcp__scrapling__stealthy_fetch",
+      "mcp__scrapling__bulk_stealthy_fetch",
+      "mcp__scrapling__open_session",
+      "mcp__scrapling__close_session",
+      "mcp__scrapling__list_sessions"
     ]
   },
   "model": "opus[1m]",

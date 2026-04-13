@@ -74,6 +74,9 @@ show_help() {
     echo "  ecc-install     🔧 Install ECC (Everything Claude Code) skills (optional)"
     echo "  ecc-update      🔄 Update ECC skills to the latest version"
     echo "  ecc-uninstall   🧹 Remove ECC skills and clone"
+    echo "  last30days-install   📰 Install last30days social search skill (optional)"
+    echo "  last30days-update    🔄 Update last30days skill to the latest version"
+    echo "  last30days-uninstall 🧹 Remove last30days skill and clone"
     echo "  codex-install   🧠 Install OpenAI Codex CLI via npm (optional)"
     echo "  codex-update    🔄 Update Codex CLI to the latest version"
     echo "  codex-uninstall 🧹 Remove Codex CLI"
@@ -430,6 +433,91 @@ aris_uninstall() {
     fi
 
     print_success "🧹 ARIS uninstalled"
+}
+
+# last30days optional setup
+LAST30DAYS_REPO="https://github.com/mvanhorn/last30days-skill.git"
+LAST30DAYS_DIR="$NANOKIT_ROOT/claude/external/last30days"
+LAST30DAYS_SKILLS_DIR="$HOME/.claude/skills"
+
+last30days_install() {
+    print_ascii_art
+
+    print_step "Installing last30days social search skill..."
+    echo ""
+
+    if ! command -v git &> /dev/null; then
+        print_error "git is required. Install with: pixi global install git"
+        exit 1
+    fi
+
+    if [[ -d "$LAST30DAYS_DIR/.git" ]]; then
+        print_step "Updating existing last30days clone..."
+        git -C "$LAST30DAYS_DIR" pull --ff-only
+    else
+        print_step "Cloning last30days repository to $LAST30DAYS_DIR..."
+        mkdir -p "$(dirname "$LAST30DAYS_DIR")"
+        git clone --depth 1 "$LAST30DAYS_REPO" "$LAST30DAYS_DIR"
+    fi
+    print_success "last30days repository ready"
+    echo ""
+
+    mkdir -p "$LAST30DAYS_SKILLS_DIR"
+
+    local target="$LAST30DAYS_SKILLS_DIR/last30days"
+    if [[ -e "$target" && ! -L "$target" ]]; then
+        print_warning "Skipping symlink: $target exists and is not a symlink"
+    else
+        ln -sfn "$LAST30DAYS_DIR" "$target"
+        print_success "Linked last30days skill into $LAST30DAYS_SKILLS_DIR"
+    fi
+    echo ""
+
+    print_info "Required: SCRAPECREATORS_API_KEY environment variable"
+    print_info "Optional: OPENAI_API_KEY, BRAVE_API_KEY, APIFY_API_TOKEN, etc."
+    print_info "Run /last30days <topic> in Claude Code to use."
+    print_info "Docs: https://github.com/mvanhorn/last30days-skill"
+    print_success "📰 last30days installed. Restart Claude Code to load the skill."
+}
+
+last30days_update() {
+    if [[ ! -d "$LAST30DAYS_DIR/.git" ]]; then
+        print_error "last30days is not installed. Run: ./nanokit last30days-install"
+        exit 1
+    fi
+    last30days_install
+}
+
+last30days_uninstall() {
+    print_ascii_art
+
+    print_warning "This will remove last30days symlink and the clone at $LAST30DAYS_DIR"
+    read -p "🗑️  Proceed? (y/N): " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        print_info "Cancelled"
+        return 0
+    fi
+
+    local link="$LAST30DAYS_SKILLS_DIR/last30days"
+    if [[ -L "$link" ]]; then
+        local resolved
+        resolved="$(readlink "$link")"
+        if [[ "$resolved" == "$LAST30DAYS_DIR" ]]; then
+            rm "$link"
+            print_success "Removed symlink: $link"
+        else
+            print_warning "Symlink $link points elsewhere ($resolved), skipping"
+        fi
+    fi
+
+    if [[ -d "$LAST30DAYS_DIR" ]]; then
+        print_step "Removing last30days clone..."
+        rm -rf "$LAST30DAYS_DIR"
+        print_success "Removed $LAST30DAYS_DIR"
+    fi
+
+    print_success "🧹 last30days uninstalled"
 }
 
 # ECC (Everything Claude Code) optional setup
@@ -841,6 +929,15 @@ main() {
             ;;
         "aris-uninstall")
             aris_uninstall
+            ;;
+        "last30days-install")
+            last30days_install
+            ;;
+        "last30days-update")
+            last30days_update
+            ;;
+        "last30days-uninstall")
+            last30days_uninstall
             ;;
         "ecc-install")
             ecc_install

@@ -71,6 +71,9 @@ show_help() {
     echo "  aris-install    🌙 Install ARIS research skills into ~/.claude/skills (optional)"
     echo "  aris-update     🔄 Update ARIS skills to the latest version"
     echo "  aris-uninstall  🧹 Remove ARIS skills and clone"
+    echo "  ecc-install     🔧 Install ECC (Everything Claude Code) skills (optional)"
+    echo "  ecc-update      🔄 Update ECC skills to the latest version"
+    echo "  ecc-uninstall   🧹 Remove ECC skills and clone"
     echo "  codex-install   🧠 Install OpenAI Codex CLI via npm (optional)"
     echo "  codex-update    🔄 Update Codex CLI to the latest version"
     echo "  codex-uninstall 🧹 Remove Codex CLI"
@@ -203,22 +206,6 @@ claude_setup() {
     print_success "Config symlinks deployed"
     echo ""
 
-    # Register plugin marketplaces
-    print_step "Registering plugin marketplaces..."
-    claude plugin marketplace add affaan-m/everything-claude-code 2>/dev/null || true
-    claude plugin marketplace add Lum1104/Understand-Anything 2>/dev/null || true
-    claude plugin marketplace add DenDen047/claude-scientific-skills 2>/dev/null || true
-    print_success "Marketplaces registered"
-    echo ""
-
-    # Install plugins
-    print_step "Installing Claude Code plugins..."
-    claude plugin install everything-claude-code@everything-claude-code 2>/dev/null || true
-    claude plugin install understand-anything@understand-anything 2>/dev/null || true
-    claude plugin install scientific-skills@claude-scientific-skills 2>/dev/null || true
-    print_success "Plugins installed"
-    echo ""
-
     # Setup Scrapling MCP server
     print_step "Setting up Scrapling MCP server..."
     local scrapling_dir="$NANOKIT_ROOT/claude/mcp-servers/scrapling"
@@ -240,6 +227,10 @@ claude_setup() {
     # Show next steps
     print_info "Next steps:"
     print_info "  1. Configure local settings: ~/.claude/settings.local.json"
+    print_info "  2. (Optional) Install skill sets:"
+    print_info "     ./nanokit ecc-install    # Everything Claude Code skills"
+    print_info "     ./nanokit aris-install   # ARIS research skills"
+    print_info "     ./nanokit codex-install  # OpenAI Codex CLI + MCP"
     echo ""
     print_success "🤖 Claude Code setup completed!"
 }
@@ -441,6 +432,292 @@ aris_uninstall() {
     print_success "🧹 ARIS uninstalled"
 }
 
+# ECC (Everything Claude Code) optional setup
+ECC_REPO="https://github.com/affaan-m/everything-claude-code.git"
+ECC_DIR="$NANOKIT_ROOT/claude/external/ecc"
+ECC_CLAUDE_DIR="$HOME/.claude"
+
+# Whitelists of ECC components to symlink.
+# To add/remove items, edit these arrays and re-run `nanokit ecc-install`.
+ECC_SELECTED_SKILLS=(
+    ai-regression-testing
+    android-clean-architecture
+    api-design
+    backend-patterns
+    coding-standards
+    compose-multiplatform-patterns
+    configure-ecc
+    continuous-learning
+    continuous-learning-v2
+    cpp-coding-standards
+    cpp-testing
+    django-patterns
+    django-tdd
+    django-verification
+    e2e-testing
+    eval-harness
+    frontend-patterns
+    frontend-slides
+    golang-patterns
+    golang-testing
+    iterative-retrieval
+    java-coding-standards
+    kotlin-coroutines-flows
+    kotlin-exposed-patterns
+    kotlin-ktor-patterns
+    kotlin-patterns
+    kotlin-testing
+    laravel-patterns
+    laravel-tdd
+    laravel-verification
+    mcp-server-patterns
+    perl-patterns
+    perl-testing
+    plankton-code-quality
+    python-patterns
+    python-testing
+    rust-patterns
+    rust-testing
+    skill-stocktake
+    springboot-patterns
+    springboot-tdd
+    springboot-verification
+    strategic-compact
+    tdd-workflow
+    verification-loop
+)
+
+ECC_SELECTED_AGENTS=(
+    architect
+    build-error-resolver
+    chief-of-staff
+    code-reviewer
+    cpp-build-resolver
+    cpp-reviewer
+    database-reviewer
+    doc-updater
+    docs-lookup
+    e2e-runner
+    flutter-reviewer
+    go-build-resolver
+    go-reviewer
+    harness-optimizer
+    java-build-resolver
+    java-reviewer
+    kotlin-build-resolver
+    kotlin-reviewer
+    loop-operator
+    planner
+    python-reviewer
+    pytorch-build-resolver
+    refactor-cleaner
+    rust-build-resolver
+    rust-reviewer
+    security-reviewer
+    tdd-guide
+    typescript-reviewer
+)
+
+ECC_SELECTED_COMMANDS=(
+    aside
+    build-fix
+    checkpoint
+    claw
+    code-review
+    context-budget
+    cpp-build
+    cpp-review
+    cpp-test
+    devfleet
+    docs
+    e2e
+    eval
+    evolve
+    go-build
+    go-review
+    go-test
+    gradle-build
+    harness-audit
+    instinct-export
+    instinct-import
+    instinct-status
+    kotlin-build
+    kotlin-review
+    kotlin-test
+    learn-eval
+    learn
+    loop-start
+    loop-status
+    model-route
+    multi-backend
+    multi-execute
+    multi-frontend
+    multi-plan
+    multi-workflow
+    orchestrate
+    plan
+    pm2
+    projects
+    promote
+    prompt-optimize
+    python-review
+    quality-gate
+    refactor-clean
+    resume-session
+    rules-distill
+    rust-build
+    rust-review
+    rust-test
+    save-session
+    sessions
+    setup-pm
+    skill-create
+    skill-health
+    tdd
+    test-coverage
+    update-codemaps
+    update-docs
+    verify
+)
+
+# Symlink items from an ECC subdirectory into the corresponding ~/.claude/ subdirectory.
+# Usage: _ecc_link_component <repo_subdir> <claude_subdir> <names_array[@]> [ext]
+#   repo_subdir  — directory under $ECC_DIR  (e.g. "skills", "agents", "commands")
+#   claude_subdir — directory under ~/.claude (e.g. "skills", "agents", "commands")
+#   names_array  — bash array of item names
+#   ext          — optional file extension for flat files (e.g. ".md"); omit for directories
+_ecc_link_component() {
+    local repo_sub="$1" claude_sub="$2" ext="${4:-}"
+    shift 2
+    local -n _names="$1"
+    shift
+    ext="${1:-}"
+
+    local src_dir="$ECC_DIR/$repo_sub"
+    local dst_dir="$ECC_CLAUDE_DIR/$claude_sub"
+    mkdir -p "$dst_dir"
+
+    # Clean up stale non-symlink items left by the old plugin install
+    local cleaned=0
+    local name
+    for name in "${_names[@]}"; do
+        local target="$dst_dir/${name}${ext}"
+        if [[ -e "$target" && ! -L "$target" ]]; then
+            rm -rf "$target"
+            cleaned=$((cleaned + 1))
+        fi
+    done
+    if [[ $cleaned -gt 0 ]]; then
+        print_info "Cleaned $cleaned old $repo_sub item(s)"
+    fi
+
+    local count=0 skipped=0
+    for name in "${_names[@]}"; do
+        local src="$src_dir/${name}${ext}"
+        local dst="$dst_dir/${name}${ext}"
+
+        if [[ ! -e "$src" ]]; then
+            print_warning "$repo_sub '$name' not found in ECC repo (skipped)"
+            skipped=$((skipped + 1))
+            continue
+        fi
+
+        if [[ -e "$dst" && ! -L "$dst" ]]; then
+            print_warning "Skipping $repo_sub '$name' (existing non-symlink)"
+            skipped=$((skipped + 1))
+            continue
+        fi
+        ln -sfn "$src" "$dst"
+        count=$((count + 1))
+    done
+    print_success "Linked $count ECC $repo_sub"
+    if [[ $skipped -gt 0 ]]; then
+        print_warning "$skipped $repo_sub skipped"
+    fi
+}
+
+# Remove all symlinks under a directory that point into $ECC_DIR.
+_ecc_remove_links() {
+    local dir="$1"
+    [[ -d "$dir" ]] || return 0
+    local removed=0
+    for link in "$dir"/*; do
+        [[ -L "$link" ]] || continue
+        local resolved
+        resolved="$(readlink "$link")"
+        if [[ "$resolved" == "$ECC_DIR"/* ]]; then
+            rm "$link"
+            removed=$((removed + 1))
+        fi
+    done
+    if [[ $removed -gt 0 ]]; then
+        print_success "Removed $removed symlink(s) from $dir"
+    fi
+}
+
+ecc_install() {
+    print_ascii_art
+
+    print_step "Installing ECC (Everything Claude Code)..."
+    echo ""
+
+    if ! command -v git &> /dev/null; then
+        print_error "git is required. Install with: pixi global install git"
+        exit 1
+    fi
+
+    if [[ -d "$ECC_DIR/.git" ]]; then
+        print_step "Updating existing ECC clone..."
+        git -C "$ECC_DIR" pull --ff-only
+    else
+        print_step "Cloning ECC repository to $ECC_DIR..."
+        mkdir -p "$(dirname "$ECC_DIR")"
+        git clone --depth 1 "$ECC_REPO" "$ECC_DIR"
+    fi
+    print_success "ECC repository ready"
+    echo ""
+
+    _ecc_link_component "skills"   "skills"   ECC_SELECTED_SKILLS
+    _ecc_link_component "agents"   "agents"   ECC_SELECTED_AGENTS   ".md"
+    _ecc_link_component "commands" "commands" ECC_SELECTED_COMMANDS ".md"
+    echo ""
+
+    print_info "ECC docs: https://github.com/affaan-m/everything-claude-code"
+    print_success "🔧 ECC installed. Restart Claude Code to load changes."
+}
+
+ecc_update() {
+    if [[ ! -d "$ECC_DIR/.git" ]]; then
+        print_error "ECC is not installed. Run: ./nanokit ecc-install"
+        exit 1
+    fi
+    ecc_install
+}
+
+ecc_uninstall() {
+    print_ascii_art
+
+    print_warning "This will remove ECC symlinks and the clone at $ECC_DIR"
+    read -p "🗑️  Proceed? (y/N): " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        print_info "Cancelled"
+        return 0
+    fi
+
+    _ecc_remove_links "$ECC_CLAUDE_DIR/skills"
+    _ecc_remove_links "$ECC_CLAUDE_DIR/agents"
+    _ecc_remove_links "$ECC_CLAUDE_DIR/commands"
+
+    if [[ -d "$ECC_DIR" ]]; then
+        print_step "Removing ECC clone..."
+        rm -rf "$ECC_DIR"
+        print_success "Removed $ECC_DIR"
+    fi
+
+    print_success "🧹 ECC uninstalled"
+}
+
 # Codex CLI (OpenAI) optional setup — installed via npm to get the latest upstream release,
 # since conda-forge tends to lag. Uses the nodejs env managed by pixi-global.toml.
 CODEX_NPM_PACKAGE="@openai/codex"
@@ -564,6 +841,15 @@ main() {
             ;;
         "aris-uninstall")
             aris_uninstall
+            ;;
+        "ecc-install")
+            ecc_install
+            ;;
+        "ecc-update")
+            ecc_update
+            ;;
+        "ecc-uninstall")
+            ecc_uninstall
             ;;
         "codex-install")
             codex_install

@@ -341,10 +341,33 @@ aris_install() {
     print_success "🌙 ARIS installed. Restart Claude Code to load new skills."
 }
 
+# Register Codex as an MCP server in Claude Code.
+# Shared by codex_install() and aris_codex_mcp_setup().
+# Returns 0 on success/already-registered, 1 if claude CLI is unavailable.
+codex_mcp_register() {
+    if ! command -v claude &> /dev/null; then
+        print_warning "Claude Code CLI not found — cannot register Codex MCP."
+        print_info "Run './nanokit claude-setup' first, then './nanokit codex-install' again."
+        return 1
+    fi
+
+    if claude mcp list 2>/dev/null | grep -q '^codex\b'; then
+        print_info "Claude MCP 'codex' already registered."
+    else
+        print_step "Registering Codex as an MCP in Claude Code..."
+        if claude mcp add codex -s user -- codex mcp-server 2>&1; then
+            print_success "Codex MCP registered"
+        else
+            print_warning "Failed to auto-register Codex MCP. Run manually:"
+            print_info "  claude mcp add codex -s user -- codex mcp-server"
+        fi
+    fi
+}
+
 # Set up the Codex reviewer path for ARIS:
 #  1. Ensure Codex CLI is installed
-#  2. Register Codex as an MCP server in Claude Code (`claude mcp add codex -s user -- codex mcp-server`)
-#  3. Remind the user to run interactive setup (`codex login`, `codex setup`)
+#  2. Register Codex MCP
+#  3. Remind the user to run interactive setup
 aris_codex_mcp_setup() {
     print_step "Setting up Codex MCP reviewer for ARIS..."
     echo ""
@@ -363,24 +386,8 @@ aris_codex_mcp_setup() {
     fi
     echo ""
 
-    # 2. Register Codex as an MCP in Claude Code
-    if ! command -v claude &> /dev/null; then
-        print_warning "Claude Code CLI not found — cannot register Codex MCP."
-        print_info "Run './nanokit claude-setup' first, then './nanokit aris-install' again."
-        return 1
-    fi
-
-    if claude mcp list 2>/dev/null | grep -q '^codex\b'; then
-        print_info "Claude MCP 'codex' already registered."
-    else
-        print_step "Registering Codex as an MCP in Claude Code..."
-        if claude mcp add codex -s user -- codex mcp-server 2>&1; then
-            print_success "Codex MCP registered"
-        else
-            print_warning "Failed to auto-register Codex MCP. Run manually:"
-            print_info "  claude mcp add codex -s user -- codex mcp-server"
-        fi
-    fi
+    # 2. Register Codex MCP (shared logic)
+    codex_mcp_register || return 1
     echo ""
 
     # 3. Remind about interactive setup
@@ -481,10 +488,19 @@ codex_install() {
 
     if command -v codex &> /dev/null; then
         print_info "Version: $(codex --version 2>/dev/null || echo 'unknown')"
-        print_info "Run 'codex --help' to get started."
     else
         print_warning "codex command not found on PATH. Ensure ~/.pixi/bin is on PATH."
     fi
+    echo ""
+
+    # Register Codex as an MCP server in Claude Code (skipped if claude CLI absent)
+    codex_mcp_register
+    echo ""
+
+    print_info "Next steps (interactive, run manually):"
+    print_info "  1. codex login        # authenticate Codex"
+    print_info "  2. codex setup        # select default model"
+    print_info "  3. Restart Claude Code to load the new MCP server"
     print_success "🧠 Codex CLI setup completed!"
 }
 

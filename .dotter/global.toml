@@ -29,6 +29,7 @@ tigrc = "$HOME/.tigrc"
 "claude/skills/codex-discuss" = { target = "$HOME/.claude/skills/codex-discuss", type = "symbolic", recurse = false }
 "claude/skills/playwright-cli" = { target = "$HOME/.claude/skills/playwright-cli", type = "symbolic", recurse = false }
 "claude/skills/code-review" = { target = "$HOME/.claude/skills/code-review", type = "symbolic", recurse = false }
+"claude/skills/update-docs" = { target = "$HOME/.claude/skills/update-docs", type = "symbolic", recurse = false }
 "claude/ccstatusline/settings.json" = "$HOME/.config/ccstatusline/settings.json"
 
 [default.variables]

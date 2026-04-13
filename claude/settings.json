@@ -9,6 +9,7 @@
       "Bash(find:*)",
       "Bash(cat:*)",
       "Bash(ps:*)",
+      "Bash(wc:*)",
       "Bash(gh api:*)",
       "Bash(gh search:*)",
       "Bash(git add:*)",

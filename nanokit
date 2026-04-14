@@ -227,6 +227,13 @@ claude_setup() {
     fi
     echo ""
 
+    # Setup DeepWiki MCP server (remote HTTP, no local install needed)
+    print_step "Setting up DeepWiki MCP server..."
+    claude mcp add -s user deepwiki --transport http -- https://mcp.deepwiki.com/mcp 2>/dev/null && \
+        print_success "DeepWiki MCP server registered" || \
+        print_warning "DeepWiki MCP registration failed"
+    echo ""
+
     # Show next steps
     print_info "Next steps:"
     print_info "  1. Configure local settings: ~/.claude/settings.local.json"

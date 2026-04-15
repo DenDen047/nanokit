@@ -1,6 +1,7 @@
 ---
 name: mermaid
 description: Guide for creating mermaid diagrams. This skill should be used when users want to create a mermaid diagram (or update an existing diagram).
+allowed-tools: Mmdc(*), Read, Grep, Glob
 ---
 
 # Mermaid Diagram Skill

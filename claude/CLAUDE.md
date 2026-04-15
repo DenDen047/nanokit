@@ -10,6 +10,7 @@
 | `claude/CLAUDE.md` | `~/.claude/CLAUDE.md` |
 | `claude/settings.json` | `~/.claude/settings.json` |
 | `claude/scripts/zotero-mcp-server.sh` | `~/.claude/scripts/zotero-mcp-server.sh` |
+| `claude/scripts/mmdc` | `~/.pixi/bin/mmdc` |
 | `claude/ccstatusline/settings.json` | `~/.config/ccstatusline/settings.json` |
 | `claude/skills/*` | `~/.claude/skills/*` |
 

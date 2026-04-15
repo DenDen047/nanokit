@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# mermaid-cli wrapper — reuses pixi-managed nodejs (see pixi-global.toml [envs.nodejs])
+# Version pinned for reproducibility. Bump here when upgrading.
+set -euo pipefail
+exec npx -y "@mermaid-js/mermaid-cli@11.4.2" "$@"

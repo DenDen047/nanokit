@@ -2,12 +2,14 @@
 name: pixi-env
 description: >
   pixi (conda-forge) でプロジェクト環境を構築・管理するルールと知見。
-  pixi.toml / pyproject.toml の [tool.pixi.*] を編集するとき、
-  新しいパッケージを追加するとき（conda-forge vs PyPI の判断含む）、
-  CUDA/PyTorch 設定、cross-platform 対応 (linux-64/linux-aarch64/osx-arm64)、
-  Docker 統合、conda→pixi 移行、pixi install や solver エラーの対処時に参照する。
+  このような状況の時には必ず参照してください: 
+  - pixi.toml / pyproject.toml の [tool.pixi.*] を編集するとき
+  - 新しいパッケージを追加するとき（conda-forge vs PyPI の判断含む）
+  - CUDA/PyTorch 設定、cross-platform 対応 (linux-64/linux-aarch64/osx-arm64)
+  - Docker 統合、conda→pixi 移行、pixi install や solver エラーの対処時
 user-invocable: true
----
+allowed-tools: Read Grep Bash(pixi *)
+--- 
 
 # Pixi 環境構築ルール
 

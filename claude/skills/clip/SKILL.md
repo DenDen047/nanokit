@@ -4,6 +4,10 @@ description: >
   Claude Code の回答からメインコンテンツ（コード、コマンド、テキスト）を
   抽出してクリップボードにコピーする。macOS / Linux / Windows (WSL/PowerShell) 対応。
 user-invocable: true
+allowed-tools:
+  - Bash
+  - Write
+  - Read
 ---
 
 # Clip — クリップボードにコピー

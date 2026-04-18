@@ -1,6 +1,7 @@
 {
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "1000000",
     "ECC_MCP_RECONNECT_ZOTERO": "bash ~/.claude/scripts/zotero-mcp-server.sh start"
   },
   "permissions": {
@@ -42,6 +43,7 @@
     ]
   },
   "model": "opus[1m]",
+  "effortLevel": "max",
   "hooks": {
     "SessionStart": [
       {
@@ -63,12 +65,11 @@
   },
   "enabledPlugins": {},
   "extraKnownMarketplaces": {},
-  "effortLevel": "high",
   "autoUpdatesChannel": "latest",
-  "voiceEnabled": true,
   "voice": {
     "enabled": true,
     "mode": "hold"
   },
-  "skipDangerousModePermissionPrompt": true
+  "skipDangerousModePermissionPrompt": true,
+  "voiceEnabled": true
 }

@@ -1,0 +1,19 @@
+[workspace]
+name = "zotero-mcp"
+channels = ["conda-forge"]
+platforms = ["linux-64", "linux-aarch64", "osx-arm64"]
+
+[dependencies]
+python = ">=3.11,<3.13"
+
+[pypi-dependencies]
+# Upstream: https://github.com/54yyyu/zotero-mcp
+# PyPI distribution name is "zotero-mcp-server" (the CLI entry point is "zotero-mcp").
+# Do NOT use PyPI "zotero-mcp" — that is a different project by a different author.
+# [semantic] pulls in chromadb + sentence-transformers + openai + google-genai + tiktoken
+# for zotero_semantic_search over large libraries.
+zotero-mcp-server = { version = ">=0.3.0", extras = ["semantic"] }
+
+[tasks]
+serve = "zotero-mcp serve --transport streamable-http --host localhost --port 8321"
+version = "zotero-mcp version"

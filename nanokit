@@ -80,6 +80,9 @@ show_help() {
     echo "  codex-install   🧠 Install OpenAI Codex CLI via npm (optional)"
     echo "  codex-update    🔄 Update Codex CLI to the latest version"
     echo "  codex-uninstall 🧹 Remove Codex CLI"
+    echo "  zotero-mcp-install    📚 Install zotero-mcp pixi env and register Zotero Web API credentials"
+    echo "  zotero-mcp-update     🔄 Update zotero-mcp to the latest version"
+    echo "  zotero-mcp-uninstall  🧹 Remove zotero-mcp env and credentials"
     echo "  uninstall       🗑️ Uninstall nanokit and remove all configurations"
     echo "  --help          📖 Show this help message"
     echo ""
@@ -919,6 +922,251 @@ codex_uninstall() {
     print_success "🧹 Codex CLI uninstalled"
 }
 
+# Zotero MCP setup — pixi project + OS-native secret store + HTTP server lifecycle.
+# Uses claude/mcp-servers/zotero-mcp/pixi.toml and claude/scripts/zotero-mcp-server.sh.
+ZOTERO_MCP_MANIFEST_REL="claude/mcp-servers/zotero-mcp/pixi.toml"
+ZOTERO_MCP_SERVER_SCRIPT_REL="claude/scripts/zotero-mcp-server.sh"
+
+zotero_mcp_install() {
+    print_ascii_art
+
+    print_step "Installing Zotero MCP server..."
+    echo ""
+
+    # --- Prerequisites ---
+    if ! command -v pixi &> /dev/null; then
+        print_error "pixi is required. Run: ./nanokit install"
+        exit 1
+    fi
+    if ! command -v claude &> /dev/null; then
+        print_warning "Claude Code CLI not found. MCP client registration will be skipped."
+        print_info "Install Claude Code first, then re-run this command."
+    fi
+
+    local manifest="$NANOKIT_ROOT/$ZOTERO_MCP_MANIFEST_REL"
+    local server_link="$HOME/.claude/scripts/zotero-mcp-server.sh"
+
+    if [[ ! -f "$manifest" ]]; then
+        print_error "pixi manifest not found: $manifest"
+        exit 1
+    fi
+
+    if [[ ! -e "$server_link" ]]; then
+        print_warning "dotter symlink missing: $server_link"
+        print_info "Run: dotter deploy (from $NANOKIT_ROOT)"
+        exit 1
+    fi
+
+    # --- 1. Install pixi env (may take several minutes on first run) ---
+    print_step "Installing zotero-mcp pixi environment (this may take a few minutes)..."
+    if pixi install --manifest-path "$manifest"; then
+        print_success "zotero-mcp pixi env ready"
+    else
+        print_error "pixi install failed"
+        exit 1
+    fi
+    echo ""
+
+    # --- 2. Load secret lib and register credentials ---
+    if [[ ! -f "$NANOKIT_ROOT/lib/secret.sh" ]]; then
+        print_error "secret lib not found: $NANOKIT_ROOT/lib/secret.sh"
+        exit 1
+    fi
+    . "$NANOKIT_ROOT/lib/secret.sh"
+
+    # --- 2a. API key ---
+    if has_secret "claude-zotero" "api-key"; then
+        print_info "API key already registered. Skipping."
+    else
+        print_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        print_info "📋 Step 1/2: Zotero API Key"
+        print_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        print_info ""
+        print_info "  Create a new key at:"
+        print_info "    👉 https://www.zotero.org/settings/keys/new"
+        print_info ""
+        print_info "  Recommended permissions:"
+        print_info "    [x] Personal Library:  Allow library access"
+        print_info "    [x] Personal Library:  Allow notes access"
+        print_info "    [ ] Personal Library:  Allow write access   (read-only is safer)"
+        print_info "    [x] Personal Library:  Allow file access    (optional; enables future PDF access)"
+        print_info "    [ ] Default Group Permissions: Read Only    (enable if you have group libraries)"
+        print_info ""
+        print_info "  After clicking 'Save Key', copy the 24-character key shown at the top"
+        print_info "  (e.g., P9NiFoyLeZu2bZNvvuQPDpsV). You will see this key ONLY ONCE."
+        echo ""
+        echo -n "Enter Zotero API key (input hidden): "
+        read -r -s api_key
+        echo ""
+        if [[ -z "$api_key" ]]; then
+            print_warning "Empty input, skipped API key registration."
+        elif [[ ${#api_key} -ne 24 ]]; then
+            print_warning "Unexpected length ${#api_key} (expected 24). Storing anyway — please verify."
+            store_secret "claude-zotero" "api-key" "$api_key"
+        else
+            store_secret "claude-zotero" "api-key" "$api_key"
+            print_success "API key stored"
+        fi
+    fi
+    echo ""
+
+    # --- 2b. Library ID (userID) — validated as numeric ---
+    if has_secret "claude-zotero" "library-id"; then
+        print_info "Library ID already registered. Skipping."
+    else
+        print_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        print_info "📋 Step 2/2: Library ID (numeric userID)"
+        print_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        print_info ""
+        print_info "  Open: 👉 https://www.zotero.org/settings/keys"
+        print_info ""
+        print_info "  Look at the VERY TOP of the page for a sentence like:"
+        print_info ""
+        print_info "      \"Your userID for use in API calls is 1234567\""
+        print_info "                                            ^^^^^^^"
+        print_info "                                            this number"
+        print_info ""
+        print_info "  ⚠️  This is a NUMERIC value (6-8 digits), NOT the API key."
+        print_info "  ⚠️  Do NOT re-enter the API key here."
+
+        local library_id=""
+        local attempts=0
+        while [[ $attempts -lt 3 ]]; do
+            echo ""
+            echo -n "Enter Zotero Library ID (numeric userID): "
+            read -r library_id
+            if [[ -z "$library_id" ]]; then
+                print_warning "Empty input, skipped Library ID registration."
+                break
+            elif [[ "$library_id" =~ ^[0-9]+$ ]]; then
+                store_secret "claude-zotero" "library-id" "$library_id"
+                print_success "Library ID stored: $library_id"
+                break
+            else
+                print_error "Library ID must be numeric (digits only). Got: $library_id"
+                print_info "  If you pasted your API key by mistake, check the top of"
+                print_info "  https://www.zotero.org/settings/keys for the numeric userID."
+                attempts=$((attempts + 1))
+                if [[ $attempts -ge 3 ]]; then
+                    print_error "Too many invalid attempts. Run 'nanokit zotero-mcp-install' again later."
+                    exit 1
+                fi
+            fi
+        done
+    fi
+    echo ""
+
+    # --- 3. Register MCP client (idempotent) ---
+    if command -v claude &> /dev/null; then
+        if claude mcp list 2>/dev/null | grep -q '^zotero\b'; then
+            print_info "Claude MCP 'zotero' already registered."
+        else
+            print_step "Registering zotero MCP server in Claude Code (HTTP transport)..."
+            if claude mcp add zotero -s user --transport http "http://localhost:${ZOTERO_MCP_PORT:-8321}/mcp" 2>&1; then
+                print_success "zotero MCP registered"
+            else
+                print_warning "Auto-registration failed. Run manually:"
+                print_info "  claude mcp add zotero -s user --transport http http://localhost:8321/mcp"
+            fi
+        fi
+        echo ""
+    fi
+
+    # --- 4. Health check (restart to pick up credentials) ---
+    print_step "Restarting zotero-mcp server to pick up credentials..."
+    bash "$server_link" stop 2>/dev/null || true
+    sleep 1
+    if bash "$server_link" start; then
+        print_success "zotero-mcp server is running"
+        print_info "Mode is auto-detected per host (local if Zotero.app is running, web otherwise)."
+        print_info "Logs: ~/.claude/debug/zotero-mcp.log"
+    else
+        print_error "zotero-mcp server failed to start"
+        print_info "Check ~/.claude/debug/zotero-mcp.log for details"
+        exit 1
+    fi
+    echo ""
+
+    print_success "📚 Zotero MCP setup completed!"
+}
+
+zotero_mcp_update() {
+    print_ascii_art
+
+    local manifest="$NANOKIT_ROOT/$ZOTERO_MCP_MANIFEST_REL"
+    local server_link="$HOME/.claude/scripts/zotero-mcp-server.sh"
+
+    if [[ ! -f "$manifest" ]]; then
+        print_error "zotero-mcp is not installed. Run: ./nanokit zotero-mcp-install"
+        exit 1
+    fi
+
+    print_step "Updating zotero-mcp pixi env..."
+    pixi update --manifest-path "$manifest"
+    print_success "pixi env updated"
+    echo ""
+
+    print_step "Restarting zotero-mcp server..."
+    bash "$server_link" stop 2>/dev/null || true
+    sleep 1
+    bash "$server_link" start
+    print_success "🔄 zotero-mcp updated"
+}
+
+zotero_mcp_uninstall() {
+    print_ascii_art
+
+    print_warning "This will stop zotero-mcp, remove the pixi env, and unregister the MCP client."
+    read -p "🗑️  Proceed? (y/N): " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        print_info "Cancelled"
+        return 0
+    fi
+
+    local server_link="$HOME/.claude/scripts/zotero-mcp-server.sh"
+    local manifest_dir="$NANOKIT_ROOT/claude/mcp-servers/zotero-mcp"
+
+    # Stop the running server
+    if [[ -e "$server_link" ]]; then
+        print_step "Stopping zotero-mcp server..."
+        bash "$server_link" stop 2>/dev/null || true
+    fi
+
+    # Unregister MCP client
+    if command -v claude &> /dev/null; then
+        if claude mcp list 2>/dev/null | grep -q '^zotero\b'; then
+            print_step "Unregistering zotero MCP client..."
+            claude mcp remove zotero -s user 2>/dev/null || true
+            print_success "MCP client unregistered"
+        fi
+    fi
+
+    # Remove pixi env
+    if [[ -d "$manifest_dir/.pixi" ]]; then
+        print_step "Removing pixi environment..."
+        rm -rf "$manifest_dir/.pixi"
+        print_success "pixi env removed"
+    fi
+
+    # Credentials removal
+    if [[ -f "$NANOKIT_ROOT/lib/secret.sh" ]]; then
+        . "$NANOKIT_ROOT/lib/secret.sh"
+        echo ""
+        read -p "🔑 Also delete Zotero API credentials from the OS secret store? (y/N): " -n 1 -r
+        echo ""
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            delete_secret "claude-zotero" "api-key"
+            delete_secret "claude-zotero" "library-id"
+            print_success "Credentials deleted"
+        else
+            print_info "Credentials preserved (claude-zotero/api-key, claude-zotero/library-id)"
+        fi
+    fi
+
+    print_success "🧹 zotero-mcp uninstalled"
+}
+
 # Main function
 main() {
     case "${1:-}" in
@@ -963,6 +1211,15 @@ main() {
             ;;
         "codex-uninstall")
             codex_uninstall
+            ;;
+        "zotero-mcp-install")
+            zotero_mcp_install
+            ;;
+        "zotero-mcp-update")
+            zotero_mcp_update
+            ;;
+        "zotero-mcp-uninstall")
+            zotero_mcp_uninstall
             ;;
         "uninstall")
             uninstall

@@ -83,6 +83,9 @@ show_help() {
     echo "  zotero-mcp-install    📚 Install zotero-mcp pixi env and register Zotero Web API credentials"
     echo "  zotero-mcp-update     🔄 Update zotero-mcp to the latest version"
     echo "  zotero-mcp-uninstall  🧹 Remove zotero-mcp env and credentials"
+    echo "  gh-md-install         📝 Install gh-markdown-preview (browser Markdown + Mermaid preview)"
+    echo "  gh-md-update          🔄 Update gh-markdown-preview to the latest version"
+    echo "  gh-md-uninstall       🧹 Remove gh-markdown-preview extension"
     echo "  uninstall       🗑️ Uninstall nanokit and remove all configurations"
     echo "  --help          📖 Show this help message"
     echo ""
@@ -1167,6 +1170,84 @@ zotero_mcp_uninstall() {
     print_success "🧹 zotero-mcp uninstalled"
 }
 
+# gh-markdown-preview — gh CLI extension that renders Markdown (with Mermaid)
+# via the GitHub API and serves it on localhost with live reload.
+# Installs into ~/.local/share/gh/extensions/gh-markdown-preview.
+GH_MD_EXTENSION="yusukebe/gh-markdown-preview"
+
+gh_md_installed() {
+    gh extension list 2>/dev/null | grep -q "gh markdown-preview"
+}
+
+gh_md_install() {
+    print_step "Installing gh-markdown-preview ($GH_MD_EXTENSION)..."
+
+    if ! command -v gh &> /dev/null; then
+        print_error "gh is required. Install with: pixi global install gh"
+        return 1
+    fi
+
+    if gh_md_installed; then
+        print_info "gh-markdown-preview already installed — skipping"
+    else
+        gh extension install "$GH_MD_EXTENSION"
+        print_success "Extension installed"
+    fi
+
+    if ! gh auth status &> /dev/null; then
+        print_warning "gh is not authenticated yet. Run 'gh auth login' before 'gh markdown-preview'"
+        print_warning "(without auth, the GitHub Markdown API is rate-limited to 60 req/h)"
+    fi
+
+    print_info "Usage:"
+    print_info "  gh markdown-preview README.md         # open in browser with live reload"
+    print_info "  gh markdown-preview --dark-mode FILE  # force dark theme"
+    print_info "  gh markdown-preview --port 4444 FILE  # use a different port"
+
+    print_success "📝 gh-markdown-preview setup completed!"
+}
+
+gh_md_update() {
+    if ! command -v gh &> /dev/null; then
+        print_error "gh is required. Install with: pixi global install gh"
+        exit 1
+    fi
+
+    if ! gh_md_installed; then
+        print_error "gh-markdown-preview is not installed. Run: ./nanokit gh-md-install"
+        exit 1
+    fi
+
+    print_step "Updating gh-markdown-preview..."
+    gh extension upgrade markdown-preview
+    print_success "Updated"
+}
+
+gh_md_uninstall() {
+    print_ascii_art
+
+    if ! command -v gh &> /dev/null; then
+        print_error "gh is not available; nothing to uninstall."
+        exit 1
+    fi
+
+    if ! gh_md_installed; then
+        print_info "gh-markdown-preview is not installed — nothing to do"
+        return 0
+    fi
+
+    print_warning "This will remove the gh-markdown-preview extension."
+    read -p "🗑️  Proceed? (y/N): " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        print_info "Cancelled"
+        return 0
+    fi
+
+    gh extension remove markdown-preview
+    print_success "🧹 gh-markdown-preview uninstalled"
+}
+
 # Main function
 main() {
     case "${1:-}" in
@@ -1220,6 +1301,15 @@ main() {
             ;;
         "zotero-mcp-uninstall")
             zotero_mcp_uninstall
+            ;;
+        "gh-md-install")
+            gh_md_install
+            ;;
+        "gh-md-update")
+            gh_md_update
+            ;;
+        "gh-md-uninstall")
+            gh_md_uninstall
             ;;
         "uninstall")
             uninstall

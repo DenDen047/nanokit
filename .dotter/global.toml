@@ -15,6 +15,7 @@ tigrc = "$HOME/.tigrc"
 "claude/settings.json" = "$HOME/.claude/settings.json"
 "claude/CLAUDE.md" = "$HOME/.claude/CLAUDE.md"
 "claude/scripts/zotero-mcp-server.sh" = "$HOME/.claude/scripts/zotero-mcp-server.sh"
+"claude/scripts/workspace-mcp-personal-server.sh" = "$HOME/.claude/scripts/workspace-mcp-personal-server.sh"
 "claude/scripts/mmdc" = "$HOME/.pixi/bin/mmdc"
 "claude/skills/git-commits" = { target = "$HOME/.claude/skills/git-commits", type = "symbolic", recurse = false }
 "claude/skills/code-comments" = { target = "$HOME/.claude/skills/code-comments", type = "symbolic", recurse = false }

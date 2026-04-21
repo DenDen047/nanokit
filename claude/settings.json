@@ -2,7 +2,8 @@
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "1000000",
-    "ECC_MCP_RECONNECT_ZOTERO": "bash ~/.claude/scripts/zotero-mcp-server.sh start"
+    "ECC_MCP_RECONNECT_ZOTERO": "bash ~/.claude/scripts/zotero-mcp-server.sh start",
+    "ECC_MCP_RECONNECT_WORKSPACE_PERSONAL": "bash ~/.claude/scripts/workspace-mcp-personal-server.sh start"
   },
   "permissions": {
     "allow": [
@@ -58,6 +59,11 @@
           {
             "type": "command",
             "command": "bash ~/.claude/scripts/zotero-mcp-server.sh start",
+            "timeout": 20
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/workspace-mcp-personal-server.sh start",
             "timeout": 20
           }
         ]

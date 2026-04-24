@@ -18,13 +18,13 @@ Claude が書いた・修正したコードを、別の AI (GPT) にレビュー
 
 ## 定数
 
-- MODEL = `gpt-5.4`
+- MODEL = `gpt-5.5`
 - REASONING_EFFORT = `xhigh`
 
 すべての `mcp__codex__codex` / `mcp__codex__codex-reply` 呼び出しに以下を付与する:
 
 ```
-config: {"model": "gpt-5.4", "model_reasoning_effort": "xhigh"}
+config: {"model": "gpt-5.5", "model_reasoning_effort": "xhigh"}
 ```
 
 ## 前提
@@ -62,7 +62,7 @@ diff だけでは文脈が不足する場合、以下を読む:
 
 ```
 mcp__codex__codex:
-  config: {"model": "gpt-5.4", "model_reasoning_effort": "xhigh"}
+  config: {"model": "gpt-5.5", "model_reasoning_effort": "xhigh"}
   prompt: |
     以下のコード変更をレビューしてください。
 

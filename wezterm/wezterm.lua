@@ -31,5 +31,6 @@ config.hide_tab_bar_if_only_one_tab = false
 -- ---------------------------------------------------------------------------
 require("appearance").apply(config)
 require("keybinds").apply(config)
+require("domains").apply(config)
 
 return config

@@ -70,6 +70,40 @@ function M.apply(config)
     { key = "z", mods = "LEADER", action = act.TogglePaneZoomState },
 
     -- ---------------------------------------------------------------------
+    -- Workspace (tmux session) management — requires unix_domains in
+    -- domains.lua so panes outlive the GUI window.
+    -- ---------------------------------------------------------------------
+    -- prefix s → fuzzy picker over existing workspaces
+    { key = "s", mods = "LEADER", action = act.ShowLauncherArgs({ flags = "FUZZY|WORKSPACES" }) },
+
+    -- prefix $ → rename current workspace (tmux: rename-session)
+    { key = "$", mods = "LEADER", action = act.PromptInputLine({
+      description = "Rename workspace to:",
+      action = wezterm.action_callback(function(window, _pane, line)
+        if line and line ~= "" then
+          wezterm.mux.rename_workspace(window:active_workspace(), line)
+        end
+      end),
+    }) },
+
+    -- prefix d → detach this GUI window from the mux (server keeps running)
+    { key = "d", mods = "LEADER", action = act.DetachDomain("CurrentPaneDomain") },
+
+    -- prefix C → create a new workspace by name (tmux: new-session)
+    { key = "C", mods = "LEADER|SHIFT", action = act.PromptInputLine({
+      description = "New workspace name:",
+      action = wezterm.action_callback(function(window, pane, line)
+        if line and line ~= "" then
+          window:perform_action(act.SwitchToWorkspace({ name = line }), pane)
+        end
+      end),
+    }) },
+
+    -- prefix ( / ) → previous / next workspace (tmux: switch-client -p / -n)
+    { key = "(", mods = "LEADER", action = act.SwitchWorkspaceRelative(-1) },
+    { key = ")", mods = "LEADER", action = act.SwitchWorkspaceRelative(1) },
+
+    -- ---------------------------------------------------------------------
     -- macOS conveniences (no LEADER)
     -- ---------------------------------------------------------------------
     -- Cmd+K clears scrollback like Terminal.app

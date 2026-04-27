@@ -95,6 +95,25 @@ show_help() {
     echo ""
 }
 
+# Expose the WezTerm CLI on PATH by symlinking it from inside WezTerm.app into
+# ~/.local/bin (which zshrc already adds to PATH). The .app self-updates without
+# changing this internal binary path, so the symlink survives upgrades.
+# No-op if WezTerm.app isn't installed yet — install it manually first.
+link_wezterm_cli() {
+    local app="/Applications/WezTerm.app/Contents/MacOS/wezterm"
+    local dst="$HOME/.local/bin/wezterm"
+
+    if [[ ! -x "$app" ]]; then
+        print_info "WezTerm.app not found at /Applications/WezTerm.app — skipping CLI link"
+        print_info "  Install via: brew install --cask wezterm  (or download the .dmg)"
+        return 0
+    fi
+
+    mkdir -p "$HOME/.local/bin"
+    ln -sfn "$app" "$dst"
+    print_success "Linked WezTerm CLI: $dst -> $app"
+}
+
 # Install nanokit
 install() {
     print_ascii_art
@@ -127,6 +146,10 @@ install() {
     print_step "Syncing global packages..."
     pixi global sync
     print_success "Global packages synced"
+    echo ""
+
+    # Expose WezTerm CLI on PATH (no-op if WezTerm.app isn't installed yet)
+    link_wezterm_cli
     echo ""
 
     # Install gh-markdown-preview (depends on gh from pixi global sync above)

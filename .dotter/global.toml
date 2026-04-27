@@ -11,6 +11,7 @@ tigrc = "$HOME/.tigrc"
 "pixi-global.toml" = "$HOME/.pixi/manifests/pixi-global.toml"
 "sheldon.toml" = "$HOME/.config/sheldon/plugins.toml"
 "tmux.conf" = "$HOME/.tmux.conf"
+wezterm = { target = "$HOME/.config/wezterm", type = "symbolic", recurse = false }
 "starship.toml" = "$HOME/.config/starship.toml"
 "claude/settings.json" = "$HOME/.claude/settings.json"
 "claude/CLAUDE.md" = "$HOME/.claude/CLAUDE.md"

@@ -37,6 +37,7 @@ wezterm = { target = "$HOME/.config/wezterm", type = "symbolic", recurse = false
 "claude/skills/cs-paper-writing" = { target = "$HOME/.claude/skills/cs-paper-writing", type = "symbolic", recurse = false }
 "claude/skills/plan" = { target = "$HOME/.claude/skills/plan", type = "symbolic", recurse = false }
 "claude/skills/karpathy-guidelines" = { target = "$HOME/.claude/skills/karpathy-guidelines", type = "symbolic", recurse = false }
+"claude/skills/lgtm-loop" = { target = "$HOME/.claude/skills/lgtm-loop", type = "symbolic", recurse = false }
 "claude/ccstatusline/settings.json" = "$HOME/.config/ccstatusline/settings.json"
 
 [default.variables]

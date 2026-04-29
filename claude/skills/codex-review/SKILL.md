@@ -108,7 +108,12 @@ CRITICAL: 0 件 | HIGH: 1 件 | MEDIUM: 2 件 | LOW: 1 件
 - ファイル: path/to/file.py:42
 - 問題: ...
 - 修正案: ...
+
+---
+threadId: <Codex 応答に含まれる threadId をそのまま 1 行で>
 ```
+
+末尾の `threadId` 行は省略しない。`lgtm-loop` 等の skill が継続レビュー (`mcp__codex__codex-reply`) に渡すため、出力に必ず含める。
 
 ### Step 5: フォローアップ (任意)
 
@@ -120,4 +125,4 @@ threadId を使って会話を継続する。
 - diff が 500 行を超える場合、ファイルごとに分割してレビューを依頼する
 - Claude 自身のレビューと Codex のレビューは**混ぜない** — Codex の指摘をそのまま提示する
 - 指摘への対応は Claude が行うが、Codex の指摘を勝手に却下しない。ユーザーに判断を委ねる
-- threadId を保持し、同一セッション内での追加質問に対応する
+- threadId を保持し、同一セッション内での追加質問に対応する。出力末尾に必ず threadId を 1 行で書き出す (継続レビュー skill が利用するため)

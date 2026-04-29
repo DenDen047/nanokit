@@ -75,7 +75,10 @@
     "command": "bun x -y ccstatusline@latest",
     "padding": 0
   },
-  "enabledPlugins": {},
+  "enabledPlugins": {
+    "learning-output-style@claude-plugins-official": true,
+    "explanatory-output-style@claude-plugins-official": true
+  },
   "extraKnownMarketplaces": {},
   "autoUpdatesChannel": "latest",
   "voice": {
@@ -84,5 +87,6 @@
   },
   "skipDangerousModePermissionPrompt": true,
   "voiceEnabled": true,
-  "skipAutoPermissionPrompt": true
+  "skipAutoPermissionPrompt": true,
+  "editorMode": "vim"
 }

@@ -4,3 +4,4 @@
 # that may not exist in pixi's zsh.
 # Useful settings from /etc/zshrc are replicated in .zshrc instead.
 unsetopt GLOBAL_RCS
+. "$HOME/.cargo/env"

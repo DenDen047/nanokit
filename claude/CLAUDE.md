@@ -17,6 +17,20 @@
 したがって `~/.claude/` 配下のファイルを直接編集すると nanokit リポジトリのワーキングツリーが変更される。
 設定を変更する場合は nanokit リポジトリ側で編集し `dotter deploy` で反映するのが正しいワークフロー。
 
+## コーディング基本則 (Karpathy 4 tenets)
+
+すべてのコード作成・修正・レビューで以下を守る。詳細・例外は
+`~/.claude/skills/karpathy-guidelines/SKILL.md` を参照。
+
+1. **Think before coding** — 仮定を明示し、不明点は実装前に質問する
+2. **Simplicity first** — 投機的機能を入れない。最小コードで解く
+3. **Surgical changes** — 関係ない箇所のリファクタや整形を勝手にしない
+4. **Goal-driven** — 検証可能な成功条件を先に決める
+
+コード拡張子のファイルを編集する際は、各セッション初回に
+`PreToolUse` hook (`~/.claude/scripts/karpathy-reminder.sh`) が
+リマインダを注入する。
+
 ## 環境管理ポリシー
 
 - **pixi-only**: シェルツールはすべて `pixi global` (conda-forge) で管理する。`brew`, `cargo install`, `pip install`, `go install` でツールを追加しない。

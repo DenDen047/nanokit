@@ -15,6 +15,7 @@ wezterm = { target = "$HOME/.config/wezterm", type = "symbolic", recurse = false
 "starship.toml" = "$HOME/.config/starship.toml"
 "claude/settings.json" = "$HOME/.claude/settings.json"
 "claude/CLAUDE.md" = "$HOME/.claude/CLAUDE.md"
+"claude/RTK.md" = "$HOME/.claude/RTK.md"
 "claude/scripts/zotero-mcp-server.sh" = "$HOME/.claude/scripts/zotero-mcp-server.sh"
 "claude/scripts/workspace-mcp-personal-server.sh" = "$HOME/.claude/scripts/workspace-mcp-personal-server.sh"
 "claude/scripts/karpathy-reminder.sh" = "$HOME/.claude/scripts/karpathy-reminder.sh"

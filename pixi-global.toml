@@ -194,3 +194,8 @@ exposed = { gdown = "gdown" }
 channels = ["conda-forge"]
 dependencies = { nvtop = "*" }
 exposed = { nvtop = "nvtop" }
+
+[envs.rtk-cli]
+channels = ["conda-forge"]
+dependencies = { rtk-cli = "*" }
+exposed = { rtk = "rtk" }

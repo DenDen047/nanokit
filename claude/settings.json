@@ -80,6 +80,18 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/plot-vision-reminder.sh",
+            "timeout": 5
+          }
+        ]
+      }
     ]
   },
   "statusLine": {

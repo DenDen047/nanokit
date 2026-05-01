@@ -80,6 +80,15 @@ case "$tool" in
     cmd=$(printf '%s' "$payload" | jq -r '.tool_input.command // empty')
     [ -z "$cmd" ] && exit 0
 
+    # Allow-list interpreters that can actually render plots. Without this
+    # gate, `git commit -m "...matplotlib..."` or `echo "savefig"` fire the
+    # hook because plot keywords appear anywhere in the command string.
+    first_word=$(printf '%s' "$cmd" | awk '{print $1}' | sed 's|.*/||')
+    case "$first_word" in
+      python|python3|jupyter|ipython|uv|poetry|pixi|pdm|pipenv) ;;
+      *) exit 0 ;;
+    esac
+
     if ! printf '%s' "$cmd" | grep -Eqi '(savefig|matplotlib|plotly|seaborn|altair|plt\.show)'; then
       exit 0
     fi

@@ -89,21 +89,6 @@ ZOTERO_MCP_BINARY=$HOME/.local/bin/zotero-mcp bash ~/.claude/scripts/zotero-mcp-
 - **PDF バイナリ取得は Web API モード経由では不可**。ファイル同期を WebDAV (pCloud 等) に設定しているため、api.zotero.org は本体 PDF を保持していない。画像ベースの処理が必要になったら `rclone mount pcloud:` 等で WebDAV を直接マウントする（spec Appendix A 参照）。
 - 複数 PC に Zotero アプリを入れて `zotero.sqlite` を同時に書き込む構成は **DB 破損** の危険があるため禁止。Zotero.app は Mac のみ、他ホストは Web API モード専用。
 
-## RTK 運用
-
-`rtk` ([rtk-ai/rtk](https://github.com/rtk-ai/rtk)) は Bash ツール出力を圧縮して LLM トークンを 60-90% 削減する CLI プロキシ。`./nanokit install` で完全自動セットアップされる:
-
-| 配信物 | 経路 | nanokit 側ソース |
-|---|---|---|
-| `rtk` バイナリ | `pixi global sync` | `pixi-global.toml` の `[envs.rtk-cli]` |
-| `~/.claude/settings.json` の `PreToolUse > Bash` hook | `dotter deploy` | `claude/settings.json` |
-| `~/.claude/CLAUDE.md` の `@RTK.md` 参照 | `dotter deploy` | `claude/CLAUDE.md` |
-| `~/.claude/RTK.md` 本体 | `dotter deploy` | `claude/RTK.md` |
-
-### `rtk init -g` を実行してはいけない
-
-このコマンドは `~/.claude/settings.json` を**通常ファイルとして上書き**するため dotter の symlink を破壊する。nanokit では設定がリポジトリ側で宣言的に管理されているので、init を走らせる必要は無い。
-
 ### バージョンアップ時の同期手順
 
 rtk が新版 (新しい hook 仕様等) を出した場合のみ:

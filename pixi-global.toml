@@ -199,3 +199,8 @@ exposed = { nvtop = "nvtop" }
 channels = ["conda-forge"]
 dependencies = { rtk-cli = "*" }
 exposed = { rtk = "rtk" }
+
+[envs.python]
+channels = ["conda-forge"]
+dependencies = { python = "*", numpy = "*", scipy = "*", pillow = "*", matplotlib = "*", pandas = "*", ipython = "*" }
+exposed = { python = "python", python3 = "python3", ipython = "ipython" }

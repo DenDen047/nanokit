@@ -110,16 +110,24 @@
   },
   "enabledPlugins": {
     "learning-output-style@claude-plugins-official": true,
-    "explanatory-output-style@claude-plugins-official": true
+    "explanatory-output-style@claude-plugins-official": true,
+    "warp@claude-code-warp": true
   },
-  "extraKnownMarketplaces": {},
+  "extraKnownMarketplaces": {
+    "claude-code-warp": {
+      "source": {
+        "source": "github",
+        "repo": "warpdotdev/claude-code-warp"
+      }
+    }
+  },
   "autoUpdatesChannel": "latest",
   "voice": {
     "enabled": true,
     "mode": "hold"
   },
   "skipDangerousModePermissionPrompt": true,
-  "voiceEnabled": true,
+  "editorMode": "vim",
   "skipAutoPermissionPrompt": true,
-  "editorMode": "vim"
+  "voiceEnabled": true
 }

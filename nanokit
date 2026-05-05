@@ -476,9 +476,15 @@ aris_uninstall() {
 }
 
 # last30days optional setup
+# v3.1.0+ restructured the repo: SKILL.md and scripts moved into skills/last30days/.
+# We only symlink the skill — its frontmatter has `user-invocable: true`, so
+# /last30days is exposed via the skill registry. Linking commands/last30days.md
+# in addition would create a duplicate /last30days entry in the slash picker.
 LAST30DAYS_REPO="https://github.com/mvanhorn/last30days-skill.git"
 LAST30DAYS_DIR="$NANOKIT_ROOT/claude/external/last30days"
+LAST30DAYS_SKILL_SRC="$LAST30DAYS_DIR/skills/last30days"
 LAST30DAYS_SKILLS_DIR="$HOME/.claude/skills"
+LAST30DAYS_COMMANDS_DIR="$HOME/.claude/commands"
 
 last30days_install() {
     print_ascii_art
@@ -502,14 +508,33 @@ last30days_install() {
     print_success "last30days repository ready"
     echo ""
 
+    if [[ ! -f "$LAST30DAYS_SKILL_SRC/SKILL.md" ]]; then
+        print_error "Expected skill at $LAST30DAYS_SKILL_SRC/SKILL.md but not found."
+        print_error "Upstream layout may have changed again; please update nanokit."
+        exit 1
+    fi
+
     mkdir -p "$LAST30DAYS_SKILLS_DIR"
 
     local target="$LAST30DAYS_SKILLS_DIR/last30days"
     if [[ -e "$target" && ! -L "$target" ]]; then
         print_warning "Skipping symlink: $target exists and is not a symlink"
     else
-        ln -sfn "$LAST30DAYS_DIR" "$target"
+        ln -sfn "$LAST30DAYS_SKILL_SRC" "$target"
         print_success "Linked last30days skill into $LAST30DAYS_SKILLS_DIR"
+    fi
+
+    # Clean up legacy commands/last30days.md symlink from earlier nanokit versions.
+    # The skill is user-invocable on its own, so a duplicate slash command would
+    # show /last30days twice in Claude Code's command picker.
+    local legacy_cmd="$LAST30DAYS_COMMANDS_DIR/last30days.md"
+    if [[ -L "$legacy_cmd" ]]; then
+        local legacy_resolved
+        legacy_resolved="$(readlink "$legacy_cmd")"
+        if [[ "$legacy_resolved" == "$LAST30DAYS_DIR/commands/last30days.md" ]]; then
+            rm "$legacy_cmd"
+            print_success "Removed legacy slash-command symlink: $legacy_cmd"
+        fi
     fi
     echo ""
 
@@ -543,11 +568,25 @@ last30days_uninstall() {
     if [[ -L "$link" ]]; then
         local resolved
         resolved="$(readlink "$link")"
-        if [[ "$resolved" == "$LAST30DAYS_DIR" ]]; then
+        # Accept both pre-3.1 layout (repo root) and post-3.1 (skills/last30days)
+        if [[ "$resolved" == "$LAST30DAYS_DIR" || "$resolved" == "$LAST30DAYS_SKILL_SRC" ]]; then
             rm "$link"
             print_success "Removed symlink: $link"
         else
             print_warning "Symlink $link points elsewhere ($resolved), skipping"
+        fi
+    fi
+
+    # Legacy: earlier nanokit versions linked commands/last30days.md too.
+    local cmd_link="$LAST30DAYS_COMMANDS_DIR/last30days.md"
+    if [[ -L "$cmd_link" ]]; then
+        local cmd_resolved
+        cmd_resolved="$(readlink "$cmd_link")"
+        if [[ "$cmd_resolved" == "$LAST30DAYS_DIR/commands/last30days.md" ]]; then
+            rm "$cmd_link"
+            print_success "Removed legacy symlink: $cmd_link"
+        else
+            print_warning "Symlink $cmd_link points elsewhere ($cmd_resolved), skipping"
         fi
     fi
 

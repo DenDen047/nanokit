@@ -2,16 +2,18 @@
 name: notion-writing
 description: >
   Guide for writing content to Notion pages via the mcp__notion__ MCP server.
-  Covers block type selection (heading_1-3, paragraph, bulleted_list_item,
-  to_do, callout, code, divider, bookmark), URL embedding as bookmark cards
-  instead of raw text, the Task Description / Result / Notes page template
-  with colored heading backgrounds, safe batch sizes for
-  patch-block-children, and common failures including the intermittent
-  "body.children should be an array" serialization error, delete-a-block
-  permission denials for blocks the agent did not create, and update-a-block
-  limitations. Use when adding or updating Notion pages via mcp__notion__,
-  writing task or project templates, embedding URLs, or debugging Notion
-  write failures.
+  Covers DB template discovery before adding new pages (fetch the DB's
+  registered template page and match its structure / heading colors /
+  section order before writing), block type selection (heading_1-3,
+  paragraph, bulleted_list_item, to_do, callout, code, divider, bookmark),
+  URL embedding as bookmark cards instead of raw text, the Task Description
+  / Result / Notes page template with colored heading backgrounds, safe
+  batch sizes for patch-block-children, and common failures including the
+  intermittent "body.children should be an array" serialization error,
+  delete-a-block permission denials for blocks the agent did not create,
+  and update-a-block limitations. Use when adding or updating Notion pages
+  via mcp__notion__, creating new pages inside a database, writing task or
+  project templates, embedding URLs, or debugging Notion write failures.
 user-invocable: true
 ---
 
@@ -23,6 +25,7 @@ Notion MCP (`mcp__notion__`) でページにコンテンツを作成・更新す
 
 | やりたいこと | 参照 |
 |---|---|
+| DB に新規ページを追加する前のテンプレート確認 | [reference/db-template-discovery.md](reference/db-template-discovery.md) |
 | どのブロックタイプを使うか / JSON の書き方 | [reference/block-types.md](reference/block-types.md) |
 | URL を埋め込む（カード / iframe / リンク） | [reference/urls-and-bookmarks.md](reference/urls-and-bookmarks.md) |
 | タスク / プロジェクトページの雛形 | [reference/task-template.md](reference/task-template.md) |
@@ -30,17 +33,21 @@ Notion MCP (`mcp__notion__`) でページにコンテンツを作成・更新す
 
 ## 最低限の原則
 
-### 1. ブロックタイプは豊富に使える
+### 1. DB に新規ページを追加するときは、まずテンプレートを確認する
+
+DB に新しいページを足す指示を受けたら、いきなり書き出さない。**その DB に登録されているテンプレートページを `mcp__notion__notion-fetch` で確認** し、heading 構成・背景色・セクション順序を踏襲した骨格を作ってから本文を執筆する。テンプレートが無ければ DB 内の直近ページから共通構造を推測し、それも難しければユーザーに確認する。詳細手順とフォールバックは [db-template-discovery.md](reference/db-template-discovery.md)。
+
+### 2. ブロックタイプは豊富に使える
 
 MCP ツールスキーマには `paragraph` と `bulleted_list_item` しか明示されていないが、**実際には `heading_1/2/3/4` / `to_do` / `callout` / `code` / `divider` / `bookmark` / `embed` / `quote` / `numbered_list_item` すべてが通る**（本プロジェクトで実測済み）。セクション構造をつけるには `heading_*` と `divider` を積極的に使う。装飾（太字・斜体等）は `annotations` を渡しても無視されるため、`callout` や `heading` のような別ブロックで視覚的に区別する。
 
 見出しには `color: "gray_background"` などの**背景色**を付けられる。Task Description / Result / Notes のセクション区切りに有効（[task-template.md](reference/task-template.md) 参照）。
 
-### 2. URL は必ず `bookmark` ブロック
+### 3. URL は必ず `bookmark` ブロック
 
 生の URL 文字列や `bulleted_list_item` 内のテキストリンクではなく、`bookmark` ブロックとしてカード形式で埋め込む。参考リンク集は `heading_2 "Related Links"` + `bookmark` 連続のパターンが基本形。詳細と例外（`embed` / `rich_text.link`）は [urls-and-bookmarks.md](reference/urls-and-bookmarks.md)。
 
-### 3. タスクページは Task Description / Result / Notes の 3 パート
+### 4. タスクページは Task Description / Result / Notes の 3 パート
 
 ユーザーの Tasks DB で確立しているパターン。冒頭に背景色付き `heading_1` で 3 セクションを立て、Notes 配下に `heading_2` で情報・To Do・Related Links を配置する。To Do は `heading_3` でフェーズ分け → `to_do` ブロック列挙。全体の雛形 JSON は [task-template.md](reference/task-template.md) に置いてある。
 

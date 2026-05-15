@@ -8,11 +8,13 @@ nvim = { target = "$HOME/.config/nvim", type = "symbolic", recurse = false }
 zshenv = "$HOME/.zshenv"
 zshrc = "$HOME/.zshrc"
 tigrc = "$HOME/.tigrc"
+npmrc = "$HOME/.npmrc"
 "pixi-global.toml" = "$HOME/.pixi/manifests/pixi-global.toml"
 "sheldon.toml" = "$HOME/.config/sheldon/plugins.toml"
 "tmux.conf" = "$HOME/.tmux.conf"
 wezterm = { target = "$HOME/.config/wezterm", type = "symbolic", recurse = false }
 "starship.toml" = "$HOME/.config/starship.toml"
+"uv.toml" = "$HOME/.config/uv/uv.toml"
 "claude/settings.json" = "$HOME/.claude/settings.json"
 "claude/CLAUDE.md" = "$HOME/.claude/CLAUDE.md"
 "claude/RTK.md" = "$HOME/.claude/RTK.md"

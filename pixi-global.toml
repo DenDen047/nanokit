@@ -258,3 +258,8 @@ exposed = { check-jsonschema = "check-jsonschema" }
 channels = ["conda-forge"]
 dependencies = { huggingface_hub = "*" }
 exposed = { hf = "hf" }
+
+[envs.gwq]
+channels = ["conda-forge"]
+dependencies = { gwq = "*" }
+exposed = { gwq = "gwq" }

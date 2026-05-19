@@ -1,0 +1,133 @@
+# =====================================================================
+# D2 ボイラープレート (iterative-tech-review)
+#
+# Render:
+#   pixi global install d2           # 0.7.1+
+#   d2 -t 200 diagram-template.d2 output.svg
+#
+# Theme 200 = ダーク系。HTML 側もダーク前提でデザインしているので合致。
+#
+# Layout:
+#   direction: down (= 縦長) を強く推奨。
+#   横並びにしたい群だけ内部で direction: right。
+#   aspect 比が 2:1 を超えそうなら行を増やす (= 縦長化) こと。
+#
+# Classes:
+#   new    = 緑、新規追加ノード
+#   base   = グレー、既存ノード
+#   attn   = オレンジ、注目したい接続 / 重要 module
+#   inject = 緑破線、gated / 条件付き注入
+# =====================================================================
+
+direction: down
+
+vars: {
+  d2-config: {
+    theme-id: 200
+    dark-theme-id: 200
+  }
+}
+
+classes: {
+  new: {
+    style: {
+      stroke: "#22d3a0"
+      stroke-width: 2
+      border-radius: 8
+    }
+  }
+  base: {
+    style: {
+      stroke: "#94a3b8"
+      border-radius: 8
+    }
+  }
+  attn: {
+    style: {
+      stroke: "#fb923c"
+      stroke-width: 2
+    }
+  }
+  inject: {
+    style: {
+      stroke: "#22d3a0"
+      stroke-width: 2
+      stroke-dash: 4
+    }
+  }
+}
+
+# =====================================================================
+# Row 1: 入力 (横並び)
+# =====================================================================
+inputs: "入力 (横並びグループ)" {
+  direction: right
+  in1: "input 1" { class: base }
+  in2: "input 2" { class: base }
+  in3: "input N" { class: base }
+  style: {
+    stroke: "#64748b"
+    stroke-dash: 2
+    border-radius: 12
+  }
+}
+
+# =====================================================================
+# Row 2: 新規追加経路 (横並び)
+# =====================================================================
+new_path: "新規追加 path" {
+  direction: right
+  step1: "step 1\n(処理 A)" { class: new }
+  step2: "step 2\n(処理 B)" { class: new }
+  step3: "step 3\n(encode)" { class: new }
+  step1 -> step2 -> step3
+  style: {
+    stroke: "#22d3a0"
+    stroke-dash: 3
+    border-radius: 12
+    fill-pattern: dots
+  }
+}
+
+# =====================================================================
+# Row 3: 既存システム (横並び、双方向 attention 込み)
+# =====================================================================
+existing: "既存システム" {
+  direction: right
+  br_a: "Branch A\n(既存)" { class: base }
+  bridge: "Cross Attention" { class: attn }
+  br_b: "Branch B\n(既存)\n入力 conv 拡張" { class: base }
+  br_a <-> bridge: { class: attn }
+  bridge <-> br_b: { class: attn }
+  style: {
+    stroke: "#64748b"
+    stroke-dash: 2
+    border-radius: 12
+  }
+}
+
+# =====================================================================
+# Row 4: 出力
+# =====================================================================
+output: "出力" {
+  direction: right
+  out1: "result 1" { class: base }
+  out2: "result 2" { class: base }
+  out1 -> out2
+  style: {
+    stroke: "#64748b"
+    stroke-dash: 2
+    border-radius: 12
+  }
+}
+
+# =====================================================================
+# 行間接続
+# =====================================================================
+inputs -> new_path.step1: "per-input feature"
+inputs -> existing.br_a: "cond"
+new_path.step3 -> existing.br_b: "gated inject\n(zero-init)" { class: inject }
+existing.br_a -> output.out1
+existing.br_b -> output.out1
+
+# 凡例は HTML figcaption に書く (D2 内 legend は使わない、viewBox が崩れるため)

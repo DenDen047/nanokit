@@ -31,6 +31,7 @@ wezterm = { target = "$HOME/.config/wezterm", type = "symbolic", recurse = false
 "claude/skills/notion-writing" = { target = "$HOME/.claude/skills/notion-writing", type = "symbolic", recurse = false }
 "claude/skills/windows-zip-extract" = { target = "$HOME/.claude/skills/windows-zip-extract", type = "symbolic", recurse = false }
 "claude/skills/cto-briefing" = { target = "$HOME/.claude/skills/cto-briefing", type = "symbolic", recurse = false }
+"claude/skills/html-report-writing" = { target = "$HOME/.claude/skills/html-report-writing", type = "symbolic", recurse = false }
 "claude/skills/codex-review" = { target = "$HOME/.claude/skills/codex-review", type = "symbolic", recurse = false }
 "claude/skills/codex-discuss" = { target = "$HOME/.claude/skills/codex-discuss", type = "symbolic", recurse = false }
 "claude/skills/playwright-cli" = { target = "$HOME/.claude/skills/playwright-cli", type = "symbolic", recurse = false }

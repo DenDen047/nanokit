@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TITLE — HTML レポート</title>
+  <!-- KaTeX (数式) と Prism (コードハイライト): CDN 読み込み。
+       オフライン配布時は scripts/setup-libs.sh でローカル化 (reference/math-and-code.md 参照) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --accent: #2563eb;
+      --accent-soft: #eff6ff;
+      --intent-bg: #fff7ed;
+      --intent-border: #f59e0b;
+      --code-bg: #f8fafc;
+      --ok-bg: #dcfce7;
+      --ok-border: #16a34a;
+      --risk-bg: #fef2f2;
+      --risk-border: #ef4444;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a; --fg: #f1f5f9; --muted: #94a3b8;
+        --border: #1e293b; --accent: #60a5fa; --accent-soft: #1e3a8a;
+        --intent-bg: #422006; --intent-border: #f59e0b;
+        --code-bg: #1e293b;
+        --ok-bg: #14532d; --ok-border: #22c55e;
+        --risk-bg: #450a0a; --risk-border: #f87171;
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+      line-height: 1.7;
+      color: var(--fg);
+      background: var(--bg);
+      margin: 0;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 240px minmax(0, 1fr);
+      gap: 48px;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 32px 24px 96px;
+    }
+    @media (max-width: 800px) {
+      .layout { grid-template-columns: 1fr; gap: 24px; }
+      nav.toc { position: static; }
+    }
+    header.doc {
+      grid-column: 1 / -1;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+    header.doc h1 { margin: 0 0 4px; font-size: 1.75rem; }
+    header.doc .sub { color: var(--muted); }
+    header.doc .meta {
+      margin-top: 8px; display: flex; gap: 12px; flex-wrap: wrap;
+      font-size: 0.875rem; color: var(--muted);
+    }
+    .badge {
+      display: inline-block; padding: 2px 8px;
+      border: 1px solid var(--accent); color: var(--accent);
+      border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+    }
+    nav.toc { position: sticky; top: 24px; align-self: start; font-size: 0.9rem; }
+    nav.toc h2 {
+      font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--muted); margin: 0 0 8px;
+    }
+    nav.toc ol { list-style: none; padding: 0; margin: 0; }
+    nav.toc li { margin: 6px 0; }
+    nav.toc a {
+      color: var(--fg); text-decoration: none;
+      border-left: 2px solid transparent; padding-left: 8px; display: block;
+    }
+    nav.toc a:hover { color: var(--accent); border-left-color: var(--accent); }
+    main { min-width: 0; }
+    .lead {
+      font-size: 1.15rem; line-height: 1.65;
+      border-left: 4px solid var(--accent);
+      padding: 12px 16px; background: var(--accent-soft); margin: 0 0 24px;
+    }
+    section { margin: 40px 0; }
+    section h2 {
+      font-size: 1.4rem; border-bottom: 1px solid var(--border);
+      padding-bottom: 6px; margin-bottom: 12px;
+    }
+    section h2 small {
+      font-size: 0.75rem; color: var(--muted); font-weight: 400; margin-left: 8px;
+    }
+    section h3 {
+      font-size: 0.85rem; margin: 24px 0 8px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    section h4 { font-size: 1rem; margin: 18px 0 6px; }
+    .intent {
+      background: var(--intent-bg); border-left: 4px solid var(--intent-border);
+      padding: 12px 16px; margin: 16px 0; font-size: 0.95rem;
+    }
+    .intent strong { color: var(--intent-border); }
+    .risk {
+      background: var(--risk-bg); border-left: 4px solid var(--risk-border);
+      padding: 12px 16px; margin: 12px 0; font-size: 0.95rem;
+    }
+    .ok {
+      background: var(--ok-bg); border-left: 4px solid var(--ok-border);
+      padding: 12px 16px; margin: 12px 0; font-size: 0.95rem;
+    }
+    table {
+      width: 100%; border-collapse: collapse;
+      margin: 12px 0; font-size: 0.92rem;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 8px 12px; text-align: left; vertical-align: top;
+    }
+    th { background: var(--code-bg); font-weight: 600; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tr.win td { font-weight: 600; }
+    .pill {
+      display: inline-block; padding: 1px 8px;
+      border-radius: 999px; font-size: 0.72rem; font-weight: 600;
+      border: 1px solid currentColor;
+    }
+    .pill.p1 { color: #16a34a; }
+    .pill.p2 { color: #2563eb; }
+    .pill.p3 { color: #f59e0b; }
+    .pill.p4 { color: #64748b; }
+    .pill.p5 { color: #ef4444; }
+    code {
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      background: var(--code-bg); padding: 1px 6px;
+      border-radius: 4px; font-size: 0.9em;
+    }
+    pre {
+      background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 12px 14px; overflow-x: auto;
+      font-size: 0.85rem; line-height: 1.55;
+    }
+    pre code { background: transparent; padding: 0; }
+    .formula {
+      background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 10px 14px; margin: 10px 0;
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 0.9rem; overflow-x: auto;
+    }
+    a { color: var(--accent); }
+    a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .diagram-scroll {
+      width: 100%;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+    }
+    .diagram-scroll a { display: block; cursor: zoom-in; line-height: 0; }
+    .diagram-scroll img { display: block; width: 100%; height: auto; max-width: 100%; }
+    .footnote { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+    blockquote {
+      border-left: 4px solid var(--accent);
+      padding-left: 16px; margin-left: 0;
+      color: var(--muted); font-style: italic;
+    }
+    @media print {
+      body { font-size: 11pt; color: #000; background: #fff; }
+      .layout { display: block; padding: 0; max-width: none; }
+      nav.toc { display: none; }
+      section { page-break-inside: avoid; }
+      .intent, .risk, .ok { background: #fff; }
+      a { color: inherit; text-decoration: none; }
+      a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.85em; color: #555; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <header class="doc">
+      <h1>TITLE — サブタイトル</h1>
+      <div class="sub">本書が何を示すかを 1 行で</div>
+      <div class="meta">
+        <span class="badge">v1.0</span>
+        <span>作成日 YYYY-MM-DD</span>
+        <span>読了 N 分</span>
+      </div>
+    </header>
+
+    <nav class="toc" aria-label="目次">
+      <h2>目次</h2>
+      <ol>
+        <li><a href="#tldr">TL;DR</a></li>
+        <li><a href="#section-1">セクション 1</a></li>
+        <li><a href="#section-2">セクション 2</a></li>
+        <li><a href="#section-3">セクション 3</a></li>
+        <li><a href="#refs">参考文献 + 改訂履歴</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <!-- ===================== TL;DR ===================== -->
+      <section id="tldr">
+        <h2>TL;DR</h2>
+        <p class="lead">
+          結論を 1-2 文で。<strong>本質的な選択</strong>を強調語で。
+        </p>
+        <div class="intent">
+          <strong>結論:</strong> このレポートが読者に伝える Action / 含意。
+        </div>
+      </section>
+
+      <!-- ===================== 本文セクション ===================== -->
+      <section id="section-1">
+        <h2>セクション 1</h2>
+        <p>本文。<code>code</code> や <a href="#">link</a> を含む説明。</p>
+
+        <h3>表 (比較・指標)</h3>
+        <table>
+          <thead>
+            <tr><th>項目</th><th>A</th><th>B</th><th>判定</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>...</td><td>...</td><td>...</td><td>✅</td></tr>
+            <tr><td>...</td><td>...</td><td>...</td><td>⚠</td></tr>
+          </tbody>
+        </table>
+
+        <div class="ok">
+          <strong>含意:</strong> ✅ が揃っているため統合可能。
+        </div>
+      </section>
+
+      <section id="section-2">
+        <h2>セクション 2</h2>
+
+        <h3>数式 (KaTeX)</h3>
+        <p>インライン: 損失は $L = \frac{1}{N} \sum_{i=1}^{N} (y_i - \hat{y}_i)^2$ で定義する。</p>
+        <p>ブロック:</p>
+        $$
+        \mathcal{L}_{\text{CFM}} = \mathbb{E}_t \left[ \left\| G_\theta(x_t, t) - (\epsilon - x_0) \right\|^2 \right]
+        $$
+
+        <h3>等幅疑似コード (.formula)</h3>
+        <div class="formula">
+x_out = f(x_in, θ)
+L = E [ ‖ ... ‖² ]
+        </div>
+
+        <h3>コード (Prism シンタックスハイライト)</h3>
+<pre><code class="language-python">def loss(y, y_hat):
+    return ((y - y_hat) ** 2).mean()
+</code></pre>
+
+        <h3>優先度バッジの例</h3>
+        <ul>
+          <li>案 A <span class="pill p1">先行</span> — probe</li>
+          <li>案 B <span class="pill p2">本命</span> — main</li>
+          <li>案 C <span class="pill p3">補助</span> — optional</li>
+          <li>案 D <span class="pill p5">破棄</span> — rejected</li>
+        </ul>
+
+        <div class="risk">
+          <strong>既知リスク:</strong> ... を懸念。先に検証が必要。
+        </div>
+      </section>
+
+      <section id="section-3">
+        <h2>セクション 3 (図表)</h2>
+        <p>D2 で生成した SVG は <code>assets/</code> 以下に置き、<a href="..."> でクリック原寸を提供する。</p>
+
+        <figure style="margin: 0;">
+          <div class="diagram-scroll">
+            <a href="assets/YYYY-MM-DD_topic.svg"
+               target="_blank" rel="noopener"
+               title="クリックで原寸を新タブで開く">
+              <img src="assets/YYYY-MM-DD_topic.svg"
+                   alt="ダイアグラムの説明..."
+                   loading="lazy">
+            </a>
+          </div>
+          <figcaption class="footnote" style="text-align: center; margin-top: 8px;">
+            <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 8px 0 10px; font-size: 0.85rem;">
+              <span style="display: inline-flex; align-items: center; gap: 6px;">
+                <span style="display: inline-block; width: 14px; height: 14px; border: 2px solid #22d3a0; border-radius: 3px;"></span>
+                新規追加
+              </span>
+              <span style="display: inline-flex; align-items: center; gap: 6px;">
+                <span style="display: inline-block; width: 14px; height: 14px; border: 2px solid #94a3b8; border-radius: 3px;"></span>
+                既存
+              </span>
+            </div>
+            ソース: <code>docs/assets/YYYY-MM-DD_topic.d2</code>
+            (再生成 = <code>d2 -t 200 input.d2 output.svg</code>)
+          </figcaption>
+        </figure>
+      </section>
+
+      <!-- ===================== 参考文献 + 改訂履歴 ===================== -->
+      <section id="refs">
+        <h2>参考文献</h2>
+        <ul>
+          <li>Author et al. (YYYY). <em>Title</em>. <a href="https://arxiv.org/abs/XXXX">arXiv:XXXX</a></li>
+        </ul>
+
+        <h3>プロジェクト内資料</h3>
+        <ul>
+          <li><code>specs/...</code> — 関連 spec</li>
+          <li><code>docs/...</code> — 過去サーベイ / レポート</li>
+        </ul>
+
+        <h3>本書の改訂履歴</h3>
+        <ul>
+          <li><strong>v1.0 (本書):</strong> 初稿。前提 X で初設計。</li>
+        </ul>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- KaTeX auto-render: $...$ / $$...$$ / \(...\) / \[...\] を数式化 -->
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false},
+              {left: '\\(', right: '\\)', display: false},
+              {left: '\\[', right: '\\]', display: true}
+            ],
+            throwOnError: false
+          });"></script>
+
+  <!-- Prism: <pre><code class="language-XXX"> を自動ハイライト -->
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markup.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-css.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-clike.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-rust.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-go.min.js"></script>
+</body>
+</html>

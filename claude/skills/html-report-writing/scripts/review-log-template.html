@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TITLE — 議論ログ (review-log)</title>
+  <!-- KaTeX (数式) と Prism (コードハイライト): CDN 読み込み。
+       オフライン配布時は scripts/setup-libs.sh でローカル化 (reference/math-and-code.md 参照) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --accent: #2563eb;
+      --accent-soft: #eff6ff;
+      --intent-bg: #fff7ed;
+      --intent-border: #f59e0b;
+      --code-bg: #f8fafc;
+      --ok-bg: #dcfce7;
+      --ok-border: #16a34a;
+      --risk-bg: #fef2f2;
+      --risk-border: #ef4444;
+      --codex-bg: #f5f3ff;
+      --codex-border: #8b5cf6;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a; --fg: #f1f5f9; --muted: #94a3b8;
+        --border: #1e293b; --accent: #60a5fa; --accent-soft: #1e3a8a;
+        --intent-bg: #422006; --intent-border: #f59e0b;
+        --code-bg: #1e293b;
+        --ok-bg: #14532d; --ok-border: #22c55e;
+        --risk-bg: #450a0a; --risk-border: #f87171;
+        --codex-bg: #2e1065; --codex-border: #a78bfa;
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+      line-height: 1.7;
+      color: var(--fg);
+      background: var(--bg);
+      margin: 0;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 240px minmax(0, 1fr);
+      gap: 48px;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 32px 24px 96px;
+    }
+    @media (max-width: 800px) {
+      .layout { grid-template-columns: 1fr; gap: 24px; }
+      nav.toc { position: static; }
+    }
+    header.doc {
+      grid-column: 1 / -1;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+    header.doc h1 { margin: 0 0 4px; font-size: 1.75rem; }
+    header.doc .sub { color: var(--muted); }
+    header.doc .meta {
+      margin-top: 8px; display: flex; gap: 12px; flex-wrap: wrap;
+      font-size: 0.875rem; color: var(--muted);
+    }
+    .badge {
+      display: inline-block; padding: 2px 8px;
+      border: 1px solid var(--accent); color: var(--accent);
+      border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+    }
+    nav.toc { position: sticky; top: 24px; align-self: start; font-size: 0.9rem; }
+    nav.toc h2 {
+      font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--muted); margin: 0 0 8px;
+    }
+    nav.toc ol { list-style: none; padding: 0; margin: 0; }
+    nav.toc li { margin: 6px 0; }
+    nav.toc a {
+      color: var(--fg); text-decoration: none;
+      border-left: 2px solid transparent; padding-left: 8px; display: block;
+    }
+    nav.toc a:hover { color: var(--accent); border-left-color: var(--accent); }
+    main { min-width: 0; }
+    .lead {
+      font-size: 1.15rem; line-height: 1.65;
+      border-left: 4px solid var(--accent);
+      padding: 12px 16px; background: var(--accent-soft); margin: 0 0 24px;
+    }
+    section { margin: 40px 0; }
+    section h2 {
+      font-size: 1.4rem; border-bottom: 1px solid var(--border);
+      padding-bottom: 6px; margin-bottom: 12px;
+    }
+    section h2 small {
+      font-size: 0.75rem; color: var(--muted); font-weight: 400; margin-left: 8px;
+    }
+    section h3 {
+      font-size: 0.85rem; margin: 24px 0 8px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    section h4 { font-size: 1rem; margin: 18px 0 6px; }
+    .intent {
+      background: var(--intent-bg); border-left: 4px solid var(--intent-border);
+      padding: 12px 16px; margin: 16px 0; font-size: 0.95rem;
+    }
+    .intent strong { color: var(--intent-border); }
+    .risk {
+      background: var(--risk-bg); border-left: 4px solid var(--risk-border);
+      padding: 12px 16px; margin: 12px 0; font-size: 0.95rem;
+    }
+    .ok {
+      background: var(--ok-bg); border-left: 4px solid var(--ok-border);
+      padding: 12px 16px; margin: 12px 0; font-size: 0.95rem;
+    }
+    .codex {
+      background: var(--codex-bg); border-left: 4px solid var(--codex-border);
+      padding: 12px 16px; margin: 16px 0; font-size: 0.95rem;
+    }
+    .codex strong { color: var(--codex-border); }
+    .codex::before {
+      content: "Codex 第二視点";
+      display: block; font-size: 0.7rem; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--codex-border);
+      font-weight: 700; margin-bottom: 4px;
+    }
+    table {
+      width: 100%; border-collapse: collapse;
+      margin: 12px 0; font-size: 0.92rem;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 8px 12px; text-align: left; vertical-align: top;
+    }
+    th { background: var(--code-bg); font-weight: 600; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tr.win td { font-weight: 600; }
+    .pill {
+      display: inline-block; padding: 1px 8px;
+      border-radius: 999px; font-size: 0.72rem; font-weight: 600;
+      border: 1px solid currentColor;
+    }
+    .pill.p1 { color: #16a34a; }
+    .pill.p2 { color: #2563eb; }
+    .pill.p3 { color: #f59e0b; }
+    .pill.p4 { color: #64748b; }
+    .pill.p5 { color: #ef4444; }
+    code {
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      background: var(--code-bg); padding: 1px 6px;
+      border-radius: 4px; font-size: 0.9em;
+    }
+    pre {
+      background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 12px 14px; overflow-x: auto;
+      font-size: 0.85rem; line-height: 1.55;
+    }
+    pre code { background: transparent; padding: 0; }
+    .formula {
+      background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 10px 14px; margin: 10px 0;
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 0.9rem; overflow-x: auto;
+    }
+    a { color: var(--accent); }
+    a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .diagram-scroll {
+      width: 100%;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+    }
+    .diagram-scroll a {
+      display: block;
+      cursor: zoom-in;
+      line-height: 0;
+    }
+    .diagram-scroll img {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-width: 100%;
+    }
+    @media print {
+      .diagram-scroll img { width: 100%; height: auto; }
+    }
+    .footnote { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+    blockquote {
+      border-left: 4px solid var(--codex-border);
+      padding-left: 16px; margin-left: 0;
+      color: var(--muted); font-style: italic;
+    }
+    @media print {
+      body { font-size: 11pt; color: #000; background: #fff; }
+      .layout { display: block; padding: 0; max-width: none; }
+      nav.toc { display: none; }
+      section { page-break-inside: avoid; }
+      .intent, .risk, .ok, .codex { background: #fff; }
+      a { color: inherit; text-decoration: none; }
+      a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.85em; color: #555; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <header class="doc">
+      <h1>TITLE — サブタイトル</h1>
+      <div class="sub">本書が何を検討するかを 1 行で</div>
+      <div class="meta">
+        <span class="badge">v1.0</span>
+        <span>作成日 YYYY-MM-DD</span>
+        <span>読了 N 分</span>
+        <span>対象論文: arXiv:XXXX</span>
+      </div>
+    </header>
+
+    <nav class="toc" aria-label="目次">
+      <h2>目次</h2>
+      <ol>
+        <li><a href="#tldr">TL;DR — Nugget</a></li>
+        <li><a href="#summary">対象の 1 分要約</a></li>
+        <li><a href="#match">接合点 / 整合性分析</a></li>
+        <li><a href="#cases">応用案 / 選択肢</a></li>
+        <li><a href="#root-risk">根本リスク</a></li>
+        <li><a href="#second-opinion">第二視点 (Codex 等)</a></li>
+        <li><a href="#roadmap">実装ロードマップ</a></li>
+        <li><a href="#nogo">やらないこと</a></li>
+        <li><a href="#gate">Pass 条件</a></li>
+        <li><a href="#refs">参考文献 + 改訂履歴</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <!-- ===================== TL;DR ===================== -->
+      <section id="tldr">
+        <h2>TL;DR — Nugget</h2>
+        <p class="lead">
+          結論を 1-2 文で。<strong>本質的な選択</strong>を強調語で。
+        </p>
+        <p>
+          補足する 1 段落。優先度・前提・スコープを書く。
+        </p>
+        <div class="intent">
+          <strong>結論:</strong> 優先度は <code>A → B → C</code>。
+          このレポートは X の暫定実装であり、Y の最終判断ではない。
+        </div>
+      </section>
+
+      <!-- ===================== 対象の 1 分要約 ===================== -->
+      <section id="summary">
+        <h2>対象の 1 分要約 <small>arXiv:XXXX</small></h2>
+        <p>
+          元論文 / 元手法を 3-5 文で。中心となる計算式や設計判断を抽出。
+        </p>
+        <div class="formula">
+x_out = f(x_in, θ)
+L = E [ ‖ ... ‖² ]
+        </div>
+        <p>
+          主結果 (Table 1 等) を 1 文で。「自プロジェクト適用時に何がそのまま使えるか」を匂わせる。
+        </p>
+      </section>
+
+      <!-- ===================== 接合点 ===================== -->
+      <section id="match">
+        <h2>自プロジェクト × 元論文の接合点</h2>
+        <p>
+          表面的には別領域だが、内部表現と計算式で揃っている点を表で。
+        </p>
+        <table>
+          <thead>
+            <tr><th>要素</th><th>自プロジェクト</th><th>元論文</th><th>整合</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>...</td><td>...</td><td>...</td><td>✅ 同一</td></tr>
+            <tr><td>...</td><td>...</td><td>...</td><td>⚠ 部分一致</td></tr>
+            <tr><td>...</td><td>...</td><td>...</td><td>❌ 不一致</td></tr>
+          </tbody>
+        </table>
+        <div class="ok">
+          <strong>含意:</strong> ✅ が N 個揃っているため、再実装ではなく直接統合が可能。
+        </div>
+
+        <h3>データフロー図</h3>
+        <figure style="margin: 0;">
+          <div class="diagram-scroll">
+            <a href="assets/YYYY-MM-DD_topic.svg"
+               target="_blank" rel="noopener"
+               title="クリックで原寸を新タブで開く">
+              <img src="assets/YYYY-MM-DD_topic.svg"
+                   alt="データフローの説明..."
+                   loading="lazy">
+            </a>
+          </div>
+          <figcaption class="footnote" style="text-align: center; margin-top: 8px;">
+            <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 8px 0 10px; font-size: 0.85rem;">
+              <span style="display: inline-flex; align-items: center; gap: 6px;">
+                <span style="display: inline-block; width: 14px; height: 14px; border: 2px solid #22d3a0; border-radius: 3px;"></span>
+                新規追加
+              </span>
+              <span style="display: inline-flex; align-items: center; gap: 6px;">
+                <span style="display: inline-block; width: 14px; height: 14px; border: 2px solid #94a3b8; border-radius: 3px;"></span>
+                既存
+              </span>
+              <span style="display: inline-flex; align-items: center; gap: 6px;">
+                <span style="display: inline-block; width: 14px; height: 14px; border: 2px dashed #22d3a0; border-radius: 3px;"></span>
+                注入 (gated)
+              </span>
+            </div>
+            ソース: <code>docs/assets/YYYY-MM-DD_topic.d2</code>
+            (再生成 = <code>pixi global install d2 &amp;&amp; d2 -t 200 input.d2 output.svg</code>)
+          </figcaption>
+        </figure>
+      </section>
+
+      <!-- ===================== 応用案 ===================== -->
+      <section id="cases">
+        <h2>応用案 / 選択肢</h2>
+
+        <h3 id="case-a">A — 案 A の名前 <span class="pill p2">本命</span></h3>
+        <p>案 A の説明。何を入れ、何を変えるか。</p>
+        <ul>
+          <li><strong>狙い:</strong> ...</li>
+          <li><strong>実装範囲:</strong> ...</li>
+          <li><strong>想定リスク:</strong> ...</li>
+        </ul>
+        <div class="risk">
+          <strong>既知の懸念:</strong> ...
+        </div>
+
+        <h3 id="case-b">B — 案 B の名前 <span class="pill p1">先行</span></h3>
+        <p>案 B の説明。A の前段として probe するもの等。</p>
+        <div class="ok">
+          1-2 週で実装可能、A の GO/NO-GO 判定材料になる。
+        </div>
+
+        <h3 id="case-c">C — 案 C の名前 <span class="pill p3">補助</span></h3>
+        <p>案 C の説明。</p>
+
+        <h3 id="case-d">D — 案 D の名前 <span class="pill p5">破棄</span></h3>
+        <p>D の説明。なぜ捨てたか。</p>
+
+        <h3>応用案サマリ</h3>
+        <table>
+          <thead>
+            <tr><th>案</th><th>内容</th><th>実装コスト</th><th>期待効果</th><th>優先度</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>B</td><td>...</td><td>~1 wk</td><td>上限見積もり</td><td><span class="pill p1">P1 先行</span></td></tr>
+            <tr class="win"><td>A</td><td>...</td><td>~3–4 wk</td><td>本実装</td><td><span class="pill p2">P2 本命</span></td></tr>
+            <tr><td>C</td><td>...</td><td>~2 wk</td><td>補助</td><td><span class="pill p3">P3 補助</span></td></tr>
+            <tr><td>D</td><td>...</td><td>—</td><td>—</td><td><span class="pill p5">破棄</span></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ===================== 根本リスク ===================== -->
+      <section id="root-risk">
+        <h2>根本リスク (反復で見えてきた本質的懸念)</h2>
+        <div class="risk">
+          <strong>Codex 第二ラウンド指摘 #N:</strong>
+          反復レビューで初めて見えてきた、設計の前提自体に関わる懸念をここに書く。
+        </div>
+        <h3>この問題への対処</h3>
+        <ul>
+          <li><strong>先に検出する:</strong> ...</li>
+          <li><strong>影響範囲を制御する:</strong> ...</li>
+          <li><strong>本道は別:</strong> 本検討は暫定実装、本格対応は ... で扱う</li>
+        </ul>
+      </section>
+
+      <!-- ===================== 第二視点 ===================== -->
+      <section id="second-opinion">
+        <h2>第二視点 (Codex 等) — ラウンドの経緯</h2>
+
+        <h3>ラウンド 1 (v1.0)</h3>
+        <p>初稿に対する指摘:</p>
+        <div class="codex">
+          <ol>
+            <li>指摘 1 ...</li>
+            <li>指摘 2 ...</li>
+            <li>指摘 3 ...</li>
+          </ol>
+          <p class="footnote">最辛口指摘: 「...」</p>
+        </div>
+
+        <h3>ラウンド 2 (v2.0 直前)</h3>
+        <p>取り込み後の v2.x を再投入した指摘:</p>
+        <div class="codex">
+          <ol>
+            <li>より深い構造的指摘 1 ...</li>
+            <li>... 2</li>
+          </ol>
+        </div>
+
+        <h3>最辛口指摘 (本書を再構成させた一文)</h3>
+        <blockquote>
+          「最も鋭い指摘の原文をここに引用。これが今版の核心思想になる」
+        </blockquote>
+        <p>
+          v2.x はこの指摘に応える形で、X / Y / Z を変更した。
+        </p>
+        <p class="footnote">
+          ラウンド全指摘総数 = N 件。うち取り込み = M 件。不採用 = 0 件 (棄却理由を明示)。
+        </p>
+      </section>
+
+      <!-- ===================== ロードマップ ===================== -->
+      <section id="roadmap">
+        <h2>実装ロードマップ (stage-gate)</h2>
+        <table>
+          <thead>
+            <tr><th>Stage</th><th>作業</th><th>所要</th><th>Pass 条件</th><th>Fail 時</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>S0 prep</td>
+              <td>... (実物確認、データ準備、ツール整備)</td>
+              <td>1–2 wk</td>
+              <td>定量条件で書く</td>
+              <td>S0 で fail → ... を見直し</td>
+            </tr>
+            <tr>
+              <td>S1 — 案 B probe</td>
+              <td>...</td>
+              <td>1 wk</td>
+              <td>...</td>
+              <td>...</td>
+            </tr>
+            <tr class="win">
+              <td>S2 — 案 A 本実装</td>
+              <td>...</td>
+              <td>2–4 wk</td>
+              <td>...</td>
+              <td>...</td>
+            </tr>
+            <tr>
+              <td>S3 — 案 C 統合</td>
+              <td>...</td>
+              <td>2 wk</td>
+              <td>...</td>
+              <td>...</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ===================== やらないこと ===================== -->
+      <section id="nogo">
+        <h2>やらないこと</h2>
+        <ul>
+          <li><strong>X を導入する。</strong> 理由: 既存 Y と衝突する</li>
+          <li><strong>B 案を飛ばしていきなり A 案を実装。</strong> 上限見積もりなしの 3 週間投資は早すぎる</li>
+          <li><strong>本検討で 2 つの軸を同時にいじる。</strong> 失敗時に原因分解できない</li>
+        </ul>
+      </section>
+
+      <!-- ===================== Pass 条件 ===================== -->
+      <section id="gate">
+        <h2>Pass 条件 (定量)</h2>
+        <table>
+          <thead>
+            <tr><th>指標</th><th>S1 (probe)</th><th>S2 (本実装)</th><th>S3 (統合)</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>指標 1</td><td>baseline 同等</td><td>baseline + N</td><td>baseline + M</td></tr>
+            <tr><td>指標 2</td><td>—</td><td>X% 改善</td><td>Y% 改善</td></tr>
+            <tr><td>監視指標 (発散検知)</td><td>—</td><td>各 stage で発散しないこと</td><td>—</td></tr>
+          </tbody>
+        </table>
+        <p class="footnote">
+          数値の根拠を 1-2 文で。元論文の Table N で X% だったが、自プロジェクト domain では割引いた値。
+        </p>
+      </section>
+
+      <!-- ===================== 参考文献 + 改訂履歴 ===================== -->
+      <section id="refs">
+        <h2>参考文献</h2>
+        <h3>対象論文</h3>
+        <ul>
+          <li>Author et al. (YYYY). <em>Title</em>. <a href="https://arxiv.org/abs/XXXX">arXiv:XXXX</a></li>
+        </ul>
+
+        <h3>本体・関連</h3>
+        <ul>
+          <li>本プロジェクトの基盤論文 / コード ...</li>
+        </ul>
+
+        <h3>プロジェクト内資料</h3>
+        <ul>
+          <li><code>specs/...</code> — 関連 spec</li>
+          <li><code>docs/...</code> — 過去サーベイ / レポート</li>
+        </ul>
+
+        <h3>本書の改訂履歴</h3>
+        <ul>
+          <li><strong>v1.0 (初稿):</strong> 前提 X で初設計。優先度 <code>A → B → C</code>。Codex 指摘で ...</li>
+          <li><strong>v2.0:</strong> ユーザー / Codex 指摘で前提 Y に再設計。... 追加、... 削除</li>
+          <li><strong>v2.x (本書):</strong> N 件指摘を反映、<strong>scope 削減</strong>。
+            ①... ②... ③...
+            <strong>核心思想:</strong> 「...」
+          </li>
+        </ul>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- KaTeX auto-render: $...$ / $$...$$ / \(...\) / \[...\] を数式化 -->
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false},
+              {left: '\\(', right: '\\)', display: false},
+              {left: '\\[', right: '\\]', display: true}
+            ],
+            throwOnError: false
+          });"></script>
+
+  <!-- Prism: <pre><code class="language-XXX"> を自動ハイライト -->
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markup.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-css.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-clike.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-rust.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-go.min.js"></script>
+</body>
+</html>

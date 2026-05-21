@@ -21,7 +21,7 @@ wezterm = { target = "$HOME/.config/wezterm", type = "symbolic", recurse = false
 "claude/scripts/karpathy-reminder.sh" = "$HOME/.claude/scripts/karpathy-reminder.sh"
 "claude/scripts/plot-vision-reminder.sh" = "$HOME/.claude/scripts/plot-vision-reminder.sh"
 "claude/scripts/mmdc" = "$HOME/.pixi/bin/mmdc"
-"claude/skills/git-commits" = { target = "$HOME/.claude/skills/git-commits", type = "symbolic", recurse = false }
+"claude/skills/committing-changes" = { target = "$HOME/.claude/skills/committing-changes", type = "symbolic", recurse = false }
 "claude/skills/code-comments" = { target = "$HOME/.claude/skills/code-comments", type = "symbolic", recurse = false }
 "claude/skills/code-review-etiquette" = { target = "$HOME/.claude/skills/code-review-etiquette", type = "symbolic", recurse = false }
 "claude/skills/readme-writing" = { target = "$HOME/.claude/skills/readme-writing", type = "symbolic", recurse = false }

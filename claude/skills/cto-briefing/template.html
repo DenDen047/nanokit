@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>プロジェクト名 — アルゴリズム概要</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --accent: #2563eb;
+      --accent-soft: #eff6ff;
+      --intent-bg: #fff7ed;
+      --intent-border: #f59e0b;
+      --code-bg: #f8fafc;
+      --current-bg: #dcfce7;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a; --fg: #f1f5f9; --muted: #94a3b8;
+        --border: #1e293b; --accent: #60a5fa; --accent-soft: #1e3a8a;
+        --intent-bg: #422006; --intent-border: #f59e0b;
+        --code-bg: #1e293b; --current-bg: #14532d;
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+      line-height: 1.7;
+      color: var(--fg);
+      background: var(--bg);
+      margin: 0;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr);
+      gap: 48px;
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 32px 24px 96px;
+    }
+    @media (max-width: 800px) {
+      .layout { grid-template-columns: 1fr; gap: 24px; }
+      nav.toc { position: static; }
+    }
+    header.doc {
+      grid-column: 1 / -1;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+    header.doc h1 { margin: 0 0 4px; font-size: 1.75rem; }
+    header.doc .sub { color: var(--muted); }
+    header.doc .meta {
+      margin-top: 8px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      font-size: 0.875rem;
+      color: var(--muted);
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    nav.toc {
+      position: sticky;
+      top: 24px;
+      align-self: start;
+      font-size: 0.9rem;
+    }
+    nav.toc h2 {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin: 0 0 8px;
+    }
+    nav.toc ol { list-style: none; padding: 0; margin: 0; }
+    nav.toc li { margin: 6px 0; }
+    nav.toc a {
+      color: var(--fg);
+      text-decoration: none;
+      border-left: 2px solid transparent;
+      padding-left: 8px;
+      display: block;
+    }
+    nav.toc a:hover { color: var(--accent); border-left-color: var(--accent); }
+    main { min-width: 0; }
+    .lead {
+      font-size: 1.2rem;
+      line-height: 1.6;
+      border-left: 4px solid var(--accent);
+      padding: 10px 16px;
+      background: var(--accent-soft);
+      margin: 0 0 32px;
+    }
+    section { margin: 40px 0; }
+    section h2 {
+      font-size: 1.4rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 6px;
+      margin-bottom: 12px;
+    }
+    section h2 small {
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-weight: 400;
+      margin-left: 8px;
+    }
+    section h3 {
+      font-size: 0.85rem;
+      margin: 20px 0 8px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .intent {
+      background: var(--intent-bg);
+      border-left: 4px solid var(--intent-border);
+      padding: 12px 16px;
+      margin: 16px 0 0;
+      font-size: 0.95rem;
+    }
+    .intent strong { color: var(--intent-border); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 0.95rem;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: var(--code-bg); font-weight: 600; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tr.current { background: var(--current-bg); font-weight: 600; }
+    code {
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      background: var(--code-bg);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+    .flow {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    .flow li { display: flex; align-items: center; }
+    .flow li::after { content: "→"; margin-left: 8px; color: var(--accent); }
+    .flow li:last-child::after { content: ""; }
+    svg.pipeline {
+      width: 100%;
+      height: auto;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      color: var(--fg);
+    }
+    a { color: var(--accent); }
+    a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    @media print {
+      body { font-size: 11pt; color: #000; background: #fff; }
+      .layout { display: block; padding: 0; max-width: none; }
+      nav.toc { display: none; }
+      section { page-break-inside: avoid; }
+      .intent { background: #fff8e1; }
+      a { color: inherit; text-decoration: none; }
+      a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.85em; color: #555; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <header class="doc">
+      <h1>プロジェクト名 — アルゴリズム概要</h1>
+      <div class="sub">CTO 向け / ロジックと設計意図の俯瞰</div>
+      <div class="meta">
+        <span class="badge">v1.0</span>
+        <span>更新日 YYYY-MM-DD</span>
+        <span>読了 10-15 分</span>
+      </div>
+    </header>
+
+    <nav class="toc" aria-label="目次">
+      <h2>目次</h2>
+      <ol>
+        <li><a href="#tldr">一言で言うと</a></li>
+        <li><a href="#flow">全体の流れ</a></li>
+        <li><a href="#step-1">1. ステップ名</a></li>
+        <li><a href="#step-2">2. ステップ名</a></li>
+        <li><a href="#roadmap">拡張計画</a></li>
+        <li><a href="#risk">リスク</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section id="tldr" aria-labelledby="tldr-h">
+        <h2 id="tldr-h">一言で言うと</h2>
+        <p class="lead">
+          ここに 1-2 文でシステム全体の目的を書く。技術用語は使わず、入力・出力・ユーザー価値を伝える。
+        </p>
+      </section>
+
+      <section id="flow" aria-labelledby="flow-h">
+        <h2 id="flow-h">全体の流れ</h2>
+        <ol class="flow">
+          <li>1. 嗜好を学ぶ</li>
+          <li>2. 削除を検知</li>
+          <li>3. 新着を採点</li>
+          <li>4. 厳選する</li>
+          <li>5. 取得・配置</li>
+        </ol>
+        <svg class="pipeline" viewBox="0 0 720 140" role="img" aria-labelledby="flow-svg-title">
+          <title id="flow-svg-title">パイプライン全体の流れ図</title>
+          <defs>
+            <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5"
+                    markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+            </marker>
+          </defs>
+          <g font-family="system-ui, sans-serif" font-size="12"
+             fill="currentColor" stroke="currentColor">
+            <g><rect x="10"  y="50" width="120" height="40" rx="6" fill="none"/>
+               <text x="70"  y="74" text-anchor="middle" stroke="none">1. 嗜好を学ぶ</text></g>
+            <line x1="130" y1="70" x2="158" y2="70" marker-end="url(#arr)"/>
+            <g><rect x="160" y="50" width="120" height="40" rx="6" fill="none"/>
+               <text x="220" y="74" text-anchor="middle" stroke="none">2. 削除を検知</text></g>
+            <line x1="280" y1="70" x2="308" y2="70" marker-end="url(#arr)"/>
+            <g><rect x="310" y="50" width="120" height="40" rx="6" fill="none"/>
+               <text x="370" y="74" text-anchor="middle" stroke="none">3. 新着を採点</text></g>
+            <line x1="430" y1="70" x2="458" y2="70" marker-end="url(#arr)"/>
+            <g><rect x="460" y="50" width="120" height="40" rx="6" fill="none"/>
+               <text x="520" y="74" text-anchor="middle" stroke="none">4. 厳選する</text></g>
+            <line x1="580" y1="70" x2="608" y2="70" marker-end="url(#arr)"/>
+            <g><rect x="610" y="50" width="100" height="40" rx="6" fill="none"/>
+               <text x="660" y="74" text-anchor="middle" stroke="none">5. 取得・配置</text></g>
+          </g>
+        </svg>
+      </section>
+
+      <section id="step-1" class="step" aria-labelledby="step-1-h">
+        <h2 id="step-1-h">1. ステップ名 <small>(内部コンポーネント名)</small></h2>
+        <p>1 行の概要説明。</p>
+
+        <h3>コアメトリクス</h3>
+        <p>数式または疑似コードで判断基準を示す。実装コードは書かない。</p>
+
+        <table>
+          <thead>
+            <tr><th scope="col">項目</th><th scope="col" class="num">値</th><th scope="col">目的</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>スコア閾値</td><td class="num">0.1 以上</td><td>確度の低い推薦を排除</td></tr>
+            <tr><td>日次上限</td><td class="num">50 件 / 日</td><td>ストレージとレビュー負荷を制限</td></tr>
+          </tbody>
+        </table>
+
+        <aside class="intent">
+          <strong>設計の意図:</strong>
+          なぜこの方式を選んだか、何を優先したかを 2-3 文で書く。
+          例: ユーザーに追加の操作負担をかけないこと、ロジックの透明性を確保することを優先した。
+        </aside>
+      </section>
+
+      <section id="step-2" class="step" aria-labelledby="step-2-h">
+        <h2 id="step-2-h">2. ステップ名 <small>(内部コンポーネント名)</small></h2>
+        <p>1 行の概要説明。</p>
+
+        <aside class="intent">
+          <strong>設計の意図:</strong>
+          ここに 2-3 文で書く。
+        </aside>
+      </section>
+
+      <section id="roadmap" aria-labelledby="roadmap-h">
+        <h2 id="roadmap-h">段階的な拡張計画</h2>
+        <table>
+          <thead>
+            <tr><th scope="col">Phase</th><th scope="col">状態</th><th scope="col">手法</th></tr>
+          </thead>
+          <tbody>
+            <tr class="current"><th scope="row">1</th><td>稼働中</td><td>ルールベース</td></tr>
+            <tr><th scope="row">2</th><td>未着手</td><td>タグ類似度</td></tr>
+            <tr><th scope="row">3</th><td>未着手</td><td>Embedding</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="risk" aria-labelledby="risk-h">
+        <h2 id="risk-h">セキュリティ・リスク</h2>
+        <ul>
+          <li>外部入力は <code>X</code> の段階で常にバリデーションされる</li>
+          <li>取得失敗は自動リトライせず、人手レビューに回す</li>
+          <li>日次上限を超えたものはキューに溜める (取りこぼし防止)</li>
+        </ul>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

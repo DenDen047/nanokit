@@ -12,11 +12,12 @@
 #   横並びにしたい群だけ内部で direction: right。
 #   aspect 比が 2:1 を超えそうなら行を増やす (= 縦長化) こと。
 #
-# Classes:
-#   new    = 緑、新規追加ノード
-#   base   = グレー、既存ノード
-#   attn   = オレンジ、注目したい接続 / 重要 module
-#   inject = 緑破線、gated / 条件付き注入
+# Classes (cross-theme readable: saturated fill + 白テキスト + bold + ≥16px):
+#   new    = 緑 (saturated)、新規追加ノード
+#   base   = グレー (saturated)、既存ノード
+#   attn   = オレンジ (saturated)、注目したい接続 / 重要 module
+#   inject = 緑破線、gated / 条件付き注入 (edge 専用)
+# 詳細: reference/d2-diagrams.md の「ノードスタイル — 両テーマで読めることを保証する」
 # =====================================================================
 
 direction: down
@@ -31,21 +32,35 @@ vars: {
 classes: {
   new: {
     style: {
-      stroke: "#22d3a0"
+      fill: "#16a34a"
+      stroke: "#14532d"
       stroke-width: 2
       border-radius: 8
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
     }
   }
   base: {
     style: {
-      stroke: "#94a3b8"
+      fill: "#475569"
+      stroke: "#1e293b"
+      stroke-width: 1
       border-radius: 8
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
     }
   }
   attn: {
     style: {
-      stroke: "#fb923c"
+      fill: "#d97706"
+      stroke: "#7c2d12"
       stroke-width: 2
+      border-radius: 8
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
     }
   }
   inject: {

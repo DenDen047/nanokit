@@ -50,7 +50,6 @@ wezterm = { target = "$HOME/.config/wezterm", type = "symbolic", recurse = false
 "claude/skills/handoff" = { target = "$HOME/.claude/skills/handoff", type = "symbolic", recurse = false }
 "claude/skills/write-a-skill" = { target = "$HOME/.claude/skills/write-a-skill", type = "symbolic", recurse = false }
 "claude/skills/improve-codebase-architecture" = { target = "$HOME/.claude/skills/improve-codebase-architecture", type = "symbolic", recurse = false }
-"claude/skills/grill-with-docs" = { target = "$HOME/.claude/skills/grill-with-docs", type = "symbolic", recurse = false }
 "claude/ccstatusline/settings.json" = "$HOME/.config/ccstatusline/settings.json"
 
 [default.variables]

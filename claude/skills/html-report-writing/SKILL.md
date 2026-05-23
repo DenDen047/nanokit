@@ -146,6 +146,7 @@ TL;DR は **本文確定後に最後に書く**。結論を 1-2 文で、`<stron
 - **D2 は `--layout=tala -t 200` を基本** に使う (個人/OSS 無料、商用は要ライセンス)
 - **direction: down** を基本にして aspect 比 < 2:1 を保つ
 - **凡例は HTML figcaption 側に書く** (D2 内 legend は viewBox を壊す)
+- **D2 ノードは saturated fill + 白テキスト + bold + ≥16px** で light/dark 両対応 (pastel fill + 暗色テキストは dark mode browser で読めなくなる、`reference/d2-diagrams.md` 参照)
 - matplotlib は **`transparent=True`** + ニュートラル軸色で light/dark 両対応
 
 ## 作成手順 (汎用フロー)

@@ -43,6 +43,8 @@ wezterm = { target = "$HOME/.config/wezterm", type = "symbolic", recurse = false
 "claude/skills/karpathy-guidelines" = { target = "$HOME/.claude/skills/karpathy-guidelines", type = "symbolic", recurse = false }
 "claude/skills/lgtm-loop" = { target = "$HOME/.claude/skills/lgtm-loop", type = "symbolic", recurse = false }
 "claude/skills/grill-me" = { target = "$HOME/.claude/skills/grill-me", type = "symbolic", recurse = false }
+"claude/skills/grill-with-docs" = { target = "$HOME/.claude/skills/grill-with-docs", type = "symbolic", recurse = false }
+"claude/skills/tdd" = { target = "$HOME/.claude/skills/tdd", type = "symbolic", recurse = false }
 "claude/skills/diagnose" = { target = "$HOME/.claude/skills/diagnose", type = "symbolic", recurse = false }
 "claude/skills/zoom-out" = { target = "$HOME/.claude/skills/zoom-out", type = "symbolic", recurse = false }
 "claude/skills/handoff" = { target = "$HOME/.claude/skills/handoff", type = "symbolic", recurse = false }

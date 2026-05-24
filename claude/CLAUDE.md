@@ -10,6 +10,7 @@
 | `claude/CLAUDE.md` | `~/.claude/CLAUDE.md` |
 | `claude/settings.json` | `~/.claude/settings.json` |
 | `claude/scripts/zotero-mcp-server.sh` | `~/.claude/scripts/zotero-mcp-server.sh` |
+| `claude/scripts/scrapling-mcp-server.sh` | `~/.claude/scripts/scrapling-mcp-server.sh` |
 | `claude/scripts/mmdc` | `~/.pixi/bin/mmdc` |
 | `claude/ccstatusline/settings.json` | `~/.config/ccstatusline/settings.json` |
 | `claude/skills/*` | `~/.claude/skills/*` |
@@ -118,5 +119,53 @@ cd "$NANOKIT" && dotter deploy
 # 3. 検証
 readlink ~/.claude/settings.json   # → $NANOKIT/claude/settings.json が出れば OK
 ```
+
+## Scrapling MCP 運用 (Claude Code ⇄ Codex 共有)
+
+`scrapling-mcp` は streamable-http サーバー (`http://127.0.0.1:8323/mcp`) として `~/.claude/scripts/scrapling-mcp-server.sh` 経由で常駐起動される。バイナリは pixi env (`~/nanokit/claude/mcp-servers/scrapling/`) 内、起動コマンドは `pixi run --manifest-path … mcp --http`。
+
+**狙い**: stdio だと Claude Code と Codex がそれぞれ別プロセス (= Playwright/Chromium を二重に) 起動してしまう。HTTP 化して **1 プロセスを両クライアントが同一 URL で共有** する。zotero (`8321`) / workspace-personal (`8322`) と同じ常駐パターン。bind は `127.0.0.1` のみ、認証なし (ローカル専用)。
+
+### ポート割り当て
+
+| サーバー | ポート | ランチャ |
+|---|---|---|
+| zotero-mcp | `8321` | `zotero-mcp-server.sh` |
+| workspace-mcp (personal) | `8322` | `workspace-mcp-personal-server.sh` |
+| scrapling-mcp | `8323` | `scrapling-mcp-server.sh` |
+
+### クライアント登録 (どちらも dotter 管理外の state ファイル)
+
+新ホストでは `dotter deploy` 後に **両方を手動で登録** する必要がある:
+
+```bash
+# Claude Code (~/.claude.json) — user scope の HTTP として登録
+claude mcp add --transport http -s user scrapling http://127.0.0.1:8323/mcp
+
+# Codex (~/.codex/config.toml) — [mcp_servers.scrapling] に url を追記
+codex mcp add ...   # または config.toml に直接:
+#   [mcp_servers.scrapling]
+#   url = "http://127.0.0.1:8323/mcp"
+```
+
+起動自体は `settings.json` の SessionStart hook + `ECC_MCP_RECONNECT_SCRAPLING` が担当 (冪等: 既に healthy なら no-op)。
+
+### トラブルシュート
+
+```bash
+# 現状確認
+bash ~/.claude/scripts/scrapling-mcp-server.sh status
+tail -20 ~/.claude/debug/scrapling-mcp.log
+
+# 再起動
+bash ~/.claude/scripts/scrapling-mcp-server.sh stop
+bash ~/.claude/scripts/scrapling-mcp-server.sh start
+
+# 接続確認 (両クライアント)
+claude mcp list | grep scrapling      # → http://127.0.0.1:8323/mcp (HTTP) - ✓ Connected
+codex mcp get scrapling               # → transport: streamable_http
+```
+
+ポート変更は `SCRAPLING_MCP_PORT` 環境変数で上書き可 (変更時は両クライアントの登録 URL も更新)。
 
 @RTK.md

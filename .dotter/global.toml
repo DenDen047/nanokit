@@ -18,6 +18,7 @@ wezterm = { target = "$HOME/.config/wezterm", type = "symbolic", recurse = false
 "claude/RTK.md" = "$HOME/.claude/RTK.md"
 "claude/scripts/zotero-mcp-server.sh" = "$HOME/.claude/scripts/zotero-mcp-server.sh"
 "claude/scripts/workspace-mcp-personal-server.sh" = "$HOME/.claude/scripts/workspace-mcp-personal-server.sh"
+"claude/scripts/scrapling-mcp-server.sh" = "$HOME/.claude/scripts/scrapling-mcp-server.sh"
 "claude/scripts/karpathy-reminder.sh" = "$HOME/.claude/scripts/karpathy-reminder.sh"
 "claude/scripts/plot-vision-reminder.sh" = "$HOME/.claude/scripts/plot-vision-reminder.sh"
 "claude/scripts/mmdc" = "$HOME/.pixi/bin/mmdc"

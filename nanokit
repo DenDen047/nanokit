@@ -886,12 +886,13 @@ ecc_uninstall() {
 }
 
 # Codex CLI (OpenAI) optional setup — installed via npm to get the latest upstream release,
-# since conda-forge tends to lag. Uses the nodejs env managed by pixi-global.toml.
+# since conda-forge tends to lag. Uses npm from the fnm-managed Node (see zshrc: `fnm env`).
 CODEX_NPM_PACKAGE="@openai/codex"
 
-# Expose a binary installed into the pixi nodejs env by symlinking it into ~/.pixi/bin,
-# which pixi already puts on PATH. Keeps npm-installed CLIs discoverable without editing
-# pixi-global.toml's [envs.nodejs] exposed table (which would be overwritten by `pixi global sync`).
+# Expose a binary installed into fnm's active Node by symlinking it into ~/.pixi/bin,
+# which pixi already puts on PATH. Keeps npm-installed CLIs discoverable on PATH.
+# NOTE: fnm installs global packages per Node version — switching the fnm default
+# version orphans this symlink; re-run `nanokit codex-update` after changing it.
 codex_link_binary() {
     local npm_prefix bin_src bin_dst
     npm_prefix="$(npm prefix -g 2>/dev/null)"
@@ -919,7 +920,7 @@ codex_install() {
     echo ""
 
     if ! command -v npm &> /dev/null; then
-        print_error "npm is required. Install with: pixi global install nodejs"
+        print_error "npm is required. Install Node via fnm first: fnm install --lts && fnm default lts-latest"
         exit 1
     fi
 
@@ -950,7 +951,7 @@ codex_install() {
 
 codex_update() {
     if ! command -v npm &> /dev/null; then
-        print_error "npm is required. Install with: pixi global install nodejs"
+        print_error "npm is required. Install Node via fnm first: fnm install --lts && fnm default lts-latest"
         exit 1
     fi
 

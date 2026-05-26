@@ -80,6 +80,9 @@ show_help() {
     echo "  codex-install   🧠 Install OpenAI Codex CLI via npm (optional)"
     echo "  codex-update    🔄 Update Codex CLI to the latest version"
     echo "  codex-uninstall 🧹 Remove Codex CLI"
+    echo "  gemini-install   ✨ Install Google Gemini CLI via npm (optional)"
+    echo "  gemini-update    🔄 Update Gemini CLI to the latest version"
+    echo "  gemini-uninstall 🧹 Remove Gemini CLI"
     echo "  zotero-mcp-install    📚 Install zotero-mcp pixi env and register Zotero Web API credentials"
     echo "  zotero-mcp-update     🔄 Update zotero-mcp to the latest version"
     echo "  zotero-mcp-uninstall  🧹 Remove zotero-mcp env and credentials"
@@ -992,6 +995,108 @@ codex_uninstall() {
     print_success "🧹 Codex CLI uninstalled"
 }
 
+# Gemini CLI (Google) optional setup — same npm-under-fnm pattern as Codex above.
+# Requires Node >= 20 (fnm-managed; see zshrc `fnm env`). conda-forge has no
+# @google/gemini-cli package, so npm is the supported install path.
+GEMINI_NPM_PACKAGE="@google/gemini-cli"
+
+# Symlink the npm-installed gemini binary into ~/.pixi/bin (already on PATH).
+# NOTE: fnm installs globals per Node version — switching the fnm default orphans
+# this symlink; re-run `nanokit gemini-update` after changing the default version.
+gemini_link_binary() {
+    local npm_prefix bin_src bin_dst
+    npm_prefix="$(npm prefix -g 2>/dev/null)"
+    if [[ -z "$npm_prefix" ]]; then
+        print_warning "Could not determine npm global prefix."
+        return 1
+    fi
+    bin_src="$npm_prefix/bin/gemini"
+    bin_dst="$HOME/.pixi/bin/gemini"
+
+    if [[ ! -x "$bin_src" ]]; then
+        print_warning "gemini binary not found at $bin_src"
+        return 1
+    fi
+
+    mkdir -p "$HOME/.pixi/bin"
+    ln -sfn "$bin_src" "$bin_dst"
+    print_success "Linked $bin_dst -> $bin_src"
+}
+
+gemini_install() {
+    print_ascii_art
+
+    print_step "Installing Google Gemini CLI ($GEMINI_NPM_PACKAGE)..."
+    echo ""
+
+    if ! command -v npm &> /dev/null; then
+        print_error "npm is required. Install Node via fnm first: fnm install --lts && fnm default lts-latest"
+        exit 1
+    fi
+
+    npm install -g "$GEMINI_NPM_PACKAGE"
+    print_success "Gemini CLI installed"
+    echo ""
+
+    gemini_link_binary
+    echo ""
+
+    if command -v gemini &> /dev/null; then
+        print_info "Version: $(gemini --version 2>/dev/null || echo 'unknown')"
+    else
+        print_warning "gemini command not found on PATH. Ensure ~/.pixi/bin is on PATH."
+    fi
+    echo ""
+
+    print_info "Next steps (interactive, run manually):"
+    print_info "  1. gemini              # first run prompts Google OAuth login in the browser"
+    print_info "     (or set GEMINI_API_KEY=... to use an API key instead)"
+    print_success "✨ Gemini CLI setup completed!"
+}
+
+gemini_update() {
+    if ! command -v npm &> /dev/null; then
+        print_error "npm is required. Install Node via fnm first: fnm install --lts && fnm default lts-latest"
+        exit 1
+    fi
+
+    print_step "Updating Gemini CLI to latest..."
+    npm install -g "$GEMINI_NPM_PACKAGE@latest"
+    print_success "Gemini CLI updated"
+    gemini_link_binary
+    if command -v gemini &> /dev/null; then
+        print_info "Version: $(gemini --version 2>/dev/null || echo 'unknown')"
+    fi
+}
+
+gemini_uninstall() {
+    print_ascii_art
+
+    print_warning "This will remove Gemini CLI ($GEMINI_NPM_PACKAGE) from npm global."
+    read -p "🗑️  Proceed? (y/N): " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        print_info "Cancelled"
+        return 0
+    fi
+
+    if ! command -v npm &> /dev/null; then
+        print_error "npm is not available; nothing to uninstall via npm."
+        exit 1
+    fi
+
+    print_step "Removing Gemini CLI..."
+    npm uninstall -g "$GEMINI_NPM_PACKAGE" || true
+
+    local bin_dst="$HOME/.pixi/bin/gemini"
+    if [[ -L "$bin_dst" ]]; then
+        rm -f "$bin_dst"
+        print_success "Removed $bin_dst"
+    fi
+
+    print_success "🧹 Gemini CLI uninstalled"
+}
+
 # Zotero MCP setup — pixi project + OS-native secret store + HTTP server lifecycle.
 # Uses claude/mcp-servers/zotero-mcp/pixi.toml and claude/scripts/zotero-mcp-server.sh.
 ZOTERO_MCP_MANIFEST_REL="claude/mcp-servers/zotero-mcp/pixi.toml"
@@ -1359,6 +1464,15 @@ main() {
             ;;
         "codex-uninstall")
             codex_uninstall
+            ;;
+        "gemini-install")
+            gemini_install
+            ;;
+        "gemini-update")
+            gemini_update
+            ;;
+        "gemini-uninstall")
+            gemini_uninstall
             ;;
         "zotero-mcp-install")
             zotero_mcp_install

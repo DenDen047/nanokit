@@ -105,10 +105,14 @@ channels = ["conda-forge"]
 dependencies = { bat = "*" }
 exposed = { bat = "bat" }
 
-[envs.nodejs]
+# Node itself is NOT managed by pixi — fnm owns Node version management so that
+# per-project .node-version files can switch versions. Only the fnm binary is
+# pixi-managed here; `eval "$(fnm env --use-on-cd)"` in zshrc puts the active
+# Node's node/npm/npx on PATH. Set a default once with `fnm install --lts && fnm default lts-latest`.
+[envs.fnm]
 channels = ["conda-forge"]
-dependencies = { nodejs = "*" }
-exposed = { node = "node", npm = "npm", npx = "npx" }
+dependencies = { fnm = "*" }
+exposed = { fnm = "fnm" }
 
 [envs.dotter-rs]
 channels = ["conda-forge"]

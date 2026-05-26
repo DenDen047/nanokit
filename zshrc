@@ -16,6 +16,13 @@ export PATH="$HOME/.bun/bin:$PATH"
 export PATH="$HOME/.pixi/bin:$PATH"
 eval "$(pixi completion --shell zsh)"
 
+# ⬢ fnm (Node version manager; the fnm binary itself is pixi-managed via pixi-global.toml)
+# Must come after ~/.pixi/bin is on PATH so the `fnm` shim resolves.
+# --use-on-cd auto-switches Node when entering a dir with .node-version / .nvmrc.
+if command -v fnm &> /dev/null; then
+    eval "$(fnm env --use-on-cd)"
+fi
+
 # 🎩 Zsh Plugin Manager
 # 2>/dev/null: suppress starship's "failed to load module: zsh/mathfunc"
 # (pixi zsh lacks this module; workaround defined below)

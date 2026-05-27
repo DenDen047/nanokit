@@ -242,3 +242,19 @@ exposed = { trimesh = "trimesh" }
 [envs.loguru]
 channels = ["conda-forge"]
 dependencies = { loguru = "*" }
+
+[envs.jsonschema]
+channels = ["conda-forge"]
+dependencies = { jsonschema = "*" }
+exposed = { jsonschema = "jsonschema" }
+
+[envs.check-jsonschema]
+channels = ["conda-forge"]
+dependencies = { check-jsonschema = "*" }
+exposed = { check-jsonschema = "check-jsonschema" }
+
+# `huggingface-cli` is deprecated upstream; the CLI is now `hf` (huggingface_hub >= 1.x).
+[envs.huggingface_hub]
+channels = ["conda-forge"]
+dependencies = { huggingface_hub = "*" }
+exposed = { hf = "hf" }

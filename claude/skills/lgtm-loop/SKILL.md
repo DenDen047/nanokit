@@ -20,15 +20,11 @@ allowed-tools: Bash(*), Read, Edit, Write, Grep, Glob, Skill, mcp__codex__codex,
 
 ## 定数
 
-- MODEL = `gpt-5.5`
-- REASONING_EFFORT = `xhigh`
 - MAX_ITERATIONS = `10`
 
-`mcp__codex__codex-reply` を直接呼ぶときは以下を付与:
-
-```
-config: {"model": "gpt-5.5", "model_reasoning_effort": "xhigh"}
-```
+モデルと reasoning effort は **`~/.codex/config.toml` の値を継承する** (現状 `model = gpt-5.5` / `model_reasoning_effort = xhigh`)。
+`mcp__codex__codex` / `mcp__codex__codex-reply` 呼び出しで `model` / `config` は **指定しない** こと。
+Codex の最高モデルを切り替えたいときは config.toml の 1 箇所だけを更新すればよい (単一ソース)。
 
 ## 前提
 
@@ -117,7 +113,6 @@ Skill ツール:
 ```
 mcp__codex__codex-reply:
   threadId: <Step 3 ラウンド 1 で得た threadId>
-  config: {"model": "gpt-5.5", "model_reasoning_effort": "xhigh"}
   prompt: |
     前ラウンドの指摘について以下のとおり修正しました。
 

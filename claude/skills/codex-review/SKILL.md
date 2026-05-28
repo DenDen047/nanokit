@@ -16,16 +16,11 @@ Claude が書いた・修正したコードを、別の AI (GPT) にレビュー
 
 ## Context: $ARGUMENTS
 
-## 定数
+## モデル設定
 
-- MODEL = `gpt-5.5`
-- REASONING_EFFORT = `xhigh`
-
-すべての `mcp__codex__codex` / `mcp__codex__codex-reply` 呼び出しに以下を付与する:
-
-```
-config: {"model": "gpt-5.5", "model_reasoning_effort": "xhigh"}
-```
+モデルと reasoning effort は **`~/.codex/config.toml` の値を継承する** (現状 `model = gpt-5.5` / `model_reasoning_effort = xhigh`)。
+`mcp__codex__codex` / `mcp__codex__codex-reply` 呼び出しで `model` / `config` は **指定しない** こと。
+Codex の最高モデルを切り替えたいときは config.toml の 1 箇所だけを更新すればよい (単一ソース)。
 
 ## 前提
 
@@ -62,7 +57,6 @@ diff だけでは文脈が不足する場合、以下を読む:
 
 ```
 mcp__codex__codex:
-  config: {"model": "gpt-5.5", "model_reasoning_effort": "xhigh"}
   prompt: |
     以下のコード変更をレビューしてください。
 

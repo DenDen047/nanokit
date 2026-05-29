@@ -123,6 +123,7 @@
       }
     }
   },
+  "effortLevel": "xhigh",
   "autoUpdatesChannel": "latest",
   "voice": {
     "enabled": true,

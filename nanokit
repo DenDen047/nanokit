@@ -77,6 +77,7 @@ show_help() {
     echo "  last30days-install   📰 Install last30days social search skill (optional)"
     echo "  last30days-update    🔄 Update last30days skill to the latest version"
     echo "  last30days-uninstall 🧹 Remove last30days skill and clone"
+    echo "  share-skills    🔗 Symlink ~/.claude/skills/* into ~/.agents/skills/ (for Codex)"
     echo "  codex-install   🧠 Install OpenAI Codex CLI via npm (optional)"
     echo "  codex-update    🔄 Update Codex CLI to the latest version"
     echo "  codex-uninstall 🧹 Remove Codex CLI"
@@ -916,6 +917,45 @@ codex_link_binary() {
     print_success "Linked $bin_dst -> $bin_src"
 }
 
+share_skills() {
+    local claude_skills="$HOME/.claude/skills"
+    local agents_skills="$HOME/.agents/skills"
+
+    if [ ! -d "$claude_skills" ]; then
+        print_error "~/.claude/skills not found. Run './nanokit claude-setup' first."
+        exit 1
+    fi
+
+    mkdir -p "$agents_skills"
+
+    local linked=0 skipped_same=0 skipped_existing=0
+
+    for skill_path in "$claude_skills"/*/; do
+        [ -d "$skill_path" ] || [ -L "${skill_path%/}" ] || continue
+        local skill_name
+        skill_name="$(basename "${skill_path%/}")"
+        local target="$claude_skills/$skill_name"
+        local dest="$agents_skills/$skill_name"
+
+        if [ -L "$dest" ]; then
+            if [ "$(readlink "$dest")" = "$target" ]; then
+                skipped_same=$((skipped_same + 1))
+            else
+                print_warning "Skipping $skill_name: different symlink already exists ($(readlink "$dest"))"
+                skipped_existing=$((skipped_existing + 1))
+            fi
+        elif [ -e "$dest" ]; then
+            print_warning "Skipping $skill_name: non-symlink entry already exists"
+            skipped_existing=$((skipped_existing + 1))
+        else
+            ln -s "$target" "$dest"
+            linked=$((linked + 1))
+        fi
+    done
+
+    print_success "share-skills: $linked linked, $skipped_same already up-to-date, $skipped_existing skipped (existing)"
+}
+
 codex_install() {
     print_ascii_art
 
@@ -1455,6 +1495,9 @@ main() {
             ;;
         "ecc-uninstall")
             ecc_uninstall
+            ;;
+        "share-skills")
+            share_skills
             ;;
         "codex-install")
             codex_install

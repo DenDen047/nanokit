@@ -21,9 +21,11 @@ wezterm = { target = "$HOME/.config/wezterm", type = "symbolic", recurse = false
 "claude/RTK.md" = "$HOME/.claude/RTK.md"
 "claude/scripts/zotero-mcp-server.sh" = "$HOME/.claude/scripts/zotero-mcp-server.sh"
 "claude/scripts/workspace-mcp-personal-server.sh" = "$HOME/.claude/scripts/workspace-mcp-personal-server.sh"
+"claude/scripts/workspace-mcp-hdt-server.sh" = "$HOME/.claude/scripts/workspace-mcp-hdt-server.sh"
 "claude/scripts/scrapling-mcp-server.sh" = "$HOME/.claude/scripts/scrapling-mcp-server.sh"
 "claude/scripts/karpathy-reminder.sh" = "$HOME/.claude/scripts/karpathy-reminder.sh"
-"claude/scripts/plot-vision-reminder.sh" = "$HOME/.claude/scripts/plot-vision-reminder.sh"
+"claude/scripts/vision-reminder.sh" = "$HOME/.claude/scripts/vision-reminder.sh"
+"claude/scripts/memory-extract-reminder.sh" = "$HOME/.claude/scripts/memory-extract-reminder.sh"
 "claude/scripts/mmdc" = "$HOME/.pixi/bin/mmdc"
 "claude/skills/committing-changes" = { target = "$HOME/.claude/skills/committing-changes", type = "symbolic", recurse = false }
 "claude/skills/code-comments" = { target = "$HOME/.claude/skills/code-comments", type = "symbolic", recurse = false }
@@ -54,6 +56,7 @@ wezterm = { target = "$HOME/.config/wezterm", type = "symbolic", recurse = false
 "claude/skills/handoff" = { target = "$HOME/.claude/skills/handoff", type = "symbolic", recurse = false }
 "claude/skills/write-a-skill" = { target = "$HOME/.claude/skills/write-a-skill", type = "symbolic", recurse = false }
 "claude/skills/improve-codebase-architecture" = { target = "$HOME/.claude/skills/improve-codebase-architecture", type = "symbolic", recurse = false }
+"claude/skills/visual-verify" = { target = "$HOME/.claude/skills/visual-verify", type = "symbolic", recurse = false }
 "claude/agents" = { target = "$HOME/.claude/agents", type = "symbolic", recurse = false }
 "claude/ccstatusline/settings.json" = "$HOME/.config/ccstatusline/settings.json"
 

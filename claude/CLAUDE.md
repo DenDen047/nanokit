@@ -11,6 +11,9 @@
 | `claude/settings.json` | `~/.claude/settings.json` |
 | `claude/scripts/zotero-mcp-server.sh` | `~/.claude/scripts/zotero-mcp-server.sh` |
 | `claude/scripts/scrapling-mcp-server.sh` | `~/.claude/scripts/scrapling-mcp-server.sh` |
+| `claude/scripts/workspace-mcp-hdt-server.sh` | `~/.claude/scripts/workspace-mcp-hdt-server.sh` |
+| `claude/scripts/vision-reminder.sh` | `~/.claude/scripts/vision-reminder.sh` |
+| `claude/scripts/memory-extract-reminder.sh` | `~/.claude/scripts/memory-extract-reminder.sh` |
 | `claude/scripts/mmdc` | `~/.pixi/bin/mmdc` |
 | `claude/ccstatusline/settings.json` | `~/.config/ccstatusline/settings.json` |
 | `claude/skills/*` | `~/.claude/skills/*` |
@@ -31,6 +34,26 @@
 コード拡張子のファイルを編集する際は、各セッション初回に
 `PreToolUse` hook (`~/.claude/scripts/karpathy-reminder.sh`) が
 リマインダを注入する。
+
+## 視覚確認の徹底 (Max プラン)
+
+Max プランなので画像認識を惜しまない。**UI・図・ブラウザ画面・生成画像（プロット/SVG/PDF 含む）に触れたら、完了を宣言する前に必ずスクリーンショットを撮って `Read` で自分の目で確認する。**「たぶん大丈夫」「コードから推測」で済ませない。崩れ・はみ出し・要素の重なり・コントラスト不足・見切れを実際に見て確認し、NG なら直して再描画→再確認する。
+
+- フロントエンド編集・プロット生成・ブラウザ操作の後は `PostToolUse` hook (`vision-reminder.sh`) がスクショ確認を促す。
+- 明示的に確認したいときは `/visual-verify <url|file>` でスクショ→チェックリスト採点。
+- SVG/PDF は Vision が直接読めない → PNG 化してから `Read`。
+
+## メモリ・パーソナライゼーション
+
+ユーザーの好み・背景・作業スタイルを**能動的に収集し、全プロジェクトの回答に反映する**。3 層で管理:
+
+- **グローバル個人メモリ** `~/.claude/memory/personal/` — 全プロジェクト共通の恒久的事実。下の `@import` で全セッションに読み込まれる。新しい恒久事実は 1 ファイル 1 事実で追記し `MEMORY.md` にポインタを足す。
+- **プロジェクト固有メモリ** 各プロジェクトの `memory/`（ネイティブ auto-memory が自動追記）。
+- **確定した好みの昇格**は人手で CLAUDE.md へ（スクリプトは自動編集しない）。
+
+セッション終了時に `Stop` hook (`memory-extract-reminder.sh`) が恒久的な好み/事実の保存を促す（非ブロッキング・2h クールダウン）。
+
+@~/.claude/memory/personal/MEMORY.md
 
 ## 環境管理ポリシー
 
@@ -133,6 +156,7 @@ readlink ~/.claude/settings.json   # → $NANOKIT/claude/settings.json が出れ
 | zotero-mcp | `8321` | `zotero-mcp-server.sh` |
 | workspace-mcp (personal) | `8322` | `workspace-mcp-personal-server.sh` |
 | scrapling-mcp | `8323` | `scrapling-mcp-server.sh` |
+| workspace-mcp (HDT) | `8324` | `workspace-mcp-hdt-server.sh` |
 
 ### クライアント登録 (どちらも dotter 管理外の state ファイル)
 
@@ -167,5 +191,43 @@ codex mcp get scrapling               # → transport: streamable_http
 ```
 
 ポート変更は `SCRAPLING_MCP_PORT` 環境変数で上書き可 (変更時は両クライアントの登録 URL も更新)。
+
+## Google Workspace MCP 運用 (複数アカウント・全フォルダ直接)
+
+個人アカウントのどのフォルダからも複数の Google アカウントへ直接届くよう、`workspace-mcp` を **アカウント別の常駐 HTTP シングルトン** として立て、**user スコープ**で登録する。
+
+| サーバ名 | ポート | creds dir | Google アカウント | ツール接頭辞 |
+|---|---|---|---|---|
+| `workspace-personal` | `8322` | `personal` | `sh.mn.nat@gmail.com` (= frogiraffe) | `mcp__workspace-personal__*` |
+| `workspace-hdt` | `8324` | `HDT` | `n.muramatsu@hyper-digitaltwins.com` | `mcp__workspace-hdt__*` |
+
+**設計**: いずれも **ポータブルな OAuth creds (タイプA)** を使うため、HDT の **Claude アカウント (軸A, `CLAUDE_CONFIG_DIR=~/.claude-hdt`)** とは独立に HDT の Google データへ到達できる (越境スケジューリングの核心)。OAuth クライアントは両者共通 (`claude-google-oauth`)、creds dir と USER_GOOGLE_EMAIL だけが異なる。常駐は冪等シングルトン、並列 Claude で 1 プロセス共有 (zotero/scrapling と同じ)。
+
+> `workspace` という名前は Claude Code の**予約名**なので使えない → 個人側は `workspace-personal`。
+
+### クライアント登録 (dotter 管理外の state — 新ホストでは手動)
+
+`dotter deploy` 後、`~/.claude.json` に user スコープで手動登録する (scrapling と同じ):
+
+```bash
+claude mcp add --transport http -s user workspace-personal http://127.0.0.1:8322/mcp
+claude mcp add --transport http -s user workspace-hdt        http://127.0.0.1:8324/mcp
+```
+
+起動自体は `settings.json` の SessionStart hook + `ECC_MCP_RECONNECT_WORKSPACE_HDT` が担当 (冪等)。HDT は `CLAUDE_CONFIG_DIR=~/.claude-hdt` 配下の設定を読むため、この user スコープ登録は **個人アカウントのセッションにのみ**効く (HDT フォルダには波及しない)。
+
+### トラブルシュート
+
+```bash
+bash ~/.claude/scripts/workspace-mcp-hdt-server.sh status
+tail -20 ~/.claude/debug/workspace-mcp-hdt.log
+claude mcp list | grep workspace        # → ✔ Connected を確認
+# 接続アカウントの確認 (initialize が "Connected Google account: …" を返す)
+curl -s -X POST http://127.0.0.1:8324/mcp -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"c","version":"0"}}}'
+```
+
+HDT の OAuth トークンが失効したら creds dir (`~/.config/google-workspace-mcp/HDT`) を削除し、`workspace-mcp` の再認証フローを通す。
 
 @RTK.md

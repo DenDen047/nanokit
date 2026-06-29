@@ -4,6 +4,7 @@
     "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "1000000",
     "ECC_MCP_RECONNECT_ZOTERO": "bash ~/.claude/scripts/zotero-mcp-server.sh start",
     "ECC_MCP_RECONNECT_WORKSPACE_PERSONAL": "bash ~/.claude/scripts/workspace-mcp-personal-server.sh start",
+    "ECC_MCP_RECONNECT_WORKSPACE_HDT": "bash ~/.claude/scripts/workspace-mcp-hdt-server.sh start",
     "ECC_MCP_RECONNECT_SCRAPLING": "bash ~/.claude/scripts/scrapling-mcp-server.sh start"
   },
   "permissions": {
@@ -50,6 +51,7 @@
     "defaultMode": "auto"
   },
   "model": "opus[1m]",
+  "autoMemoryEnabled": true,
   "hooks": {
     "SessionStart": [
       {
@@ -63,6 +65,11 @@
           {
             "type": "command",
             "command": "bash ~/.claude/scripts/workspace-mcp-personal-server.sh start",
+            "timeout": 20
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/workspace-mcp-hdt-server.sh start",
             "timeout": 20
           },
           {
@@ -96,11 +103,33 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Write|Bash",
+        "matcher": "Write|Edit|MultiEdit|Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/scripts/plot-vision-reminder.sh",
+            "command": "bash ~/.claude/scripts/vision-reminder.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__claude-in-chrome__navigate",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/vision-reminder.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/memory-extract-reminder.sh",
             "timeout": 5
           }
         ]

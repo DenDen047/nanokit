@@ -197,6 +197,8 @@ codex mcp get scrapling               # → transport: streamable_http
 
 個人アカウントのどのフォルダからも複数の Google アカウントへ直接届くよう、`workspace-mcp` を **アカウント別の常駐 HTTP シングルトン** として立て、**user スコープ**で登録する。
 
+> **関連リポジトリ (責務分担)**: クライアント (HDT / OpenHeart / uSonar / Lagoon / personal …) ごとの振り分け — direnv `.envrc`・per-client `.mcp.json`・Team アカウントの `CLAUDE_CONFIG_DIR` 隔離 (`~/.claude-hdt`) — は別リポジトリ [`claude-settings`](https://github.com/DenDen047/claude-settings) (private) が担う。nanokit は **個人 `~/.claude` の共通基盤と、ここに挙げた常駐 MCP サーバ (プロセス) の実体**を提供する側。`claude-settings/setup-config-dirs.sh` は `~/.claude-hdt` を作る際に nanokit の `~/.claude/{settings.json,skills,scripts,CLAUDE.md,…}` を symlink するので、HDT の Claude アカウントも nanokit の基盤を継承する。全体像は [`ARCHITECTURE.md`](./ARCHITECTURE.md) の §3.3。
+
 | サーバ名 | ポート | creds dir | Google アカウント | ツール接頭辞 |
 |---|---|---|---|---|
 | `workspace-personal` | `8322` | `personal` | `sh.mn.nat@gmail.com` (= frogiraffe) | `mcp__workspace-personal__*` |

@@ -42,6 +42,8 @@
 
 軸Bがポータブルな OAuth であるため、**個人の Claude（軸A）からでも HDT の Google データ（軸B）へ到達できる**（＝越境スケジューリング）。
 
+> 軸A の `~/.claude-hdt`（Team アカウント隔離）と、フォルダ毎にどの軸B へ繋ぐかの切替（direnv）は **nanokit ではなく別リポジトリ [`claude-settings`](https://github.com/DenDen047/claude-settings)（private）** が担う。nanokit は個人 `~/.claude` の共通基盤と常駐 MCP サーバを提供する側。詳細は下の §3.3。
+
 ---
 
 ## 2. 全体像（フック・ライフサイクル）
@@ -97,34 +99,45 @@ Max プランの画像認識を惜しまない方針。**UI・図・ブラウザ
 
 > なぜ書き込み先が `~/.claude/` の外なのか: `~/.claude/` 配下は承認ゲート付きの「sensitive file」パスで、headless の `claude -p` が無人で書けない。そのため個人メモリ層は `~/.config/claude-memory/personal/` に置いている。
 
-### 3.3 マルチアカウント到達性
+### 3.3 マルチアカウント到達性（nanokit ⇄ claude-settings の協調）
 
-個人アカウントのどのフォルダからも複数 Google アカウントへ直接届くよう、`workspace-mcp` を**アカウント別の常駐 HTTP シングルトン**として立て、**user スコープ**で登録する。
+マルチアカウント／マルチクライアントの実体は **2 リポジトリの協調**で成り立つ。**振り分けの主役は別リポジトリ [`claude-settings`](https://github.com/DenDen047/claude-settings)（private）** で、nanokit は「個人 `~/.claude` の共通基盤」と「常駐 MCP サーバ（プロセス）の実体」を提供する substrate 側に回る。
+
+| 観点 | **nanokit**（この repo） | **claude-settings**（別 repo, private） |
+|---|---|---|
+| 守備範囲 | 個人 `~/.claude` のグローバル層 | 各クライアント（HDT / OpenHeart / uSonar / Lagoon / personal …）への振り分け |
+| 主な実体 | hooks・skills・常駐 MCP サーバの**ランチャ実体**（`workspace-personal :8322` / `workspace-hdt :8324` / `zotero :8321` / `scrapling :8323`） | `templates/<client>/`＋`deploy.sh`＋per-client `.mcp.json` |
+| アカウント切替 | —（サーバを立てるだけ） | フォルダ毎に **direnv `.envrc`** が `WORKSPACE_MCP_CREDENTIALS_DIR` / `USER_GOOGLE_EMAIL` / `CLAUDE_CONFIG_DIR` を注入 |
+| 軸A 隔離（`~/.claude-hdt`） | 隔離元の `~/.claude/*`（settings.json・skills・scripts・CLAUDE.md 等）を供給 | `setup-config-dirs.sh` が `~/.claude-hdt` を作り、nanokit の `~/.claude/*` を symlink + creds だけ分離 |
+| シークレット | （zotero 等 nanokit 固有のみ） | `setup-secrets.sh` + `lib/secret.sh` で全クライアント分を OS ストアへ |
+
+要するに **常駐サーバ（プロセス）は nanokit、どのフォルダがどのアカウントに繋ぐかは claude-settings**。下図で `~/.claude-hdt` ノードと各接続線（どのクライアントがどのサーバへ）を敷設するのは claude-settings、その先で待ち受ける HTTP サーバ群を常駐させるのが nanokit。
 
 ```mermaid
 flowchart TB
-    subgraph axisA["軸A : Claude アカウント"]
+    subgraph axisA["軸A : Claude アカウント (隔離は claude-settings)"]
         personal["~/.claude<br/>(個人 / frogiraffe)"]
-        hdt["~/.claude-hdt<br/>(HDT)"]
+        hdt["~/.claude-hdt<br/>(HDT / Team)"]
     end
 
-    subgraph resident["常駐 HTTP シングルトン (127.0.0.1, 認証なし・ローカル専用)"]
+    subgraph resident["常駐 HTTP シングルトン : nanokit が起動 (127.0.0.1, ローカル専用)"]
         z["zotero :8321"]
         wp["workspace-personal :8322<br/>sh.mn.nat@gmail.com"]
         sc["scrapling :8323"]
         wh["workspace-hdt :8324<br/>n.muramatsu@hyper-digitaltwins.com"]
     end
 
-    personal --> z
+    personal -->|"direnv .envrc が接続先を選ぶ"| z
     personal --> wp
     personal --> sc
     personal --> wh
     hdt --> wh
 ```
 
-- いずれも **1 プロセスを複数 Claude が同一 URL で共有**（stdio 二重起動を避ける）。`SessionStart` フック + `ECC_MCP_RECONNECT_*` 環境変数が冪等に起動を担保。
-- クライアント登録（`~/.claude.json` / `~/.codex/config.toml`）は dotter 管轄外の state なので、**新ホストでは `claude mcp add` で手動登録**が必要（手順は [`CLAUDE.md`](./CLAUDE.md) の各 MCP 運用節）。
+- 常駐サーバは **1 プロセスを複数 Claude / Codex が同一 URL で共有**（stdio 二重起動を避ける）。`SessionStart` フック + `ECC_MCP_RECONNECT_*` が冪等起動を担保（nanokit 側）。
+- クライアントの接続定義は2系統: **個人 `~/.claude` の user スコープ登録**（`claude mcp add`, nanokit 運用）と、**per-client `.mcp.json`**（`deploy.sh`, claude-settings 運用）。どちらも dotter 管轄外の state なので新ホストでは手動。
 - `workspace` は Claude Code の**予約名**なので、個人側は `workspace-personal` を使う。
+- 詳細は [`claude-settings`](https://github.com/DenDen047/claude-settings) の README / `specs/claude-code-setup-guide.md` 参照。
 
 ---
 
@@ -219,6 +232,7 @@ claude/
 
 ## 8. もっと詳しく
 
+- **マルチアカウント／クライアント振り分けのマスター**: [`claude-settings`](https://github.com/DenDen047/claude-settings)（private）— 各クライアントの `templates/`・`deploy.sh`・direnv `.envrc`・`CLAUDE_CONFIG_DIR` 隔離。nanokit と対になる片割れ。
 - **運用 runbook（権威ある詳細）**: [`CLAUDE.md`](./CLAUDE.md) — シンボリックリンク構造 / 環境管理ポリシー / Zotero・Scrapling・Workspace MCP の各運用節。
 - **Skills vs Commands vs Sub-agents の概念整理**: [`README.md`](./README.md)。
 - **設計の背景・意思決定の記録**: [`../docs/2026-06-29_claude-code-multiproject-cleanup.html`](../docs/2026-06-29_claude-code-multiproject-cleanup.html)。

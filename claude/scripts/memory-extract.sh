@@ -88,22 +88,44 @@ fi
 runlog="$RUNDIR/$(date +%Y%m%d_%H%M%S)_${session}.log"
 
 PROMPT="$(cat <<EOF
-You are a silent background memory extractor for Claude Code. Read the session
-transcript at: $transcript
+You are a silent background memory extractor for Claude Code, building a RICH,
+COMPREHENSIVE personalization profile of the user across all projects. Read the
+session transcript at: $transcript
 
-Find any DURABLE, cross-project facts about the user it reveals: lasting
-preferences, personal/background facts, working style, or corrections to how the
-assistant should behave. For each genuinely NEW one (not already present in
-$DEST/MEMORY.md), create a one-fact file under $DEST/ — kebab-case slug,
-frontmatter with name, description, and metadata.type (one of user, feedback,
-reference) — following the conventions already used in that directory, and add a
-one-line pointer to $DEST/MEMORY.md.
+From it, capture any DURABLE, cross-project facts that help personalize how the
+assistant works WITH and FOR this specific person. Collect BROADLY — not just
+work habits. Look for, among others:
+  - thinking and reasoning style (how they decompose problems, what they value
+    in an answer, what convinces or annoys them)
+  - communication and explanation preferences (tone, format, language, depth)
+  - hobbies, interests, and side pursuits
+  - aesthetic tastes, likes and dislikes
+  - values, priorities and principles (what they optimize for; what they reject)
+  - domain expertise, background and skills
+  - tools, workflow and environment preferences
+  - goals, direction and long-term aims (cross-cutting, not one project of tasks)
+  - people, collaborators and team structure they work within
+  - corrections or guidance on how the assistant should behave
 
-Rules: read $DEST/MEMORY.md first and skip anything already recorded; skip
-project-specific facts (those belong to per-project memory, not here); skip
-trivia and one-off task details; be conservative and save only clearly durable,
-broadly useful facts. Do NOT edit any CLAUDE.md. Finish with one summary line:
-either "SAVED: <slugs>" or "NOTHING NEW".
+For each genuinely NEW fact (not already in $DEST/MEMORY.md), create a one-fact
+file under $DEST/ — kebab-case slug, frontmatter with name, description, and
+metadata.type (one of: user, feedback, reference; "user" is broad and covers
+identity, interests, tastes, values, and thinking style) — following the
+conventions already used in that directory, and add one pointer line to
+$DEST/MEMORY.md.
+
+Rules:
+  - Read $DEST/MEMORY.md FIRST; skip anything already recorded. If you have a
+    real refinement to an existing fact, update that file instead of duplicating.
+  - NEVER store secrets or credentials (passwords, API keys, tokens, private
+    keys, OTP or 2FA codes). This is the ONE hard exclusion — everything else,
+    including sensitive personal topics, is in scope when the user volunteers it.
+  - Skip project-specific facts (those belong to per-project memory, not here).
+  - Skip pure one-off task trivia; keep only what will still be true and useful
+    weeks from now.
+  - One clear, specific fact per file; prefer concrete over vague.
+  - Do NOT edit any CLAUDE.md.
+Finish with one summary line: either "SAVED: <slugs>" or "NOTHING NEW".
 EOF
 )"
 

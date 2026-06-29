@@ -3,6 +3,9 @@
 Claude Code のグローバル設定を管理するディレクトリ。
 dotter により `~/.claude/` へシンボリックリンクされる。
 
+> [!NOTE]
+> システム全体像（フック・常駐 MCP・メモリ層・マルチアカウント設計）は [`ARCHITECTURE.md`](./ARCHITECTURE.md) を参照。本書は Skills/Commands/Sub-agents の概念整理に絞る。
+
 ## Skills / Commands / Sub-agents の違い
 
 > 公式ドキュメント: https://code.claude.com/docs/en/skills, https://code.claude.com/docs/en/sub-agents

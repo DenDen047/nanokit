@@ -51,7 +51,6 @@
     "defaultMode": "auto"
   },
   "model": "opus[1m]",
-  "autoMemoryEnabled": true,
   "hooks": {
     "SessionStart": [
       {
@@ -154,14 +153,15 @@
   },
   "effortLevel": "xhigh",
   "autoUpdatesChannel": "latest",
+  "tui": "fullscreen",
   "voice": {
     "enabled": true,
     "mode": "hold"
   },
+  "autoMemoryEnabled": true,
   "skipDangerousModePermissionPrompt": true,
+  "skipWorkflowUsageWarning": true,
   "editorMode": "vim",
   "skipAutoPermissionPrompt": true,
-  "voiceEnabled": true,
-  "skipWorkflowUsageWarning": true,
-  "tui": "fullscreen"
+  "voiceEnabled": true
 }

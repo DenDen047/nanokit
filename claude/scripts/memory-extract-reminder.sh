@@ -12,10 +12,12 @@
 #
 # Non-blocking by design: emits additionalContext (rides to the next turn)
 # instead of decision:block, so it never delays the current answer or forces a
-# mid-turn detour. Rate-limited by a cooldown marker; also bails out when
-# stop_hook_active is set (belt-and-suspenders loop guard). To make it more
-# forceful, one could switch to {"decision":"block","reason":...} — intentionally
-# not done here to preserve conversational flow.
+# mid-turn detour. Keyed PER SESSION (session_id), so a marker left by another
+# session — or by CLI testing — can never suppress this session's nudge; within
+# a session it re-nudges at most once per cooldown (so long sessions still get a
+# late reminder without nagging every turn). Also bails out when stop_hook_active
+# is set (loop guard). To make it more forceful one could switch to
+# {"decision":"block","reason":...} — intentionally not done here.
 #
 # Fail-safe: jq absent → exit 0 (never break the session).
 
@@ -29,10 +31,19 @@ command -v jq >/dev/null 2>&1 || exit 0
 active=$(printf '%s' "$payload" | jq -r '.stop_hook_active // false')
 [ "$active" = "true" ] && exit 0
 
-cooldown="${MEMORY_EXTRACT_COOLDOWN:-7200}"   # seconds; default 2h
+cooldown="${MEMORY_EXTRACT_COOLDOWN:-900}"   # seconds between nudges, PER SESSION
+
+# Per-session marker: a UUID-keyed file, so sessions never suppress each other.
+session=$(printf '%s' "$payload" | jq -r '.session_id // empty')
+[ -z "$session" ] && session="nosession"
+session="${session//[^A-Za-z0-9._-]/_}"
+
 state_dir="$HOME/.claude/state/memory-extract"
 mkdir -p "$state_dir"
-marker="$state_dir/last_nudge"
+# Best-effort tidy of stale per-session markers so they do not accumulate.
+find "$state_dir" -type f -mtime +2 -delete 2>/dev/null || true
+
+marker="$state_dir/$session"
 
 mtime_of() {
   stat -f %m "$1" 2>/dev/null || stat -c %Y "$1" 2>/dev/null || true

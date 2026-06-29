@@ -1,0 +1,78 @@
+direction: down
+
+vars: {
+  d2-config: {
+    theme-id: 200
+    dark-theme-id: 200
+  }
+}
+
+classes: {
+  new: {
+    style: {
+      fill: "#16a34a"
+      stroke: "#14532d"
+      stroke-width: 2
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
+    }
+  }
+  base: {
+    style: {
+      fill: "#475569"
+      stroke: "#1e293b"
+      stroke-width: 1
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
+    }
+  }
+  attn: {
+    style: {
+      fill: "#d97706"
+      stroke: "#7c2d12"
+      stroke-width: 2
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
+    }
+  }
+  warn: {
+    style: {
+      fill: "#b91c1c"
+      stroke: "#7f1d1d"
+      stroke-width: 2
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
+    }
+  }
+}
+
+orgs: "あなたの org は7つ (personal は frogiraffe と同一)\nHDT ・ frogiraffe(=個人) ・ EmplifAI ・ Lagoon ・ OpenHeart ・ PhD ・ uSonar" {
+  class: base
+}
+
+tier1: "Tier1 — 常駐・直接 (横断頻度が高い少数だけ選ぶ)\n例: frogiraffe=個人 Google(:8322) ・ HDT Google(:8324) (+ 任意で 1〜2 org)\n→ どのフォルダからも常時・直接 (cross-org-search 不要)\n実体=ポート固定のHTTPシングルトン (並列Claudeで1プロセス共有)" {
+  class: new
+}
+
+tier2: "Tier2 — フォルダ内デフォルト (direnv, 全8org)\nそのorgのフォルダにいる時は自分の Slack/Notion/Google が既定\n→ 既に動作。OpenHeart/uSonar/Lagoon/PhD/EmplifAI もここで普通に使える" {
+  class: base
+}
+
+tier3: "Tier3 — オンデマンド横断 (cross-org-search, 全8org)\nフォルダ外からどのorgでも呼べる ＋ 多org一括集約\n＋ タイプB (HDT Slack/Notion, Connector束縛)" {
+  class: attn
+}
+
+note: "全7org を常駐(直接)にすると十数個の MCPサーバ + 全セッションのツール激増 → 非推奨。\n常駐(Tier1)は少数に絞り、残りは Tier2/3 で必ず到達する。\n『全orgを常時・直接』が要るなら MCPゲートウェイ(MetaMCP等)で1エンドポイント集約 (org数が多い時の解)。" {
+  class: warn
+}
+
+orgs -> tier1: "頻繁に横断する数個"
+orgs -> tier2: "全org (在席時)"
+orgs -> tier3: "全org (フォルダ外)"
+tier1 -> note
+tier2 -> note
+tier3 -> note

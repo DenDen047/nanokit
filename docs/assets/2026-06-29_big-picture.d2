@@ -1,0 +1,91 @@
+direction: down
+
+vars: {
+  d2-config: {
+    theme-id: 200
+    dark-theme-id: 200
+  }
+}
+
+classes: {
+  new: {
+    style: {
+      fill: "#16a34a"
+      stroke: "#14532d"
+      stroke-width: 2
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
+    }
+  }
+  base: {
+    style: {
+      fill: "#475569"
+      stroke: "#1e293b"
+      stroke-width: 1
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
+    }
+  }
+  attn: {
+    style: {
+      fill: "#d97706"
+      stroke: "#7c2d12"
+      stroke-width: 2
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
+    }
+  }
+}
+
+nanokit: "nanokit/claude\nグローバル唯一の真実" {
+  direction: right
+  s1: "settings.json\n(hooks/permissions)" {
+    class: base
+  }
+  s2: "skills / agents" {
+    class: base
+  }
+  s3: "CLAUDE.md\n(全プロジェクト共通の方針)" {
+    class: base
+  }
+  s4: "共有HTTP MCP\nzotero/workspace/scrapling" {
+    class: base
+  }
+}
+
+home: "~/.claude/\n(dotter が symlink)" {
+  class: attn
+}
+
+settings_repo: "claude-settings\norg別テンプレ + 横断実行" {
+  direction: right
+  c1: "org別 .envrc\n(direnv スコープ)" {
+    class: base
+  }
+  c2: "org別 .mcp.json" {
+    class: base
+  }
+  c3: "cross-org-search\nスキル" {
+    class: base
+  }
+}
+
+dirs: "実行ディレクトリ (cd 先で account 切替)" {
+  direction: right
+  d1: "~/nanokit\n(個人)" {
+    class: base
+  }
+  d2dir: "HDT/\n(HDT Team)" {
+    class: base
+  }
+  d3: "frogiraffe/...\n(frogiraffe)" {
+    class: base
+  }
+}
+
+nanokit -> home: "dotter deploy"
+home -> dirs: "全セッションに共通注入"
+settings_repo -> dirs: "org毎の上書き"

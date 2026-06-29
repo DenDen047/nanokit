@@ -1,0 +1,107 @@
+direction: down
+
+vars: {
+  d2-config: {
+    theme-id: 200
+    dark-theme-id: 200
+  }
+}
+
+classes: {
+  new: {
+    style: {
+      fill: "#16a34a"
+      stroke: "#14532d"
+      stroke-width: 2
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
+    }
+  }
+  base: {
+    style: {
+      fill: "#475569"
+      stroke: "#1e293b"
+      stroke-width: 1
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
+    }
+  }
+  attn: {
+    style: {
+      fill: "#d97706"
+      stroke: "#7c2d12"
+      stroke-width: 2
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
+    }
+  }
+}
+
+keychain: "① OS Keychain\n全データアカウントの秘密を中央保管" {
+  class: attn
+}
+
+cd: "② あなたが cd したディレクトリ" {
+  direction: right
+  personal: "~/nanokit など\n(個人スコープ)" {
+    class: base
+  }
+  hdt: "~/Documents/Projects/HDT" {
+    class: base
+  }
+}
+
+direnv: "③ direnv が .envrc を自動ロード\n(ディレクトリに入った瞬間)" {
+  class: new
+}
+
+env_personal: "④a 個人スコープの環境" {
+  direction: down
+  e2: "creds = google-workspace/personal" {
+    class: base
+  }
+  e1: "NOTION_TOKEN = 個人" {
+    class: base
+  }
+  e3: "CLAUDE_CONFIG_DIR = 既定 (~/.claude)" {
+    class: base
+  }
+}
+
+env_hdt: "④b HDTスコープの環境" {
+  direction: down
+  h2: "creds = google-workspace/HDT" {
+    class: base
+  }
+  h1: "unset NOTION_TOKEN (漏洩防止)" {
+    class: base
+  }
+  h3: "CLAUDE_CONFIG_DIR = ~/.claude-hdt" {
+    class: attn
+  }
+}
+
+mcp_personal: "⑤a MCPサーバが個人の env で起動\n→ 個人のデータアカウントのツールが見える" {
+  class: base
+}
+
+mcp_hdt: "⑤b MCPサーバが HDT の env で起動\n→ HDTのデータアカウントのツールが見える" {
+  class: base
+}
+
+claude: "⑥ Claude Code が触れるツール集合\n= 今いるスコープのデータアカウント" {
+  class: new
+}
+
+keychain -> direnv: "秘密を供給"
+cd.personal -> direnv
+cd.hdt -> direnv
+direnv -> env_personal: "個人dirなら"
+direnv -> env_hdt: "HDT dirなら"
+env_personal -> mcp_personal
+env_hdt -> mcp_hdt
+mcp_personal -> claude
+mcp_hdt -> claude

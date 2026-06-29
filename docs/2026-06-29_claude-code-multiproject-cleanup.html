@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Claude Code マルチプロジェクト整理 — 改良の全体像</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <style>
+    :root {
+      --bg: #ffffff; --fg: #0f172a; --muted: #64748b; --border: #e2e8f0;
+      --accent: #2563eb; --accent-soft: #eff6ff;
+      --intent-bg: #fff7ed; --intent-border: #f59e0b; --code-bg: #f8fafc;
+      --ok-bg: #dcfce7; --ok-border: #16a34a; --risk-bg: #fef2f2; --risk-border: #ef4444;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a; --fg: #f1f5f9; --muted: #94a3b8; --border: #1e293b;
+        --accent: #60a5fa; --accent-soft: #1e3a8a;
+        --intent-bg: #422006; --intent-border: #f59e0b; --code-bg: #1e293b;
+        --ok-bg: #14532d; --ok-border: #22c55e; --risk-bg: #450a0a; --risk-border: #f87171;
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+      line-height: 1.7; color: var(--fg); background: var(--bg); margin: 0;
+    }
+    .layout {
+      display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px;
+      max-width: 1180px; margin: 0 auto; padding: 32px 24px 96px;
+    }
+    @media (max-width: 800px) {
+      .layout { grid-template-columns: 1fr; gap: 24px; }
+      nav.toc { position: static; }
+    }
+    header.doc {
+      grid-column: 1 / -1; border-bottom: 1px solid var(--border);
+      padding-bottom: 16px; margin-bottom: 24px;
+    }
+    header.doc h1 { margin: 0 0 4px; font-size: 1.8rem; }
+    header.doc .sub { color: var(--muted); font-size: 1.05rem; }
+    header.doc .meta {
+      margin-top: 10px; display: flex; gap: 12px; flex-wrap: wrap;
+      font-size: 0.875rem; color: var(--muted);
+    }
+    .badge {
+      display: inline-block; padding: 2px 8px; border: 1px solid var(--accent);
+      color: var(--accent); border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+    }
+    nav.toc { position: sticky; top: 24px; align-self: start; font-size: 0.9rem; }
+    nav.toc h2 {
+      font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--muted); margin: 0 0 8px;
+    }
+    nav.toc ol { list-style: none; padding: 0; margin: 0; counter-reset: toc; }
+    nav.toc li { margin: 6px 0; }
+    nav.toc a {
+      color: var(--fg); text-decoration: none;
+      border-left: 2px solid transparent; padding-left: 8px; display: block;
+    }
+    nav.toc a:hover { color: var(--accent); border-left-color: var(--accent); }
+    main { min-width: 0; }
+    .lead {
+      font-size: 1.15rem; line-height: 1.65; border-left: 4px solid var(--accent);
+      padding: 12px 16px; background: var(--accent-soft); margin: 0 0 24px;
+    }
+    section { margin: 44px 0; }
+    section h2 {
+      font-size: 1.45rem; border-bottom: 1px solid var(--border);
+      padding-bottom: 6px; margin-bottom: 12px;
+    }
+    section h2 small { font-size: 0.75rem; color: var(--muted); font-weight: 400; margin-left: 8px; }
+    section h3 {
+      font-size: 0.85rem; margin: 26px 0 8px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    section h4 { font-size: 1.05rem; margin: 20px 0 6px; }
+    .intent { background: var(--intent-bg); border-left: 4px solid var(--intent-border); padding: 12px 16px; margin: 16px 0; font-size: 0.95rem; }
+    .intent strong { color: var(--intent-border); }
+    .risk { background: var(--risk-bg); border-left: 4px solid var(--risk-border); padding: 12px 16px; margin: 12px 0; font-size: 0.95rem; }
+    .ok { background: var(--ok-bg); border-left: 4px solid var(--ok-border); padding: 12px 16px; margin: 12px 0; font-size: 0.95rem; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.92rem; }
+    th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; vertical-align: top; }
+    th { background: var(--code-bg); font-weight: 600; }
+    tr.win td { font-weight: 600; }
+    .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 600; border: 1px solid currentColor; }
+    .pill.p1 { color: #16a34a; } .pill.p2 { color: #2563eb; } .pill.p3 { color: #f59e0b; }
+    .pill.p4 { color: #64748b; } .pill.p5 { color: #ef4444; }
+    code { font-family: ui-monospace, "SF Mono", Menlo, monospace; background: var(--code-bg); padding: 1px 6px; border-radius: 4px; font-size: 0.9em; }
+    pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px 14px; overflow-x: auto; font-size: 0.85rem; line-height: 1.55; }
+    pre code { background: transparent; padding: 0; }
+    .formula { background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; margin: 10px 0; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.9rem; overflow-x: auto; }
+    a { color: var(--accent); }
+    .diagram-scroll { width: 100%; background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; }
+    .diagram-scroll a { display: block; cursor: zoom-in; line-height: 0; }
+    .diagram-scroll img { display: block; width: 100%; height: auto; max-width: 100%; }
+    .footnote { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin: 8px 0 10px; font-size: 0.85rem; }
+    .legend span.item { display: inline-flex; align-items: center; gap: 6px; }
+    .sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; }
+    blockquote { border-left: 4px solid var(--accent); padding-left: 16px; margin-left: 0; color: var(--muted); font-style: italic; }
+    @media print {
+      body { font-size: 11pt; color: #000; background: #fff; }
+      .layout { display: block; padding: 0; max-width: none; }
+      nav.toc { display: none; }
+      section { page-break-inside: avoid; }
+      .intent, .risk, .ok { background: #fff; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <header class="doc">
+      <h1>Claude Code マルチプロジェクト整理 — 改良の全体像</h1>
+      <div class="sub">「複数のデータアカウントの使い分けの原理」を図解中心に。3つの狙い（視覚確認・マルチアカウント・自動メモリ）をどう実装するか。</div>
+      <div class="meta">
+        <span class="badge">v1.5</span>
+        <span>作成日 2026-06-29</span>
+        <span>読了 約15分</span>
+        <span>対象: nanokit / claude-settings / frogiraffe-agentic-knowledge-base</span>
+      </div>
+    </header>
+
+    <nav class="toc" aria-label="目次">
+      <h2>目次</h2>
+      <ol>
+        <li><a href="#tldr">TL;DR</a></li>
+        <li><a href="#bigpic">1. 全体像 — 3リポジトリの役割</a></li>
+        <li><a href="#principle">2.【基礎】データアカウント使い分けの原理</a></li>
+        <li><a href="#goal2">3. 狙い② マルチアカウント改良</a></li>
+        <li><a href="#runtime">3.5 実行時の動作イメージ</a></li>
+        <li><a href="#goal1">4. 狙い① 視覚確認の積極化</a></li>
+        <li><a href="#goal3">5. 狙い③ 自動メモリ</a></li>
+        <li><a href="#phases">6. 実装フェーズと検証</a></li>
+        <li><a href="#open">7. 未確定点・参考</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <!-- ===================== TL;DR ===================== -->
+      <section id="tldr">
+        <h2>TL;DR</h2>
+        <p class="lead">
+          あなたの環境は<strong>すでにかなり作り込まれた多層構成</strong>で、今回はゼロから作るのではなく
+          <strong>既存資産の再編・拡張</strong>です。鍵になる気づきは1つ —
+          <strong>「アカウント」は2つの独立した軸でできている</strong>こと。
+          ① Claude のログイン/課金アカウント（<code>CLAUDE_CONFIG_DIR</code> で切替）と、
+          ② データアカウント（Google/Slack/Notion のトークンで切替）。
+          この2軸が独立だと分かると、「HDTからはHDTのClaudeアカウント、でも他フォルダからHDTの予定も触りたい」が
+          矛盾なく成立することが見えてきます。
+        </p>
+        <div class="intent">
+          <strong>このあと何をするか:</strong> 3つの狙いを、リポジトリの責務に沿って配置します。
+          <strong>狙い②</strong>=HDT用 Google MCP を常設して Claude が用途でデータアカウントを振り分け／
+          <strong>狙い①</strong>=視覚確認フックを拡張＋強命令＋専用コマンド／
+          <strong>狙い③</strong>=終了フックで好みを抽出し<em>全プロジェクト共通</em>のメモリへ。
+          まず §2 の原理を読めば、残りは「その原理をどう広げるか」の話になります。
+        </div>
+        <div class="ok">
+          <strong>本書の用語（「アカウント」は必ず修飾します）:</strong>
+          <ul style="margin:6px 0 0;">
+            <li><strong>Claudeアカウント</strong> … Claude Code のログイン / 課金（<strong>軸A</strong>）。個人 Max / HDT Team。切替は <code>CLAUDE_CONFIG_DIR</code>。</li>
+            <li><strong>データアカウント</strong> … Google / Slack / Notion などサービス側のアカウント（<strong>軸B</strong>）。具体的には <strong>Googleアカウント / Slackアカウント / Notionアカウント</strong> と書きます。</li>
+          </ul>
+          以降、「アカウント」とだけは書かず、必ず上のどちらか（または具体的なサービス名）を明記します。
+        </div>
+      </section>
+
+      <!-- ===================== 1. 全体像 ===================== -->
+      <section id="bigpic">
+        <h2>1. 全体像 — 3リポジトリの役割 <small>誰が何を持っているか</small></h2>
+        <p>
+          まず登場人物の整理です。あなたの Claude Code 設定は<strong>3つのリポジトリ</strong>に役割分担されています。
+          ここを取り違えると「どこを直せばいいか」が分からなくなるので、最初に固定します。
+        </p>
+
+        <figure style="margin: 0;">
+          <div class="diagram-scroll">
+            <a href="assets/2026-06-29_big-picture.svg" target="_blank" rel="noopener" title="クリックで原寸を新タブで開く">
+              <img src="assets/2026-06-29_big-picture.svg" alt="nanokit がグローバルの真実で dotter により ~/.claude へ symlink、claude-settings が org 別テンプレ、実行ディレクトリが cd 先で account を切替える関係図" loading="lazy">
+            </a>
+          </div>
+          <figcaption class="footnote">
+            <div class="legend">
+              <span class="item"><span class="sw" style="background:#475569"></span>既存</span>
+              <span class="item"><span class="sw" style="background:#d97706"></span>結節点（~/.claude）</span>
+            </div>
+            ソース: <code>docs/assets/2026-06-29_big-picture.d2</code>
+          </figcaption>
+        </figure>
+
+        <table>
+          <thead><tr><th>リポジトリ</th><th>役割</th><th>反映方法</th><th>主な中身</th></tr></thead>
+          <tbody>
+            <tr><td><code>nanokit/claude/</code></td><td><strong>グローバル唯一の真実</strong>（全プロジェクト共通）</td><td>dotter で <code>~/.claude/</code> へ symlink</td><td>settings.json・hooks・skills・agents・CLAUDE.md・共有HTTP MCP</td></tr>
+            <tr><td><code>claude-settings/</code></td><td><strong>org（会社/案件）別テンプレ</strong>と横断実行</td><td>各 org dir に配置（dotter外）</td><td>org別 <code>.envrc</code>・<code>.mcp.json</code>・<code>cross-org-search</code> スキル</td></tr>
+            <tr><td>実行ディレクトリ群<br>(<code>HDT/</code>, <code>frogiraffe/</code>…)</td><td><strong>データ実体とスコープ</strong></td><td>direnv が <code>.envrc</code> を自動適用</td><td>そのスコープのデータアカウント用トークン・creds と、Claudeアカウント切替の <code>CLAUDE_CONFIG_DIR</code></td></tr>
+          </tbody>
+        </table>
+        <div class="ok">
+          <strong>原則:</strong> 設定の変更は必ず <code>nanokit</code> 側を編集 → <code>dotter deploy</code>。
+          <code>~/.claude/</code> を直接いじると nanokit のワーキングツリーが変わります（symlink のため）。
+        </div>
+      </section>
+
+      <!-- ===================== 2. 原理 (核心) ===================== -->
+      <section id="principle">
+        <h2>2.【基礎】複数のデータアカウントの使い分けの原理 <small>ここが一番大事</small></h2>
+        <p>
+          「複数の Google / Slack / Notion アカウントをどう使い分けているのか分からない」という所を、
+          仕組みから説明します。結論を先に言うと —
+        </p>
+        <div class="intent">
+          <strong>原理ひとことで:</strong> <em>あなたが今どのディレクトリにいるか</em>で、使うデータアカウントが自動的に決まります。
+          仕掛けは <code>direnv</code>。ディレクトリに入った瞬間、そこに置かれた <code>.envrc</code> が
+          「どのトークン・どの認証情報を使うか」を環境変数にセットし、MCP サーバはその環境を見て起動するからです。
+        </div>
+
+        <h3>ステップで追う（①→⑥）</h3>
+        <figure style="margin: 0;">
+          <div class="diagram-scroll">
+            <a href="assets/2026-06-29_account-principle.svg" target="_blank" rel="noopener" title="クリックで原寸を新タブで開く">
+              <img src="assets/2026-06-29_account-principle.svg" alt="OS Keychain から direnv が秘密を受け取り、cd したディレクトリに応じて個人スコープ/HDTスコープの環境変数をセットし、MCPサーバがその env で起動して Claude が見えるツール集合が決まる6ステップの流れ" loading="lazy">
+            </a>
+          </div>
+          <figcaption class="footnote">
+            <div class="legend">
+              <span class="item"><span class="sw" style="background:#16a34a"></span>切替の主役（direnv / 結果）</span>
+              <span class="item"><span class="sw" style="background:#475569"></span>環境・サーバ</span>
+              <span class="item"><span class="sw" style="background:#d97706"></span>秘密 / 重要スイッチ</span>
+            </div>
+            ソース: <code>docs/assets/2026-06-29_account-principle.d2</code>
+          </figcaption>
+        </figure>
+
+        <ol>
+          <li><strong>① OS Keychain</strong> — 全データアカウントの秘密（APIキー/トークン）は OS のキーチェーンに1か所で保管。コードには絶対に書きません。</li>
+          <li><strong>② cd したディレクトリ</strong> — あなたが <code>~/nanokit</code> にいるか <code>HDT/</code> にいるかが「スコープ」を決める入口です。</li>
+          <li><strong>③ direnv</strong> — ディレクトリに入った瞬間、そこの <code>.envrc</code> を自動実行。Keychain から必要な秘密だけ取り出して環境変数にセットします。</li>
+          <li><strong>④ 環境が分岐</strong> — 個人スコープなら個人の creds／HDTスコープなら HDT の creds。HDTでは <code>NOTION_TOKEN</code> を <em>明示的に unset</em> して個人トークンの漏洩を防ぎ、<code>CLAUDE_CONFIG_DIR=~/.claude-hdt</code> をセットします。</li>
+          <li><strong>⑤ MCPサーバ</strong> — Google/Slack/Notion などの MCP サーバは、その時の環境変数を見て起動。だから「個人の env で起動したサーバ＝個人のデータアカウントのツール」になります。</li>
+          <li><strong>⑥ Claude が見えるツール</strong> — 結果として Claude Code が触れるツール集合が「今いるスコープのデータアカウント」に一致します。Claude は魔法でデータアカウントを選んでいるのではなく、<em>環境が先に決まっている</em>のです。</li>
+        </ol>
+
+        <h3>2つの独立した「アカウント」軸 — ここが混乱の元</h3>
+        <p>
+          「アカウント」という1語に、実は<strong>性質の違う2つ</strong>が混ざっています。これを分けて考えると一気にクリアになります。
+        </p>
+        <figure style="margin: 0;">
+          <div class="diagram-scroll">
+            <a href="assets/2026-06-29_two-axes.svg" target="_blank" rel="noopener" title="クリックで原寸を新タブで開く">
+              <img src="assets/2026-06-29_two-axes.svg" alt="軸A=Claudeのログイン/課金アカウント(CLAUDE_CONFIG_DIRで切替)と軸B=データアカウント(トークン/credsで切替)が独立しており、個人ClaudeアカウントのままHDTのGoogleカレンダーに書けることを示す図" loading="lazy">
+            </a>
+          </div>
+          <figcaption class="footnote">
+            <div class="legend">
+              <span class="item"><span class="sw" style="background:#16a34a"></span>HDT / 核心メッセージ</span>
+              <span class="item"><span class="sw" style="background:#475569"></span>アカウント実体</span>
+              <span class="item"><span class="sw" style="background:#d97706"></span>切替スイッチ</span>
+            </div>
+            ソース: <code>docs/assets/2026-06-29_two-axes.d2</code>
+          </figcaption>
+        </figure>
+        <table>
+          <thead><tr><th>軸</th><th>何のアカウントか</th><th>切替スイッチ</th><th>例</th></tr></thead>
+          <tbody>
+            <tr><td><strong>軸A</strong></td><td>Claude の<strong>ログイン/課金</strong>（どの Claude プランで動くか）</td><td><code>CLAUDE_CONFIG_DIR</code></td><td>個人 Max（<code>~/.claude</code>）／HDT Team（<code>~/.claude-hdt</code>）</td></tr>
+            <tr><td><strong>軸B</strong></td><td><strong>データ</strong>（どの Google/Slack/Notion を読み書きするか）</td><td>トークン / creds ディレクトリ</td><td>個人 Google／HDT Google／frogiraffe Slack</td></tr>
+          </tbody>
+        </table>
+        <div class="ok">
+          <strong>核心の腑落ちポイント:</strong> 軸Aと軸Bは独立。だから<strong>「個人の Claude アカウントで動かしながら、HDT の Google カレンダーに予定を書く」</strong>は何の矛盾もなく成立します。
+          あなたの要望「HDTからはHDTのClaudeアカウントを使う」は<strong>軸A</strong>の話、「他フォルダからもHDTの予定を触りたい」は<strong>軸B</strong>の話で、別レイヤーなのです。
+        </div>
+        <div class="risk">
+          <strong>現状の制約:</strong> いま <code>workspace-mcp</code>（Google用）は<strong>個人1インスタンス（:8322）のみ</strong>。
+          つまり個人ディレクトリから HDT の Google（軸B）に手が届きません。これが狙い②で埋めるギャップです。
+        </div>
+      </section>
+
+      <!-- ===================== 3. 狙い② ===================== -->
+      <section id="goal2">
+        <h2>3. 狙い② マルチアカウント改良 <small>Claudeが用途で振り分け + HDTもどこからでも</small></h2>
+        <p>
+          要望は「どのプロジェクトからでも複数のデータアカウントを確認したい。アクセス先は Claude が判断。HDTの予定調整も他フォルダからやりたい」。
+          §2の原理を踏まえると、やることは2つだけです。
+        </p>
+        <figure style="margin: 0;">
+          <div class="diagram-scroll">
+            <a href="assets/2026-06-29_multiaccount-before-after.svg" target="_blank" rel="noopener" title="クリックで原寸を新タブで開く">
+              <img src="assets/2026-06-29_multiaccount-before-after.svg" alt="Before: 個人セッションは workspace-mcp 8322 経由で個人カレンダーにしか届かずHDT Googleに届かない。After: タイプA(個人/HDT Google・frogiraffe Slack/Notion)は専用サーバで直接アクセスし、cross-org-searchはタイプB(HDT Slack/Notion)と多org集約だけに限定、Claudeが依頼内容で経路を判断する図" loading="lazy">
+            </a>
+          </div>
+          <figcaption class="footnote">
+            <div class="legend">
+              <span class="item"><span class="sw" style="background:#16a34a"></span>新規追加</span>
+              <span class="item"><span class="sw" style="background:#475569"></span>既存</span>
+              <span class="item"><span class="sw" style="background:#d97706"></span>Claudeの判断点</span>
+              <span class="item"><span class="sw" style="border:2px dashed #ef4444;width:12px;height:12px;border-radius:2px"></span>届かない経路</span>
+            </div>
+            ソース: <code>docs/assets/2026-06-29_multiaccount-before-after.d2</code>
+          </figcaption>
+        </figure>
+
+        <h4>(1) HDT用 Google MCP を常設する <span class="pill p1">最優先・予定調整を直接解決</span></h4>
+        <p>
+          既存の個人版（<code>workspace-mcp-personal-server.sh</code>, :8322）の<strong>姉妹</strong>として、
+          HDT の Google 認証を指す <code>workspace-mcp-hdt-server.sh</code>（<strong>:8324</strong>）を作り、user スコープに<strong>別サーバ名で登録</strong>します。
+        </p>
+        <div class="formula">
+個人:  mcp__workspace__*       (:8322, creds=google-workspace/personal)
+HDT :  mcp__workspace-hdt__*   (:8324, creds=google-workspace/HDT)   ← 新規
+        </div>
+        <p>
+          ツール名の頭が <code>workspace</code> と <code>workspace-hdt</code> で<strong>衝突しない</strong>ため、
+          Claude は「個人カレンダー」と「HDTカレンダー」を別物として認識し、
+          <strong>両方に予定を入れられます</strong>。しかもこれは Google OAuth が書くだけなので、
+          軸A（Claudeアカウント＝ログイン/課金）の分離を一切壊しません。
+        </p>
+
+        <h4>(2) Claude に「データアカウント地図」を渡す <span class="pill p2">“Claudeが選ぶ”の実体</span></h4>
+        <p>
+          <code>nanokit/claude/CLAUDE.md</code> に下表のような<strong>データアカウント地図</strong>を書きます。
+          Claude はこれを読んで「この依頼は個人＋HDT両方のカレンダーが要る」「これは frogiraffe の Slack」と<strong>自分でルーティング</strong>できます。
+        </p>
+        <table>
+          <thead><tr><th>アカウント</th><th>種別</th><th>到達手段</th><th>主用途</th></tr></thead>
+          <tbody>
+            <tr><td>個人(=frogiraffe) Google</td><td>常設</td><td><code>mcp__workspace__*</code> (:8322)</td><td>個人/frogiraffe の予定/メール/Drive</td></tr>
+            <tr class="win"><td>HDT Google</td><td>常設（新）</td><td><code>mcp__workspace-hdt__*</code> (:8324)</td><td>HDTの予定/メール（<strong>他フォルダからも可</strong>）</td></tr>
+            <tr class="win"><td>frogiraffe Slack/Notion</td><td>常設（直接・新）</td><td>専用サーバ名 <code>mcp__slack-frogiraffe__*</code> 等・どのフォルダからも</td><td>frogiraffe 案件</td></tr>
+            <tr><td>HDT Slack/Notion</td><td>HDT専用</td><td>Team Connectors（<code>~/.claude-hdt</code>）</td><td>cross-org-search 子経由で読取</td></tr>
+            <tr><td>全org横断</td><td>オンデマンド</td><td><code>cross-org-search</code> スキル</td><td>「全社の今週の予定/未読」等</td></tr>
+          </tbody>
+        </table>
+        <div class="intent">
+          <strong>設計原則（ご指摘を反映）:</strong> <strong>タイプA（ポータブルなトークン/OAuth）のデータアカウントは、すべて専用MCPサーバ名で「直接」アクセスできるようにする</strong>（cross-org-search を経由しない）。
+          cross-org-search は <strong>(a) タイプB の HDT Slack/Notion（Connector束縛で直接化できない）</strong> と <strong>(b) 多orgの一括集約</strong>（「全社の今週」等）だけに限定します。
+          <br>※トレードオフ: 直接化したデータアカウントは全セッションでツールが見える（遅延ロードなので軽い）。<strong>よく横断参照するものだけ直接化</strong>し、稀にしか使わない org は cross-org-search 側に残すのが実用的です（詳細は直下の「常駐ポリシー」）。
+        </div>
+
+        <h4>org が8つに増えても破綻しない「常駐ポリシー」 <span class="pill p2">スケール設計</span></h4>
+        <p>
+          あなたの org は <strong>7つ</strong>（HDT / frogiraffe（=個人）/ EmplifAI / Lagoon / OpenHeart / PhD / uSonar）。<strong>frogiraffe を個人用としても使っている</strong>ため personal は別建てしません。
+          frogiraffe は一例で、<strong>OpenHeart・uSonar 等も同様に必要</strong>です。ただし<strong>全orgを常駐（直接）にすると十数個のMCPサーバ＋全セッションでツールが激増</strong>して破綻します。そこで到達手段を3層に整理します。
+        </p>
+        <figure style="margin: 0;">
+          <div class="diagram-scroll">
+            <a href="assets/2026-06-29_org-residency-policy.svg" target="_blank" rel="noopener" title="クリックで原寸を新タブで開く">
+              <img src="assets/2026-06-29_org-residency-policy.svg" alt="7つのorgを3層で到達する常駐ポリシー。Tier1=横断頻度が高い少数だけ常駐・直接、Tier2=全orgがフォルダ内デフォルト(direnv)、Tier3=全orgをcross-org-searchでオンデマンド横断+タイプB。全org常駐は十数サーバで非推奨、多数を直接化したいならMCPゲートウェイで集約、という図" loading="lazy">
+            </a>
+          </div>
+          <figcaption class="footnote">
+            <div class="legend">
+              <span class="item"><span class="sw" style="background:#16a34a"></span>Tier1 常駐・直接</span>
+              <span class="item"><span class="sw" style="background:#475569"></span>Tier2 フォルダ内デフォルト</span>
+              <span class="item"><span class="sw" style="background:#d97706"></span>Tier3 オンデマンド横断</span>
+              <span class="item"><span class="sw" style="background:#b91c1c"></span>スケール上の注意</span>
+            </div>
+            ソース: <code>docs/assets/2026-06-29_org-residency-policy.d2</code>
+          </figcaption>
+        </figure>
+        <table>
+          <thead><tr><th>層</th><th>対象</th><th>到達手段</th><th>常時コスト</th></tr></thead>
+          <tbody>
+            <tr class="win"><td>Tier1 常駐・直接</td><td>横断頻度が高い少数（例: frogiraffe=個人/HDT Google）</td><td>専用サーバ常駐（HTTPシングルトン）・どこからでも直接</td><td>サーバ本数ぶん（並列Claudeでも共有・増えない）</td></tr>
+            <tr><td>Tier2 フォルダ内デフォルト</td><td><strong>全7org</strong></td><td>そのorgフォルダで direnv 既定</td><td>ゼロ（既存・在席時のみ）</td></tr>
+            <tr><td>Tier3 オンデマンド横断</td><td><strong>全7org</strong>＋タイプB</td><td>cross-org-search（必要時に子起動）</td><td>低（呼ぶ時だけ）</td></tr>
+          </tbody>
+        </table>
+        <div class="ok">
+          <strong>「起動するたびにサーバが立つ?」への答え:</strong> いいえ。常駐サーバは<strong>ポート固定のHTTPシングルトン</strong>で、SessionStart hook は<strong>冪等</strong>（既に healthy なら何もせず即終了）。
+          <strong>並列で複数の Claude Code を開いても、全部が同じ1プロセスに接続</strong>します（OAuth refresh_token の奪い合いを避けるための設計）。常時コストは「Tier1サーバの本数」だけで、<strong>Claudeの同時起動数では増えません</strong>（例: Tier1=2本なら、何個 Claude を開いても常駐は2プロセス）。
+          <br>※対照: 各org の Tier2 サーバ（stdio, <code>.mcp.json</code>）はセッション毎に起動しますが、フォルダに居る間だけ・終了で消えるので蓄積しません。
+        </div>
+        <div class="intent">
+          <strong>結論:</strong> <strong>どのorg（OpenHeart・uSonar 含む）も Tier2/3 で必ず到達できる</strong>。常駐（Tier1）は<strong>日常的にフォルダ外から触る数個だけ</strong>に絞る。8org全部を常時・直接にしたい場合は <strong>MCPゲートウェイ（MetaMCP等）で1エンドポイント集約</strong>が解（org数が多い時の定石）。
+        </div>
+        <div class="risk">
+          <strong>要決定:</strong> どのorgを <strong>Tier1（常駐・直接）</strong>にするか。最小なら <strong>frogiraffe（=個人）Google ＋ HDT Google</strong> の2つ。OpenHeart / uSonar / Lagoon 等を<strong>フォルダ外から</strong>頻繁に触るなら Tier1 追加候補です。
+        </div>
+
+        <h4>HDTのSlack/Notionだけは経路が違う</h4>
+        <p>
+          HDT の Slack/Notion は <strong>Team Connectors</strong>（HDT の Claude アカウント＝軸A に紐づく）で提供されるため、
+          個人セッションから直接は呼べません。ここは <code>cross-org-search</code> が
+          <code>direnv exec HDT claude -p</code> で<strong>HDTのClaudeアカウントの子プロセスを起動して読取</strong>し、結果だけ返します（Q2「読取は許可」に合致）。
+        </p>
+
+        <h4>なぜHDTだけ方式が違うのか — 認証情報が2タイプある</h4>
+        <p>
+          「HDTだけ別扱いなのは不自然では？」という疑問への答え。差は美学ではなく<strong>認証情報のタイプの違い</strong>です。
+          手元にポータブルな秘密がある<strong>タイプA</strong>（個人/HDT Google・frogiraffe Slack/Notion）は並列に置けますが、
+          claude.aiのHDT Teamログインに束縛される<strong>タイプB</strong>（HDT Slack/Notion）はそのままでは並列化できず、子プロセス経由でのみ読めます。
+        </p>
+        <figure style="margin: 0;">
+          <div class="diagram-scroll">
+            <a href="assets/2026-06-29_credential-types.svg" target="_blank" rel="noopener" title="クリックで原寸を新タブで開く">
+              <img src="assets/2026-06-29_credential-types.svg" alt="タイプA(ポータブルなトークン/OAuth creds)は並列に置けるが、タイプB(Team Connector)はHDT Teamログイン束縛で並列化できずcross-org-search子経由でのみ読める。HDT GoogleはタイプAなので8324で並列化できる、という認証情報2タイプの対比図" loading="lazy">
+            </a>
+          </div>
+          <figcaption class="footnote">
+            <div class="legend">
+              <span class="item"><span class="sw" style="background:#16a34a"></span>並列化できる / 結論</span>
+              <span class="item"><span class="sw" style="background:#475569"></span>性質の説明</span>
+              <span class="item"><span class="sw" style="background:#d97706"></span>子プロセス経由</span>
+              <span class="item"><span class="sw" style="background:#b91c1c"></span>一様化する場合の条件</span>
+            </div>
+            ソース: <code>docs/assets/2026-06-29_credential-types.d2</code>
+          </figcaption>
+        </figure>
+        <div class="intent">
+          <strong>含意:</strong> 「全部並列が綺麗」は正当な発想（業界では <em>MCPアグリゲータ/ゲートウェイ</em> と呼ばれ、ツールをサーバ名でnamespaceする）。
+          ただしHDT Slack/Notionをフラット化するには結局トークン発行が必要で、会社ポリシー次第。
+          データアカウントが数個の今は、<strong>名前付きHTTPサーバを並列に足す軽量パターン</strong>（あなたが既にやっている方式）が最適です。
+        </div>
+        <div class="ok">
+          <strong>まとめ:</strong> 「Claude が選ぶ」＝(a) タイプAのデータアカウント（個人/HDT Google・frogiraffe Slack/Notion 等）は専用サーバで<strong>直接</strong>呼ぶ＋(b) cross-org-search は<strong>タイプB(HDT Slack/Notion)と多org一括集約だけ</strong>。HDTのClaudeアカウント分離（軸A）はそのまま維持されます。
+        </div>
+      </section>
+
+      <!-- ===================== 3.5 実行時の動作イメージ ===================== -->
+      <section id="runtime">
+        <h2>3.5 実行時の動作イメージ <small>既定のデータアカウント ＋ 必要に応じて越境</small></h2>
+        <p>
+          「データアカウントを分けて管理すると、実際どう動くのか」を具体化します。狙う挙動は1行で —
+        </p>
+        <div class="intent">
+          <strong>挙動の原則:</strong> 各フォルダには <em>デフォルトのデータアカウント</em>がある（明示しなければ黙ってそれを使う）。
+          そのうえで、<em>全体の予定参照のように他のデータアカウントが必要な時だけ</em>、Claude が判断して越境し、必要なデータアカウントだけを参照・実行します。
+        </div>
+
+        <h3>① ルーティングの判断フロー（毎回これが回る）</h3>
+        <figure style="margin: 0;">
+          <div class="diagram-scroll">
+            <a href="assets/2026-06-29_runtime-routing.svg" target="_blank" rel="noopener" title="クリックで原寸を新タブで開く">
+              <img src="assets/2026-06-29_runtime-routing.svg" alt="依頼が届くとClaudeがどのデータアカウントが要るか判断し、経路1=既定のデータアカウント(direnv)、経路2=常設の他タイプAデータアカウント(個人/HDT Google・frogiraffe Slack/Notionを直接)、経路3=HDT Slack/Notionはcross-org-search子プロセス、の3経路に振り分けて結果を集約し回答/実行する判断フロー図" loading="lazy">
+            </a>
+          </div>
+          <figcaption class="footnote">
+            <div class="legend">
+              <span class="item"><span class="sw" style="background:#16a34a"></span>直接呼べる経路</span>
+              <span class="item"><span class="sw" style="background:#d97706"></span>判断 / 子プロセス経由</span>
+              <span class="item"><span class="sw" style="background:#475569"></span>処理</span>
+            </div>
+            ソース: <code>docs/assets/2026-06-29_runtime-routing.d2</code>
+          </figcaption>
+        </figure>
+        <p>
+          ポイントは<strong>「明示が無ければ既定のデータアカウント」「越境は依頼内容がトリガー」</strong>。
+          「全体の」「両方」「HDTの」のような語、あるいは“そのデータアカウントでしか持てない情報”を求められたとき、Claude は経路2・3へ踏み出します。
+        </p>
+
+        <h3>② 具体シナリオ（フラッグシップ: 個人とHDTのカレンダー横断で予定作成）</h3>
+        <p>nanokit（個人スコープ）で「来週、個人とHDT両方の予定を見て空き枠に打合せを入れて」と頼んだ場合の実際の往復です。</p>
+        <figure style="margin: 0;">
+          <div class="diagram-scroll">
+            <a href="assets/2026-06-29_scenario-sequence.svg" target="_blank" rel="noopener" title="クリックで原寸を新タブで開く">
+              <img src="assets/2026-06-29_scenario-sequence.svg" alt="あなたがClaude Code(個人スコープ)に来週の予定調整を依頼し、Claudeがworkspace:8322で個人カレンダー、workspace-hdt:8324でHDTカレンダーの空きを取得、両方空く枠を計算、確認してから両カレンダーに打合せを作成するシーケンス図" loading="lazy">
+            </a>
+          </div>
+          <figcaption class="footnote">
+            <div class="legend">
+              <span class="item"><span class="sw" style="background:#16a34a"></span>Claude Code</span>
+              <span class="item"><span class="sw" style="background:#475569"></span>あなた / 個人Google</span>
+              <span class="item"><span class="sw" style="background:#d97706"></span>越境先(HDT Google)</span>
+            </div>
+            ソース: <code>docs/assets/2026-06-29_scenario-sequence.d2</code>
+          </figcaption>
+        </figure>
+        <p>
+          注目点は2つ。<strong>(1)</strong> 個人スコープのまま HDT Google（:8324）に手が届いている＝<em>越境</em>が起きている。
+          <strong>(2)</strong> 書き込み（予定作成）の前に<strong>確認を一度挟んでいる</strong>＝越境write の事故防止。
+        </p>
+
+        <h3>③ 3つのケースで挙動を確認</h3>
+        <table>
+          <thead><tr><th>いる場所</th><th>依頼</th><th>Claudeの動き</th><th>越境</th></tr></thead>
+          <tbody>
+            <tr><td><code>frogiraffe/</code></td><td>「frogiraffeのNotionの今日のタスクは？」</td><td>デフォルトの frogiraffe Notion を直接読む</td><td><span class="pill p4">なし</span></td></tr>
+            <tr class="win"><td><code>nanokit/</code></td><td>「来週、個人とHDTの予定で空き枠に打合せを」</td><td>個人:8322＋HDT:8324 を両方読み→空き算出→確認後に両方へ作成</td><td><span class="pill p1">あり(タイプA・直接)</span></td></tr>
+            <tr><td><code>nanokit/</code></td><td>「frogiraffeのSlackで未読ある？」</td><td><code>mcp__slack-frogiraffe__*</code> を直接呼ぶ（cross-org-search 不要）</td><td><span class="pill p1">あり(タイプA・直接)</span></td></tr>
+            <tr><td><code>nanokit/</code></td><td>「HDTのSlackで今週のメンション拾って」</td><td>cross-org-search が <code>~/.claude-hdt</code> の子プロセスでHDT Slackを読取→要約</td><td><span class="pill p3">あり(タイプB・子経由)</span></td></tr>
+          </tbody>
+        </table>
+
+        <div class="ok">
+          <strong>動作上の大事な3点:</strong>
+          (1) 「常設」でも<strong>遅延ロード</strong>なので普段は文脈を圧迫しない（Claudeが必要と判断した時だけそのツール群を引く）。
+          (2) 明示しなければ<strong>既定のデータアカウント</strong>＝「迷ったらこれ」で安全側。
+          (3) <strong>越境の書き込み</strong>（他のデータアカウントのカレンダー作成・Slack投稿など）は確認を挟む設計にでき、誤爆を防げる。
+        </div>
+        <div class="risk">
+          <strong>HDTは別、を維持:</strong> このシナリオで越境しているのは軸B（データ＝Google OAuth）だけ。
+          軸A（Claudeのログイン/課金）は個人のまま。HDT内で作業する時だけ <code>~/.claude-hdt</code> のHDT課金になる分離は崩れません。
+        </div>
+      </section>
+
+      <!-- ===================== 4. 狙い① ===================== -->
+      <section id="goal1">
+        <h2>4. 狙い① 視覚確認の積極化 <small>フック拡張 + 強命令 + 専用コマンド</small></h2>
+        <p>
+          Maxプランで画像認識を惜しまず使いたい、という要望。現状の <code>plot-vision-reminder.sh</code> は
+          <strong>プロット画像専用</strong>（matplotlib や画像ファイル書き込みにしか発火しない）なので、対象を広げます。
+          選んでいただいた「フック＋強命令＋専用コマンド」の3点セットで、<strong>作る→描画→スクショ→自分で見て確認</strong>の往復を標準化します。
+        </p>
+        <figure style="margin: 0;">
+          <div class="diagram-scroll">
+            <a href="assets/2026-06-29_visual-loop.svg" target="_blank" rel="noopener" title="クリックで原寸を新タブで開く">
+              <img src="assets/2026-06-29_visual-loop.svg" alt="UIや図やブラウザを変更したあと、フック・CLAUDE.md強命令・/visual-verifyコマンドの3起点からスクショを取得し、Readで視認、チェックリストで採点、passなら完了、failなら修正して再描画するループ図" loading="lazy">
+            </a>
+          </div>
+          <figcaption class="footnote">
+            <div class="legend">
+              <span class="item"><span class="sw" style="background:#16a34a"></span>新規追加（3起点）</span>
+              <span class="item"><span class="sw" style="background:#475569"></span>処理</span>
+              <span class="item"><span class="sw" style="background:#d97706"></span>判定/再描画</span>
+            </div>
+            ソース: <code>docs/assets/2026-06-29_visual-loop.d2</code>
+          </figcaption>
+        </figure>
+        <table>
+          <thead><tr><th>起点</th><th>中身</th><th>触るファイル</th></tr></thead>
+          <tbody>
+            <tr><td><strong>フック拡張</strong></td><td>フロントエンド編集（html/css/jsx/tsx/vue/svelte）後、および Claude-in-Chrome 操作後に「スクショ→Readで確認」を注入</td><td><code>plot-vision-reminder.sh</code> → <code>vision-reminder.sh</code> に一般化、<code>settings.json</code> の PostToolUse matcher 追加</td></tr>
+            <tr><td><strong>強命令</strong></td><td>CLAUDE.md に「Maxなので視覚入力を惜しまない。UI/図/ブラウザ/生成画像に触れたら完了前に必ずスクショして Read で自己検証」</td><td><code>nanokit/claude/CLAUDE.md</code></td></tr>
+            <tr><td><strong>専用コマンド</strong></td><td><code>/visual-verify &lt;url|file&gt;</code>：スクショ→チェックリスト採点（崩れ/はみ出し/重なり/コントラスト）→NGなら修正提案</td><td>新規 <code>nanokit/claude/skills/visual-verify/</code></td></tr>
+          </tbody>
+        </table>
+        <div class="ok"><strong>実証:</strong> この資料の図も、まさにこのループで作りました（D2→SVG→PNG化→Readで実際に視認して可読性・コントラスト・崩れを確認）。</div>
+      </section>
+
+      <!-- ===================== 5. 狙い③ ===================== -->
+      <section id="goal3">
+        <h2>5. 狙い③ 自動メモリ・パーソナライゼーション <small>終了フックで抽出 + 全プロジェクト共通化</small></h2>
+        <p>
+          「好み・個人情報を能動的に集めて、どのプロジェクトの回答にも反映し、自動で回る」要望。
+          ここで<strong>設計上の落とし穴</strong>が1つあります。ハーネス組込みのメモリは
+          <strong>プロジェクト別</strong>（<code>~/.claude/projects/&lt;proj&gt;/memory/</code>）なので、
+          nanokit で覚えた好みは他プロジェクトに出ません。<strong>「どこでも反映」にはグローバル層が要る</strong>のです。
+        </p>
+        <figure style="margin: 0;">
+          <div class="diagram-scroll">
+            <a href="assets/2026-06-29_memory-tiers.svg" target="_blank" rel="noopener" title="クリックで原寸を新タブで開く">
+              <img src="assets/2026-06-29_memory-tiers.svg" alt="セッションの会話から終了フック(Stop)が好みや個人情報を抽出し、保存先を判定して、全プロジェクト注入のグローバル個人メモリ・プロジェクト別MEMORY.md・人手昇格のCLAUDE.mdに振り分け、次回以降の全セッションに反映される三層メモリの図" loading="lazy">
+            </a>
+          </div>
+          <figcaption class="footnote">
+            <div class="legend">
+              <span class="item"><span class="sw" style="background:#16a34a"></span>新規追加（フック/グローバル層）</span>
+              <span class="item"><span class="sw" style="background:#475569"></span>既存層</span>
+              <span class="item"><span class="sw" style="background:#d97706"></span>判定/注入</span>
+            </div>
+            ソース: <code>docs/assets/2026-06-29_memory-tiers.d2</code>
+          </figcaption>
+        </figure>
+        <table>
+          <thead><tr><th>層</th><th>置き場所</th><th>書き手</th><th>読み込み範囲</th></tr></thead>
+          <tbody>
+            <tr class="win"><td>グローバル個人知識</td><td><code>~/.claude/memory/personal/</code>（新）</td><td>終了フック誘導でモデルが追記</td><td><strong>全プロジェクト</strong>（CLAUDE.md から <code>@import</code>）</td></tr>
+            <tr><td>確定した好み</td><td><code>nanokit/claude/CLAUDE.md</code> の「ユーザー像」節</td><td>人手で昇格（自動編集はしない）</td><td>全プロジェクト</td></tr>
+            <tr><td>プロジェクト固有</td><td>既存 per-project <code>MEMORY.md</code></td><td>既存の自動追記</td><td>そのプロジェクトのみ</td></tr>
+          </tbody>
+        </table>
+        <h3>自動で回す仕掛け</h3>
+        <ul>
+          <li><strong>終了フック（Stop）</strong> — <code>memory-extract-reminder.sh</code>：セッション終了時に「恒久的な好み/個人事実を抽出し、全体に効くものは <code>~/.claude/memory/personal/</code>、案件固有は per-project へ保存せよ」と注入。<code>stop_hook_active</code> ガード＋クールダウンで無限ループ防止。</li>
+          <li><strong>ネイティブ Auto memory 有効化</strong> — <code>settings.json</code> に <code>autoMemoryEnabled</code> を設定（Claude が訂正・好みを自動メモ）。</li>
+          <li><strong>強命令</strong> — CLAUDE.md に「ユーザーの好み・背景を能動的に収集し回答へ反映」を明記。</li>
+        </ul>
+        <div class="risk"><strong>安全側の判断:</strong> フックは「保存せよ」と<em>促す</em>だけで、dotter管理下の <code>CLAUDE.md</code> をスクリプトが自動で書き換えることはしません。確定した好みの CLAUDE.md への昇格は人手レビューを挟みます。</div>
+      </section>
+
+      <!-- ===================== 6. フェーズ ===================== -->
+      <section id="phases">
+        <h2>6. 実装フェーズと検証 <small>独立に commit → dotter deploy → 確認</small></h2>
+        <table>
+          <thead><tr><th>Phase</th><th>内容</th><th>検証（成功条件）</th></tr></thead>
+          <tbody>
+            <tr><td><span class="pill p1">P1</span> 視覚確認</td><td>フック拡張＋CLAUDE.md＋<code>/visual-verify</code></td><td>フロント編集後にスクショ確認の注入が出る／<code>/visual-verify &lt;url&gt;</code> がスクショ＆採点を返す</td></tr>
+            <tr><td><span class="pill p2">P2</span> 自動メモリ</td><td>終了フック＋グローバル個人メモリ＋<code>@import</code></td><td>別プロジェクトで起動しても個人メモリが context に載る／終了時に抽出ナッジが出る</td></tr>
+            <tr><td><span class="pill p3">P3</span> タイプA口座の直接化</td><td>workspace-hdt :8324 ＋ slack/notion-frogiraffe 等を専用サーバ名で user 登録＋データアカウント地図</td><td>個人dirから HDTカレンダー取得・個人+HDT 両方に予定作成／nanokit から frogiraffe Slack を直接呼べる</td></tr>
+            <tr><td><span class="pill p4">P4</span> 横断自動化＋棚卸し</td><td>cross-org-search 改善＋dotter化＋重複整理</td><td><code>dotter deploy</code> 後も cross-org-search が生存／「全社の今週」系で HDT 含む集約</td></tr>
+          </tbody>
+        </table>
+        <p>各 Phase は独立に <code>committing-changes</code> スキル経由で commit → <code>dotter deploy</code> → 動作確認の順。順序は入れ替え可能です（先に予定調整＝P3 が欲しい等）。</p>
+
+        <h3>棚卸し（調査で出た整理対象）</h3>
+        <ul>
+          <li><code>cross-org-search</code> の symlink が dotter 管理外 → <code>dotter deploy</code> で飛ぶ懸念。<code>.dotter/global.toml</code> に明示 or nanokit 側へ移設。</li>
+          <li>nanokit <code>agents/</code> と claude-settings <code>AGENTS.md</code> の役割重複を明文化。</li>
+          <li>nanokit CLAUDE.md の port表に <strong>8324</strong>、symlink表に新規スクリプトを追記。</li>
+        </ul>
+      </section>
+
+      <!-- ===================== 7. 未確定点・参考 ===================== -->
+      <section id="open">
+        <h2>7. 未確定点・参考</h2>
+        <h3>着手前に確認したい点</h3>
+        <ol>
+          <li><strong>agentic-knowledge-base のスコープ:</strong> <code>frogiraffe/agentic-knowledge-base</code> は frogiraffe の <code>.envrc</code> を継承する想定で合っていますか？（HDT扱いにしたいなら別途）</li>
+          <li><strong>HDT Google OAuth creds:</strong> <code>~/.config/google-workspace-mcp/HDT</code> に認証情報は既にありますか？（:8324 サーバ起動の前提。無ければ取得手順を先に）</li>
+          <li><strong>常時ロードの許容度:</strong> <code>workspace-hdt</code> を user スコープで常設すると全セッションで HDTカレンダー系ツールが見えます（このハーネスは遅延ロードなので常時コストは小）。問題なければこのまま進めます。</li>
+        </ol>
+
+        <h3>参考にした情報源</h3>
+        <ul>
+          <li>Claude Code Docs — <a href="https://code.claude.com/docs/en/mcp">Connect Claude Code to tools via MCP</a>（user/projectスコープ、同名サーバは最高優先度1定義のみ）</li>
+          <li>Claude Code Docs — <a href="https://code.claude.com/docs/en/memory">How Claude remembers your project</a>（Auto memory と CLAUDE.md の二層）</li>
+          <li>Tal Rotbart — <a href="https://medium.com/@rotbart/giving-claude-code-eyes-round-trip-screenshot-testing-ce52f7dcc563">Giving Claude Code Eyes: Round-Trip Screenshot Testing</a></li>
+          <li>GitHub issue <a href="https://github.com/anthropics/claude-code/issues/4938">#4938</a> — 複数 mcpServers 定義の優先順位挙動</li>
+          <li><code>/last30days</code>（X中心の薄い結果）— 指示の役割別レイヤー化が2026の定石（@bibryam ほか）</li>
+        </ul>
+
+        <h3>プロジェクト内資料</h3>
+        <ul>
+          <li><code>nanokit/claude/settings.json</code>, <code>CLAUDE.md</code> — グローバル設定の編集元</li>
+          <li><code>claude-settings/templates/*</code>, <code>HDT/.envrc</code>, <code>frogiraffe/.envrc</code> — org別スコープ定義</li>
+          <li><code>claude-settings/.claude/skills/cross-org-search/</code> — 横断実行（fanout.sh / child-runner.sh）</li>
+          <li><code>claude-settings/docs/20260504_multi-workspace-architecture-briefing.md</code> — 多層設計の元思想</li>
+        </ul>
+
+        <h3>本書の改訂履歴</h3>
+        <ul>
+          <li><strong>v1.5 (本書):</strong> personal は frogiraffe と同一と判明し org を <strong>7つ</strong>に修正。常駐サーバの仕組み（ポート固定のHTTPシングルトン・SessionStart hook は冪等・並列Claudeで1プロセス共有）を明記。Tier1 最小案を frogiraffe(=個人)Google＋HDT Google に更新。</li>
+          <li><strong>v1.4:</strong> org のスケールに対応。実org は8つ（personal/HDT/frogiraffe/EmplifAI/Lagoon/OpenHeart/PhD/uSonar）と判明。全org常駐は約18サーバで破綻するため<strong>3層の常駐ポリシー</strong>（Tier1常駐・直接／Tier2フォルダ内デフォルト／Tier3オンデマンド横断）を追加。どのorgも Tier2/3 で到達可、常駐は少数に絞る方針を明記。</li>
+          <li><strong>v1.3:</strong> 設計を改善。<strong>タイプAのデータアカウントは全て専用サーバで直接アクセス</strong>（frogiraffe Slack/Notion も cross-org-search 経由をやめ直接化）。cross-org-search はタイプB(HDT Slack/Notion)＋多org一括集約だけに限定。before/after 図・ルーティング図・ケース表・フェーズ表を更新。</li>
+          <li><strong>v1.2:</strong> 用語を統一。「アカウント」を必ず <strong>Claudeアカウント（軸A）</strong> / <strong>データアカウント（軸B, Google/Slack/Notion）</strong> に修飾。TL;DRに用語定義を追加し、本文・全図の曖昧な「アカウント」「口座」を一掃。</li>
+          <li><strong>v1.1:</strong> 「3.5 実行時の動作イメージ」を追加（ルーティング判断フロー＋カレンダー横断シーケンス＋3ケース表）。§3に認証情報2タイプ図を埋め込み。マルチアカウントMCPの定石（自前サーバ／アグリゲータ／プロファイル）をネット調査して反映。</li>
+          <li><strong>v1.0:</strong> 初稿。3リポジトリ調査＋2軸モデルで原理を整理し、3狙いの実装方針を図解。</li>
+        </ul>
+      </section>
+    </main>
+  </div>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}], throwOnError:false});"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-clike.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+direction: down
+
+vars: {
+  d2-config: {
+    theme-id: 200
+    dark-theme-id: 200
+  }
+}
+
+classes: {
+  new: {
+    style: {
+      fill: "#16a34a"
+      stroke: "#14532d"
+      stroke-width: 2
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
+    }
+  }
+  base: {
+    style: {
+      fill: "#475569"
+      stroke: "#1e293b"
+      stroke-width: 1
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
+    }
+  }
+  attn: {
+    style: {
+      fill: "#d97706"
+      stroke: "#7c2d12"
+      stroke-width: 2
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
+    }
+  }
+}
+
+edit: "UI / 図 / ブラウザを変更" {
+  class: base
+}
+
+trigger: "3つの起点 (今回の追加)" {
+  direction: right
+  t1: "フック拡張\n(編集/ブラウザ操作後に注入)" {
+    class: new
+  }
+  t2: "CLAUDE.md 強命令\n(Maxなので視覚入力を惜しまない)" {
+    class: new
+  }
+  t3: "/visual-verify\n専用コマンド" {
+    class: new
+  }
+}
+
+shot: "スクショ取得\n(Claude-in-Chrome / playwright)" {
+  class: base
+}
+
+read: "Read で画像を実際に視認" {
+  class: attn
+}
+
+check: "チェックリストで自己採点\n崩れ / はみ出し / 重なり / コントラスト" {
+  class: base
+}
+
+done: "OK → 完了宣言" {
+  class: base
+}
+
+regen: "NG → 修正して再描画" {
+  class: attn
+}
+
+edit -> trigger
+trigger -> shot -> read -> check
+check -> done: "pass"
+check -> regen: "fail"
+regen -> edit

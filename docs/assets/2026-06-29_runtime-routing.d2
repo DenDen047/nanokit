@@ -1,0 +1,78 @@
+direction: down
+
+vars: {
+  d2-config: {
+    theme-id: 200
+    dark-theme-id: 200
+  }
+}
+
+classes: {
+  new: {
+    style: {
+      fill: "#16a34a"
+      stroke: "#14532d"
+      stroke-width: 2
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
+    }
+  }
+  base: {
+    style: {
+      fill: "#475569"
+      stroke: "#1e293b"
+      stroke-width: 1
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
+    }
+  }
+  attn: {
+    style: {
+      fill: "#d97706"
+      stroke: "#7c2d12"
+      stroke-width: 2
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
+    }
+  }
+}
+
+req: "依頼が届く\n(あなたが今いるフォルダのセッション)" {
+  class: base
+}
+
+judge: "Claude が『どのデータアカウントが要るか』を判断\n(明示が無ければ既定のデータアカウント)" {
+  class: attn
+}
+
+default: "経路1: 既定のデータアカウント\nそのフォルダの direnv 設定 (例 frogiraffe)\n→ 黙って直接使う" {
+  class: new
+}
+
+typeA: "経路2: 他のタイプA データアカウント (直接)\n個人/HDT Google ・ frogiraffe Slack/Notion を常設\n→ 専用サーバ名で直接呼ぶ (cross-org-search 不要)" {
+  class: new
+}
+
+typeB: "経路3: HDT Slack/Notion (タイプB)\n→ cross-org-search が裏で\n~/.claude-hdt の子プロセスを起動して読取" {
+  class: attn
+}
+
+merge: "結果を集約" {
+  class: base
+}
+
+act: "回答 / 実行\n(書き込みは確認を挟める)" {
+  class: base
+}
+
+req -> judge
+judge -> default: "通常 (デフォルトで足りる)"
+judge -> typeA: "他のデータアカウントの予定/メールが要る"
+judge -> typeB: "HDTのSlack/Notionが要る"
+default -> merge
+typeA -> merge
+typeB -> merge
+merge -> act

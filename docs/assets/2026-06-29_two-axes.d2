@@ -1,0 +1,81 @@
+direction: down
+
+vars: {
+  d2-config: {
+    theme-id: 200
+    dark-theme-id: 200
+  }
+}
+
+classes: {
+  new: {
+    style: {
+      fill: "#16a34a"
+      stroke: "#14532d"
+      stroke-width: 2
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
+    }
+  }
+  base: {
+    style: {
+      fill: "#475569"
+      stroke: "#1e293b"
+      stroke-width: 1
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
+    }
+  }
+  attn: {
+    style: {
+      fill: "#d97706"
+      stroke: "#7c2d12"
+      stroke-width: 2
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
+    }
+  }
+}
+
+axisA: "軸A: Claudeアカウント（ログイン / 課金）" {
+  direction: right
+  a1: "個人 Max プラン\n~/.claude" {
+    class: base
+  }
+  a2: "HDT Team\n~/.claude-hdt" {
+    class: new
+  }
+}
+
+ctrlA: "切替スイッチ = CLAUDE_CONFIG_DIR\n(HDT dir に入ると HDT Team になる)" {
+  class: attn
+}
+
+axisB: "軸B: データアカウント (Google / Slack / Notion)" {
+  direction: right
+  b1: "個人 Google" {
+    class: base
+  }
+  b2: "HDT Google" {
+    class: base
+  }
+  b3: "frogiraffe\nSlack / Notion" {
+    class: base
+  }
+}
+
+ctrlB: "切替スイッチ = トークン / creds ディレクトリ" {
+  class: attn
+}
+
+note: "核心: この2軸は独立して動く\n→ 個人の Claudeアカウントのまま HDT の Googleアカウントのカレンダーに予定を書ける\n→ 「HDTからはHDTのClaudeアカウント」は軸Aの話、「他folderからHDTのデータアカウント」は軸Bの話" {
+  class: new
+}
+
+ctrlA -> axisA
+ctrlB -> axisB
+axisA -> note
+axisB -> note

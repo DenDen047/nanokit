@@ -1,0 +1,76 @@
+direction: down
+
+vars: {
+  d2-config: {
+    theme-id: 200
+    dark-theme-id: 200
+  }
+}
+
+classes: {
+  new: {
+    style: {
+      fill: "#16a34a"
+      stroke: "#14532d"
+      stroke-width: 2
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
+    }
+  }
+  base: {
+    style: {
+      fill: "#475569"
+      stroke: "#1e293b"
+      stroke-width: 1
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
+    }
+  }
+  attn: {
+    style: {
+      fill: "#d97706"
+      stroke: "#7c2d12"
+      stroke-width: 2
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
+    }
+  }
+}
+
+session: "セッション中の会話\n(訂正・好み・個人情報が出る)" {
+  class: base
+}
+
+stophook: "終了フック (Stop)\n好み/個人情報を抽出するよう注入" {
+  class: new
+}
+
+router: "保存先を判定" {
+  class: attn
+}
+
+global: "グローバル個人メモリ\n~/.claude/memory/personal/\n★全プロジェクトで注入" {
+  class: new
+}
+
+project: "プロジェクト別 MEMORY.md\n(そのプロジェクトのみ)" {
+  class: base
+}
+
+promote: "確定した好み → CLAUDE.md へ昇格\n(人手で確認、自動編集はしない)" {
+  class: base
+}
+
+inject: "次回以降の全セッション開始時に\n自動で context へ載る" {
+  class: attn
+}
+
+session -> stophook -> router
+router -> global: "全体に効く好み/人物像"
+router -> project: "案件固有の事実"
+global -> inject
+promote -> inject
+project -> inject: "同プロジェクトのみ"

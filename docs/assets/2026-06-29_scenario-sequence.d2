@@ -1,0 +1,63 @@
+vars: {
+  d2-config: {
+    theme-id: 200
+    dark-theme-id: 200
+  }
+}
+
+classes: {
+  new: {
+    style: {
+      fill: "#16a34a"
+      stroke: "#14532d"
+      font-color: "#ffffff"
+      font-size: 16
+      bold: true
+    }
+  }
+  base: {
+    style: {
+      fill: "#475569"
+      stroke: "#1e293b"
+      font-color: "#ffffff"
+      font-size: 16
+      bold: true
+    }
+  }
+  attn: {
+    style: {
+      fill: "#d97706"
+      stroke: "#7c2d12"
+      font-color: "#ffffff"
+      font-size: 16
+      bold: true
+    }
+  }
+}
+
+shape: sequence_diagram
+
+user: "あなた" {
+  class: base
+}
+claude: "Claude Code\n(個人スコープ / nanokit)" {
+  class: new
+}
+ws: "workspace :8322\n個人 Google" {
+  class: base
+}
+wshdt: "workspace-hdt :8324\nHDT Google" {
+  class: attn
+}
+
+user -> claude: "来週、個人とHDT両方の予定を見て\n空いてる枠に打合せを入れて"
+claude -> ws: "個人カレンダーの空きを取得"
+ws -> claude: "個人の予定"
+claude -> wshdt: "HDTカレンダーの空きを取得"
+wshdt -> claude: "HDTの予定"
+claude -> claude: "両方空いている枠を計算"
+claude -> user: "火 10:00 が両方空き。作成していい?"
+user -> claude: "OK"
+claude -> ws: "個人カレンダーに作成"
+claude -> wshdt: "HDTカレンダーに作成"
+claude -> user: "両カレンダーに打合せを作成しました"

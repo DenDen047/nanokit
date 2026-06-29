@@ -1,0 +1,109 @@
+direction: down
+
+vars: {
+  d2-config: {
+    theme-id: 200
+    dark-theme-id: 200
+  }
+}
+
+classes: {
+  new: {
+    style: {
+      fill: "#16a34a"
+      stroke: "#14532d"
+      stroke-width: 2
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
+    }
+  }
+  base: {
+    style: {
+      fill: "#475569"
+      stroke: "#1e293b"
+      stroke-width: 1
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
+    }
+  }
+  attn: {
+    style: {
+      fill: "#d97706"
+      stroke: "#7c2d12"
+      stroke-width: 2
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
+    }
+  }
+  bad: {
+    style: {
+      stroke: "#ef4444"
+      stroke-width: 2
+      stroke-dash: 4
+    }
+  }
+}
+
+before: "BEFORE — 個人セッションから HDT Google に届かない" {
+  direction: down
+  ps: "個人ディレクトリのセッション" {
+    class: base
+  }
+  ws: "workspace-mcp 個人 :8322" {
+    class: base
+  }
+  pc: "個人カレンダー / メール" {
+    class: base
+  }
+  hg: "HDT Google\n(予定を入れたい相手)" {
+    class: base
+  }
+  ps -> ws -> pc
+  ps -> hg: "届かない (個人1インスタンスのみ)" {
+    class: bad
+  }
+}
+
+after: "AFTER — タイプAは全て直接アクセス。cross-org-search はタイプBと一括集約だけ" {
+  direction: down
+  ps2: "どのディレクトリのセッションでも" {
+    class: base
+  }
+  router: "Claude が依頼内容から経路を判断" {
+    class: attn
+  }
+  ws2: "workspace 個人 :8322 (直接)" {
+    class: base
+  }
+  ws3: "workspace-hdt :8324 (直接・新規)" {
+    class: new
+  }
+  sfg: "slack-frogiraffe / notion-frogiraffe\n常設・直接 (新規)" {
+    class: new
+  }
+  cos: "cross-org-search\n= タイプB(HDT Slack/Notion) ＋ 多org一括集約のみ" {
+    class: attn
+  }
+  pcal: "個人カレンダー" {
+    class: base
+  }
+  hcal: "HDTカレンダー (読み書き可)" {
+    class: base
+  }
+  fdata: "frogiraffe Slack / Notion (直接)" {
+    class: base
+  }
+  hsn: "HDT Slack/Notion ・ 全org横断集約" {
+    class: base
+  }
+  ps2 -> router
+  router -> ws2 -> pcal
+  router -> ws3 -> hcal
+  router -> sfg -> fdata
+  router -> cos -> hsn
+}
+
+before -> after: "workspace-hdt 常設 + アカウント地図を追加"

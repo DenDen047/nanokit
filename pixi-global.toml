@@ -206,7 +206,7 @@ exposed = { rtk = "rtk" }
 
 [envs.python]
 channels = ["conda-forge"]
-dependencies = { python = "*", numpy = "*", scipy = "*", pillow = "*", matplotlib = "*", pandas = "*", ipython = "*" , beautifulsoup4 = "*" , trimesh = "*", loguru = "*", scikit-learn = "*" }
+dependencies = { python = "*", numpy = "*", scipy = "*", pillow = "*", matplotlib = "*", pandas = "*", ipython = "*" , beautifulsoup4 = "*" , trimesh = "*", loguru = "*", scikit-learn = "*", pypdf = "*", pdfplumber = "*", pdf2image = "*", reportlab = "*" }
 exposed = { python = "python" }
 
 [envs.yt-dlp]

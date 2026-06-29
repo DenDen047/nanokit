@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SessionEnd hook: SILENT background extraction of durable, cross-project user
-# facts into the global personal memory layer (~/.claude/memory/personal/).
+# facts into the global personal memory layer (~/.config/claude-memory/personal/).
 #
 # Why this shape: SessionEnd output/exit codes are ignored by Claude Code (no
 # additionalContext, no system-reminder), so nothing shows up in the
@@ -11,7 +11,7 @@
 # Observability (it is invisible in the chat, so everything is logged):
 #   fire ledger : ~/.claude/debug/memory-extract.log         (one line per SessionEnd)
 #   per-run log : ~/.claude/debug/memory-extract/<ts>_<sid>.log  (the claude -p output)
-#   saved files : ~/.claude/memory/personal/*.md  (+ MEMORY.md)
+#   saved files : ~/.config/claude-memory/personal/*.md  (+ MEMORY.md)
 #
 # Manual checks:
 #   bash memory-extract.sh --now <transcript.jsonl>     # run synchronously, watch it
@@ -32,7 +32,10 @@ RUNDIR="$DEBUG_DIR/memory-extract"
 MODEL="${MEMEX_MODEL:-claude-opus-4-8}"
 EFFORT="${MEMEX_EFFORT:-xhigh}"
 MIN_LINES="${MEMEX_MIN_LINES:-12}"
-DEST="${MEMEX_DEST:-$HOME/.claude/memory/personal}"
+# NOTE: dest lives OUTSIDE ~/.claude on purpose. Writes under ~/.claude are an
+# approval-gated "sensitive file" path, which a headless background claude -p
+# cannot satisfy (no interactive approval), so saves were silently blocked.
+DEST="${MEMEX_DEST:-$HOME/.config/claude-memory/personal}"
 mkdir -p "$RUNDIR" "$DEST"
 
 ts() { date '+%Y-%m-%d %H:%M:%S'; }

@@ -32,6 +32,12 @@ mtime_of() {
 }
 
 emit_reminder() {
+  # Ledger of every fire, so "the hook nudged" can be separated from "the model
+  # actually screenshotted + Read". Append-only; grows only when the hook fires.
+  mkdir -p "$HOME/.claude/debug"
+  printf '[%s] FIRED tool=%s :: %s\n' \
+    "$(date '+%Y-%m-%d %H:%M:%S')" "$tool" "$(printf '%.110s' "$1")" \
+    >> "$HOME/.claude/debug/vision-reminder.log"
   jq -nc --arg ctx "$1" \
     '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:$ctx}}'
 }

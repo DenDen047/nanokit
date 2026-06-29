@@ -48,13 +48,13 @@ Max プランなので画像認識を惜しまない。**UI・図・ブラウザ
 ユーザーの好み・背景・作業スタイルを集め、全プロジェクトの回答に反映する。**捕捉は自動かつ無音**で行う。会話の途中でメモリファイルを書いたり「保存しました」と実況したりしない（ユーザーが明示的に「覚えて」と言った時だけ手動で書く）。
 
 3 層:
-- **グローバル個人メモリ** `~/.claude/memory/personal/` — 全プロジェクト共通の恒久的・横断的な事実。**セッション終了後に `SessionEnd` hook (`memory-extract.sh`) が裏で headless `claude -p` を起動し、トランスクリプトから抽出して保存**する（会話には一切出ない）。下の `@import` で全プロジェクトに読み込まれる。
+- **グローバル個人メモリ** `~/.config/claude-memory/personal/` — 全プロジェクト共通の恒久的・横断的な事実。**セッション終了後に `SessionEnd` hook (`memory-extract.sh`) が裏で headless `claude -p` を起動し、トランスクリプトから抽出して保存**する（会話には一切出ない）。下の `@import` で全プロジェクトに読み込まれる。
 - **プロジェクト固有メモリ** 各プロジェクトの `memory/`（ネイティブ auto-memory が無音で追記）。
 - **確定した好みの CLAUDE.md への昇格**は人手で。
 
 実行確認: `~/.claude/debug/memory-extract.log`（発火台帳）と `~/.claude/debug/memory-extract/`（実行ログ）。手動実行は `bash ~/.claude/scripts/memory-extract.sh --now <transcript>`。
 
-@~/.claude/memory/personal/MEMORY.md
+@~/.config/claude-memory/personal/MEMORY.md
 
 ## 環境管理ポリシー
 

@@ -21,15 +21,16 @@
 # Recursion guard: the spawned `claude -p` is itself a session that fires this
 # same hook; it carries MEMEX_CHILD=1 so the hook early-exits for it.
 #
-# Tunables (env): MEMEX_MODEL (default haiku), MEMEX_MIN_LINES (default 12),
-#                 MEMEX_DEST (default ~/.claude/memory/personal).
+# Tunables (env): MEMEX_MODEL (default claude-opus-4-8), MEMEX_EFFORT (default
+#                 xhigh), MEMEX_MIN_LINES (default 12), MEMEX_DEST.
 
 set -uo pipefail
 
 DEBUG_DIR="$HOME/.claude/debug"
 LEDGER="$DEBUG_DIR/memory-extract.log"
 RUNDIR="$DEBUG_DIR/memory-extract"
-MODEL="${MEMEX_MODEL:-haiku}"
+MODEL="${MEMEX_MODEL:-claude-opus-4-8}"
+EFFORT="${MEMEX_EFFORT:-xhigh}"
 MIN_LINES="${MEMEX_MIN_LINES:-12}"
 DEST="${MEMEX_DEST:-$HOME/.claude/memory/personal}"
 mkdir -p "$RUNDIR" "$DEST"
@@ -108,6 +109,7 @@ extract() {
   echo "=== transcript=$transcript ($lines lines) model=$MODEL ==="
   MEMEX_CHILD=1 claude -p "$PROMPT" \
     --model "$MODEL" \
+    --effort "$EFFORT" \
     --permission-mode acceptEdits \
     --allowedTools "Read,Write,Edit,Glob,Grep" </dev/null
   echo "=== memory-extract exit $? $(ts) ==="
@@ -117,7 +119,7 @@ case "$mode" in
   dry)
     ledger "DRYRUN session=$session reason=$reason ($lines lines) model=$MODEL dest=$DEST -> $runlog"
     echo "[dry-run] transcript=$transcript ($lines lines)"
-    echo "[dry-run] would spawn: MEMEX_CHILD=1 claude -p <prompt> --model $MODEL --permission-mode acceptEdits"
+    echo "[dry-run] would spawn: MEMEX_CHILD=1 claude -p <prompt> --model $MODEL --effort $EFFORT --permission-mode acceptEdits"
     echo "[dry-run] runlog would be: $runlog"
     ;;
   now)
@@ -131,10 +133,10 @@ case "$mode" in
     # 4=model 5=prompt  (avoids any function/quote serialization).
     nohup bash -c '
       echo "=== memory-extract start $(date "+%F %T") session=$2 reason=$3 ==="
-      echo "=== transcript=$1 model=$4 ==="
-      MEMEX_CHILD=1 claude -p "$5" --model "$4" --permission-mode acceptEdits --allowedTools "Read,Write,Edit,Glob,Grep" </dev/null
+      echo "=== transcript=$1 model=$4 effort=$6 ==="
+      MEMEX_CHILD=1 claude -p "$5" --model "$4" --effort "$6" --permission-mode acceptEdits --allowedTools "Read,Write,Edit,Glob,Grep" </dev/null
       echo "=== memory-extract exit $? $(date "+%F %T") ==="
-    ' _ "$transcript" "$session" "$reason" "$MODEL" "$PROMPT" >> "$runlog" 2>&1 &
+    ' _ "$transcript" "$session" "$reason" "$MODEL" "$PROMPT" "$EFFORT" >> "$runlog" 2>&1 &
     disown 2>/dev/null || true
     ;;
 esac

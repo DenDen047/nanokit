@@ -62,3 +62,7 @@ Temporary Items
 claude/mcp-servers/*/.pixi/
 claude/external/
 claude/mcp-servers/*/.pixi/
+
+# Python bytecode
+__pycache__/
+*.pyc

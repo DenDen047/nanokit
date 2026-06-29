@@ -25,7 +25,7 @@ wezterm = { target = "$HOME/.config/wezterm", type = "symbolic", recurse = false
 "claude/scripts/scrapling-mcp-server.sh" = "$HOME/.claude/scripts/scrapling-mcp-server.sh"
 "claude/scripts/karpathy-reminder.sh" = "$HOME/.claude/scripts/karpathy-reminder.sh"
 "claude/scripts/vision-reminder.sh" = "$HOME/.claude/scripts/vision-reminder.sh"
-"claude/scripts/memory-extract-reminder.sh" = "$HOME/.claude/scripts/memory-extract-reminder.sh"
+"claude/scripts/memory-extract.sh" = "$HOME/.claude/scripts/memory-extract.sh"
 "claude/scripts/mmdc" = "$HOME/.pixi/bin/mmdc"
 "claude/skills/committing-changes" = { target = "$HOME/.claude/skills/committing-changes", type = "symbolic", recurse = false }
 "claude/skills/code-comments" = { target = "$HOME/.claude/skills/code-comments", type = "symbolic", recurse = false }

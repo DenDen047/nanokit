@@ -123,14 +123,14 @@
         ]
       }
     ],
-    "Stop": [
+    "SessionEnd": [
       {
         "matcher": "*",
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/scripts/memory-extract-reminder.sh",
-            "timeout": 5
+            "command": "bash ~/.claude/scripts/memory-extract.sh",
+            "timeout": 10
           }
         ]
       }

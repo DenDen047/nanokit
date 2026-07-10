@@ -22,7 +22,7 @@ allowed-tools: Bash(*), Read, Edit, Write, Grep, Glob, Skill, mcp__codex__codex,
 
 - MAX_ITERATIONS = `10`
 
-モデルと reasoning effort は **`~/.codex/config.toml` の値を継承する** (現状 `model = gpt-5.5` / `model_reasoning_effort = xhigh`)。
+モデルと reasoning effort は **`~/.codex/config.toml` の値を継承する** (現状 `model = gpt-5.6-sol` / `model_reasoning_effort = max` = "GPT 5.6 Sol Max")。
 `mcp__codex__codex` / `mcp__codex__codex-reply` 呼び出しで `model` / `config` は **指定しない** こと。
 Codex の最高モデルを切り替えたいときは config.toml の 1 箇所だけを更新すればよい (単一ソース)。
 

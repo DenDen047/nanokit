@@ -58,6 +58,12 @@ wezterm = { target = "$HOME/.config/wezterm", type = "symbolic", recurse = false
 "claude/skills/improve-codebase-architecture" = { target = "$HOME/.claude/skills/improve-codebase-architecture", type = "symbolic", recurse = false }
 "claude/skills/visual-verify" = { target = "$HOME/.claude/skills/visual-verify", type = "symbolic", recurse = false }
 "claude/skills/pdf" = { target = "$HOME/.claude/skills/pdf", type = "symbolic", recurse = false }
+"claude/skills/ponytail" = { target = "$HOME/.claude/skills/ponytail", type = "symbolic", recurse = false }
+"claude/skills/ponytail-review" = { target = "$HOME/.claude/skills/ponytail-review", type = "symbolic", recurse = false }
+"claude/skills/ponytail-audit" = { target = "$HOME/.claude/skills/ponytail-audit", type = "symbolic", recurse = false }
+"claude/skills/ponytail-debt" = { target = "$HOME/.claude/skills/ponytail-debt", type = "symbolic", recurse = false }
+"claude/skills/ponytail-gain" = { target = "$HOME/.claude/skills/ponytail-gain", type = "symbolic", recurse = false }
+"claude/skills/ponytail-help" = { target = "$HOME/.claude/skills/ponytail-help", type = "symbolic", recurse = false }
 "claude/agents" = { target = "$HOME/.claude/agents", type = "symbolic", recurse = false }
 "claude/ccstatusline/settings.json" = "$HOME/.config/ccstatusline/settings.json"
 

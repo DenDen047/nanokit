@@ -430,7 +430,7 @@ aris_codex_mcp_setup() {
     # 3. Remind about interactive setup
     print_info "Next steps (interactive, run manually):"
     print_info "  1. codex login        # authenticate Codex"
-    print_info "  2. codex setup        # select gpt-5.4 as the default model"
+    print_info "  2. codex setup        # select gpt-5.6-sol as the default model"
     print_info "  3. Restart Claude Code to load the new MCP server"
     echo ""
 }
@@ -965,6 +965,9 @@ codex_update() {
     if command -v codex &> /dev/null; then
         print_info "Version: $(codex --version 2>/dev/null || echo 'unknown')"
     fi
+    echo ""
+    print_warning "Restart Claude Code completely so the running 'codex mcp-server' picks up the new binary."
+    print_info "  A new chat alone is not enough — the MCP process is spawned once at session launch."
 }
 
 codex_uninstall() {

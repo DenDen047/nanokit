@@ -17,6 +17,7 @@
 | `claude/scripts/mmdc` | `~/.pixi/bin/mmdc` |
 | `claude/ccstatusline/settings.json` | `~/.config/ccstatusline/settings.json` |
 | `claude/skills/*` | `~/.claude/skills/*` |
+| `claude/output-styles` | `~/.claude/output-styles` |
 
 したがって `~/.claude/` 配下のファイルを直接編集すると nanokit リポジトリのワーキングツリーが変更される。
 設定を変更する場合は nanokit リポジトリ側で編集し `dotter deploy` で反映するのが正しいワークフロー。

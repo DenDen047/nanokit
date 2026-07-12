@@ -65,6 +65,7 @@ wezterm = { target = "$HOME/.config/wezterm", type = "symbolic", recurse = false
 "claude/skills/ponytail-gain" = { target = "$HOME/.claude/skills/ponytail-gain", type = "symbolic", recurse = false }
 "claude/skills/ponytail-help" = { target = "$HOME/.claude/skills/ponytail-help", type = "symbolic", recurse = false }
 "claude/agents" = { target = "$HOME/.claude/agents", type = "symbolic", recurse = false }
+"claude/output-styles" = { target = "$HOME/.claude/output-styles", type = "symbolic", recurse = false }
 "claude/ccstatusline/settings.json" = "$HOME/.config/ccstatusline/settings.json"
 
 [default.variables]

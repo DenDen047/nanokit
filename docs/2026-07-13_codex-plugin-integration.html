@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>公式 Codex プラグイン統合 — 論点整理</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --accent: #2563eb;
+      --accent-soft: #eff6ff;
+      --intent-bg: #fff7ed;
+      --intent-border: #f59e0b;
+      --code-bg: #f8fafc;
+      --ok-bg: #dcfce7;
+      --ok-border: #16a34a;
+      --risk-bg: #fef2f2;
+      --risk-border: #ef4444;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a; --fg: #f1f5f9; --muted: #94a3b8;
+        --border: #1e293b; --accent: #60a5fa; --accent-soft: #1e3a8a;
+        --intent-bg: #422006; --intent-border: #f59e0b;
+        --code-bg: #1e293b;
+        --ok-bg: #14532d; --ok-border: #22c55e;
+        --risk-bg: #450a0a; --risk-border: #f87171;
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+      line-height: 1.7;
+      color: var(--fg);
+      background: var(--bg);
+      margin: 0;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 240px minmax(0, 1fr);
+      gap: 48px;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 32px 24px 96px;
+    }
+    @media (max-width: 800px) {
+      .layout { grid-template-columns: 1fr; gap: 24px; }
+      nav.toc { position: static; }
+    }
+    header.doc {
+      grid-column: 1 / -1;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+    header.doc h1 { margin: 0 0 4px; font-size: 1.75rem; }
+    header.doc .sub { color: var(--muted); }
+    header.doc .meta {
+      margin-top: 8px; display: flex; gap: 12px; flex-wrap: wrap;
+      font-size: 0.875rem; color: var(--muted);
+    }
+    .badge {
+      display: inline-block; padding: 2px 8px;
+      border: 1px solid var(--accent); color: var(--accent);
+      border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+    }
+    nav.toc { position: sticky; top: 24px; align-self: start; font-size: 0.9rem; }
+    nav.toc h2 {
+      font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--muted); margin: 0 0 8px;
+    }
+    nav.toc ol { list-style: none; padding: 0; margin: 0; }
+    nav.toc li { margin: 6px 0; }
+    nav.toc a {
+      color: var(--fg); text-decoration: none;
+      border-left: 2px solid transparent; padding-left: 8px; display: block;
+    }
+    nav.toc a:hover { color: var(--accent); border-left-color: var(--accent); }
+    main { min-width: 0; }
+    .lead {
+      font-size: 1.15rem; line-height: 1.65;
+      border-left: 4px solid var(--accent);
+      padding: 12px 16px; background: var(--accent-soft); margin: 0 0 24px;
+    }
+    section { margin: 40px 0; }
+    section h2 {
+      font-size: 1.4rem; border-bottom: 1px solid var(--border);
+      padding-bottom: 6px; margin-bottom: 12px;
+    }
+    section h3 {
+      font-size: 0.85rem; margin: 24px 0 8px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    section h4 { font-size: 1rem; margin: 18px 0 6px; }
+    .intent {
+      background: var(--intent-bg); border-left: 4px solid var(--intent-border);
+      padding: 12px 16px; margin: 16px 0; font-size: 0.95rem;
+    }
+    .intent strong { color: var(--intent-border); }
+    .risk {
+      background: var(--risk-bg); border-left: 4px solid var(--risk-border);
+      padding: 12px 16px; margin: 12px 0; font-size: 0.95rem;
+    }
+    .ok {
+      background: var(--ok-bg); border-left: 4px solid var(--ok-border);
+      padding: 12px 16px; margin: 12px 0; font-size: 0.95rem;
+    }
+    table {
+      width: 100%; border-collapse: collapse;
+      margin: 12px 0; font-size: 0.92rem;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 8px 12px; text-align: left; vertical-align: top;
+    }
+    th { background: var(--code-bg); font-weight: 600; }
+    tr.win td { font-weight: 600; }
+    .pill {
+      display: inline-block; padding: 1px 8px;
+      border-radius: 999px; font-size: 0.72rem; font-weight: 600;
+      border: 1px solid currentColor;
+      white-space: nowrap;
+    }
+    .pill.p1 { color: #16a34a; }
+    .pill.p2 { color: #2563eb; }
+    .pill.p3 { color: #f59e0b; }
+    .pill.p4 { color: #64748b; }
+    .pill.p5 { color: #ef4444; }
+    code {
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      background: var(--code-bg); padding: 1px 6px;
+      border-radius: 4px; font-size: 0.9em;
+    }
+    pre {
+      background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 12px 14px; overflow-x: auto;
+      font-size: 0.85rem; line-height: 1.55;
+    }
+    pre code { background: transparent; padding: 0; }
+    a { color: var(--accent); }
+    a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .diagram-scroll {
+      width: 100%;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+    }
+    .diagram-scroll a { display: block; cursor: zoom-in; line-height: 0; }
+    .diagram-scroll img { display: block; width: 100%; height: auto; max-width: 100%; }
+    .footnote { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+    @media print {
+      body { font-size: 11pt; color: #000; background: #fff; }
+      .layout { display: block; padding: 0; max-width: none; }
+      nav.toc { display: none; }
+      section { page-break-inside: avoid; }
+      .intent, .risk, .ok { background: #fff; }
+      a { color: inherit; text-decoration: none; }
+      a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.85em; color: #555; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <header class="doc">
+      <h1>公式 Codex プラグイン統合 — 論点整理</h1>
+      <div class="sub">自作 Codex 連携スキル (codex-review / codex-discuss / lgtm-loop) を <a href="https://github.com/openai/codex-plugin-cc">openai/codex-plugin-cc</a> に統合できるかの検討</div>
+      <div class="meta">
+        <span class="badge">v1.1</span>
+        <span>作成日 2026-07-13</span>
+        <span>読了 約 10 分</span>
+      </div>
+    </header>
+
+    <nav class="toc" aria-label="目次">
+      <h2>目次</h2>
+      <ol>
+        <li><a href="#tldr">TL;DR</a></li>
+        <li><a href="#plugin">公式プラグインの中身</a></li>
+        <li><a href="#current">現状の自作資産と依存</a></li>
+        <li><a href="#mapping">自作 ↔ 公式 対応表</a></li>
+        <li><a href="#issues">論点 1〜7</a></li>
+        <li><a href="#phases">移行ステップ案</a></li>
+        <li><a href="#refs">参考文献</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <!-- ===================== TL;DR ===================== -->
+      <section id="tldr">
+        <h2>TL;DR</h2>
+        <p class="lead">
+          <strong>全面置き換えは不可、「レビュー系 = 公式プラグイン / 対話・検索系 = 既存 MCP」の役割分担が現実解。</strong>
+          公式プラグインは MCP ではなく Codex app server を直接叩く別経路で、threadId を使った継続対話の仕組みを持たない。
+          そのため codex-discuss・ultrasurvey 検索レッグ・ARIS が依存する <code>codex mcp-server</code> の登録は存続が必須。
+          一方、両経路とも同じ <code>~/.codex/config.toml</code> と認証を継承するので「最高モデルの単一ソース」原則はそのまま保たれる。
+        </p>
+        <div class="intent">
+          <strong>推奨:</strong> プラグインを導入して自作 <code>/codex-review</code> をレビュー用途で置き換える（バックグラウンド実行と公式メンテが主な利得）。
+          <code>/codex-discuss</code> はそのまま残す。<code>/lgtm-loop</code> は threadId 継続レビューに依存する唯一の難所で、当面は現状の MCP 経路を維持し、プラグイン試用後に再設計を判断する（論点 3）。
+          Stop フックの review gate は暴走リスクがあるため OFF のまま使わない（論点 4）。
+        </div>
+      </section>
+
+      <!-- ===================== 公式プラグインの中身 ===================== -->
+      <section id="plugin">
+        <h2>1. 公式プラグインの中身</h2>
+        <p>
+          <a href="https://github.com/openai/codex-plugin-cc">openai/codex-plugin-cc</a>（OpenAI 公式、v1.0.6、28k stars）は
+          Claude Code のプラグイン形式で、スラッシュコマンド 8 個 + サブエージェント 1 個 + 補助スキル 3 個 + フック 3 種を提供する。
+        </p>
+
+        <table>
+          <thead>
+            <tr><th>コマンド</th><th>役割</th><th>備考（出典: <a href="https://github.com/openai/codex-plugin-cc/blob/main/README.md">README</a>）</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>/codex:review</code></td><td>未コミット変更 or ブランチ diff のレビュー</td><td>読み取り専用。<code>--background</code> / <code>--wait</code> / <code>--base &lt;ref&gt;</code>。カスタム観点の指定は不可</td></tr>
+            <tr><td><code>/codex:adversarial-review</code></td><td>設計判断・前提を攻めるレビュー</td><td>唯一 focus テキストを渡せる（steerable）。読み取り専用</td></tr>
+            <tr><td><code>/codex:rescue</code></td><td>タスク委譲（調査・修正の実行）</td><td><code>--model</code> / <code>--effort</code> / <code>--resume</code> / <code>--background</code>。書き込みあり</td></tr>
+            <tr><td><code>/codex:transfer</code></td><td>Claude セッションを Codex スレッドに変換</td><td><code>codex resume &lt;session-id&gt;</code> で Codex 側で続行できる</td></tr>
+            <tr><td><code>/codex:status</code> <code>/codex:result</code> <code>/codex:cancel</code></td><td>バックグラウンドジョブ管理</td><td>result は Codex セッション ID も返す</td></tr>
+            <tr><td><code>/codex:setup</code></td><td>インストール確認・review gate の ON/OFF</td><td>gate は既定 OFF のオプトイン</td></tr>
+          </tbody>
+        </table>
+
+        <h3>実装機構（統合判断に効く事実）</h3>
+        <ul>
+          <li><strong>MCP ではない。</strong> Node スクリプト（<a href="https://github.com/openai/codex-plugin-cc/blob/main/plugins/codex/scripts/codex-companion.mjs"><code>codex-companion.mjs</code></a>）が
+            <a href="https://developers.openai.com/codex/app-server">Codex app server</a> を叩く。<code>mcp__codex__*</code> ツールは提供されない。</li>
+          <li><strong>ローカルの <code>codex</code> バイナリと認証・設定をそのまま使う</strong>（<a href="https://github.com/openai/codex-plugin-cc/blob/main/README.md">README「Codex Integration」</a>）。
+            <code>~/.codex/config.toml</code> と、trusted プロジェクトではプロジェクト直下の <code>.codex/config.toml</code> を継承する。</li>
+          <li><strong>コマンドはすべて <code>disable-model-invocation: true</code></strong>
+            （例: <a href="https://github.com/openai/codex-plugin-cc/blob/main/plugins/codex/commands/review.md">commands/review.md</a>）。
+            つまりユーザーが明示的に打ったときだけ動き、自然文から自動発火しない。</li>
+          <li><strong>フックは 3 種</strong>（<a href="https://github.com/openai/codex-plugin-cc/blob/main/plugins/codex/hooks/hooks.json">hooks.json</a>）:
+            SessionStart / SessionEnd（各 timeout 5 秒、ジョブ台帳の管理）と Stop（timeout 900 秒、review gate 用。gate 無効時は素通り）。</li>
+          <li><strong>レビュー出力は JSON スキーマで構造化</strong>
+            （<a href="https://github.com/openai/codex-plugin-cc/blob/main/plugins/codex/schemas/review-output.schema.json">review-output.schema.json</a>）。
+            severity は <code>critical / high / medium / low</code> の 4 段階で、自作 codex-review の CRITICAL〜LOW と互換。</li>
+          <li><strong>要件:</strong> Node ≥ 18.18（手元は v22.22.3）と codex バイナリ（手元は 0.144.1、<code>/codex:setup</code> が適合性を検証する）。</li>
+        </ul>
+      </section>
+
+      <!-- ===================== 現状資産 ===================== -->
+      <section id="current">
+        <h2>2. 現状の自作資産と依存</h2>
+        <p>
+          現在 Codex へは user スコープ登録の <code>codex mcp-server</code>（MCP / stdio、<code>./nanokit codex-install</code> が登録）経由で到達しており、
+          消費者は nanokit の 3 スキルだけではない。<code>mcp__codex__codex</code> / <code>codex-reply</code> に依存しているものを棚卸しすると:
+        </p>
+
+        <table>
+          <thead>
+            <tr><th>消費者</th><th>場所</th><th>使い方</th><th>プラグインで代替できるか</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>/codex-review</code></td><td><code>nanokit/claude/skills/codex-review</code></td><td>diff + 日本語カスタム観点でレビュー。末尾に threadId を出力する契約</td><td><span class="pill p1">ほぼ可</span></td></tr>
+            <tr><td><code>/codex-discuss</code></td><td><code>nanokit/claude/skills/codex-discuss</code></td><td>設計壁打ち。threadId で最大 3 ラウンド往復</td><td><span class="pill p5">不可</span> 対応物なし</td></tr>
+            <tr><td><code>/lgtm-loop</code></td><td><code>nanokit/claude/skills/lgtm-loop</code></td><td>1 巡目は /codex-review、2 巡目以降は <code>codex-reply</code>（threadId）で継続レビュー。severity を TaskCreate に分解</td><td><span class="pill p3">部分的</span> 要再設計（論点 3）</td></tr>
+            <tr><td>ultrasurvey 検索レッグ</td><td><code>agentic-knowledge-base/.agents/skills/ultrasurvey</code></td><td>web 検索クエリを Codex（<code>web_search = "live"</code>）に委譲</td><td><span class="pill p5">不可</span> rescue はタスク委譲形で不適</td></tr>
+            <tr><td>ARIS レビュアー</td><td><code>./nanokit aris-install</code>（<code>aris_codex_mcp_setup</code>）</td><td>Claude 実行 + Codex 外部レビューの前提で Codex MCP を要求</td><td><span class="pill p5">不可</span></td></tr>
+          </tbody>
+        </table>
+
+        <p>統合後の姿を先に図で示す。ポイントは「二経路が併存し、下流の config / 認証で合流する」こと。</p>
+
+        <figure style="margin: 0;">
+          <div class="diagram-scroll">
+            <a href="assets/2026-07-13_codex-paths.svg"
+               target="_blank" rel="noopener"
+               title="クリックで原寸を新タブで開く">
+              <img src="assets/2026-07-13_codex-paths.svg"
+                   alt="Claude Code から Codex への二経路: 自作スキル群は codex mcp-server 経由、公式プラグインは codex-companion.mjs から Codex app server 経由。どちらも同じ codex バイナリ・config.toml・認証に合流する"
+                   loading="lazy">
+            </a>
+          </div>
+          <figcaption class="footnote" style="text-align: center; margin-top: 8px;">
+            <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 8px 0 10px; font-size: 0.85rem;">
+              <span style="display: inline-flex; align-items: center; gap: 6px;">
+                <span style="display: inline-block; width: 14px; height: 14px; background: #2563eb; border-radius: 3px;"></span>
+                既存 MCP 経路（残す）
+              </span>
+              <span style="display: inline-flex; align-items: center; gap: 6px;">
+                <span style="display: inline-block; width: 14px; height: 14px; background: #16a34a; border-radius: 3px;"></span>
+                公式プラグイン経路（導入）
+              </span>
+              <span style="display: inline-flex; align-items: center; gap: 6px;">
+                <span style="display: inline-block; width: 14px; height: 14px; background: #d97706; border-radius: 3px;"></span>
+                共有される設定・認証
+              </span>
+            </div>
+            ソース: <code>docs/assets/2026-07-13_codex-paths.d2</code>
+            （再生成 = <code>d2 --layout=elk -t 200 input.d2 output.svg</code>）
+          </figcaption>
+        </figure>
+      </section>
+
+      <!-- ===================== 対応表 ===================== -->
+      <section id="mapping">
+        <h2>3. 自作 ↔ 公式 対応表</h2>
+        <table>
+          <thead>
+            <tr><th>自作</th><th>公式の対応物</th><th>公式に乗り換えて得るもの</th><th>失うもの</th><th>判定</th></tr>
+          </thead>
+          <tbody>
+            <tr class="win">
+              <td><code>/codex-review</code></td>
+              <td><code>/codex:review</code>（観点指定なら <code>/codex:adversarial-review</code>）</td>
+              <td>バックグラウンド実行 + status/result（長時間レビューでターンを塞がない）、公式メンテ、構造化出力、Codex ネイティブの <code>/review</code> と同品質</td>
+              <td>日本語カスタムプロンプト、出力末尾の threadId 契約</td>
+              <td><span class="pill p1">置き換え</span></td>
+            </tr>
+            <tr>
+              <td><code>/codex-discuss</code></td>
+              <td>なし（rescue は「タスクを実行させる」用で、壁打ちの多ラウンド議論とは別物）</td>
+              <td>—</td>
+              <td>—</td>
+              <td><span class="pill p2">存続</span></td>
+            </tr>
+            <tr>
+              <td><code>/lgtm-loop</code></td>
+              <td>部分的に Stop review gate が重なるが設計思想が違う（論点 3・4）</td>
+              <td>（REVIEW ステップをプラグイン化すれば background 化）</td>
+              <td>threadId による継続レビュー（指摘の文脈を保持した再レビュー）</td>
+              <td><span class="pill p3">要再設計</span></td>
+            </tr>
+            <tr>
+              <td>ultrasurvey 検索レッグ / ARIS</td>
+              <td>なし</td>
+              <td>—</td>
+              <td>—</td>
+              <td><span class="pill p2">MCP 存続</span></td>
+            </tr>
+            <tr>
+              <td>（新規能力）</td>
+              <td><code>/codex:rescue</code>・<code>/codex:transfer</code>・バックグラウンドジョブ管理</td>
+              <td>タスク委譲（小モデル指定可）、Claude→Codex セッション引き継ぎ</td>
+              <td>—</td>
+              <td><span class="pill p1">純増</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ===================== 論点 ===================== -->
+      <section id="issues">
+        <h2>4. 論点 1〜7</h2>
+
+        <h4>論点 1: <code>codex mcp-server</code> の登録を廃止できるか → できない</h4>
+        <p>
+          プラグインは MCP ツールを提供しないので、廃止すると codex-discuss・ultrasurvey 検索レッグ・ARIS が全滅する。
+          さらに headless 文脈（task-radar の実行レッグ等、<code>claude -p</code> で回る仕事）ではスラッシュコマンドより MCP ツールの方が扱いやすい。
+        </p>
+        <div class="ok">
+          <strong>結論:</strong> MCP 登録は無条件で存続。「統合」は置き換えではなく<strong>二経路の役割分担</strong>として設計する。
+        </div>
+
+        <h4>論点 2: 自作 <code>/codex-review</code> を置き換えるか → 置き換え推奨</h4>
+        <p>
+          最大の利得はバックグラウンド実行。現在の MCP 呼び出しは同期的で、大きな diff のレビュー中ターンが塞がる。
+          プラグインは <code>--background</code> + <code>/codex:status</code> / <code>/codex:result</code> でこれを解消し、
+          レビュー中に別作業を続けられる。また Codex 側のレビュー機能改善（モデル更新・プロンプト改良）に公式が追従してくれるため、
+          これまで手動でやってきたモデル名更新コミット（例: <code>a92b31d</code>「Codex review now on GPT 5.6 Sol Max」）が不要になる。
+        </p>
+        <p>
+          失うものは 2 つ。(1) 日本語カスタム観点プロンプト — ただし観点を指定したいケースは <code>/codex:adversarial-review</code> の focus テキストで代替できる。
+          (2) 出力末尾の threadId 契約 — これは lgtm-loop だけが使うので、論点 3 と一体で扱う。
+        </p>
+
+        <h4>論点 3: <code>/lgtm-loop</code> の継続レビューをどうするか（最大の技術論点）</h4>
+        <p>
+          lgtm-loop は「1 巡目 /codex-review → 2 巡目以降 <code>mcp__codex__codex-reply</code>（threadId）」という契約で、
+          レビュアーが前巡の指摘文脈を保持したまま修正を再レビューする。プラグインには threadId に相当する<strong>プログラム的な継続 API がない</strong>
+          （<code>codex resume &lt;session-id&gt;</code> は人間が Codex 側で開くための導線、<code>--resume</code> は rescue 用）。選択肢は 3 つ:
+        </p>
+        <table>
+          <thead>
+            <tr><th>案</th><th>内容</th><th>評価</th></tr>
+          </thead>
+          <tbody>
+            <tr class="win">
+              <td>A <span class="pill p2">当面の本命</span></td>
+              <td>lgtm-loop は現状どおり MCP + threadId を使い続ける（codex-review 廃止時は 1 巡目も MCP 直叩きに変更）</td>
+              <td>変更最小・契約維持。プラグインとは独立に動く</td>
+            </tr>
+            <tr>
+              <td>B <span class="pill p3">試用後に再評価</span></td>
+              <td>REVIEW ステップを毎巡 <code>/codex:review --background</code> のフル再レビューに置き換える（thread 継続を捨てる）</td>
+              <td>background 化と公式出力スキーマの恩恵。ただし毎巡フルレビューで usage 消費が増え、指摘の文脈も切れる</td>
+            </tr>
+            <tr>
+              <td>C <span class="pill p5">非推奨</span></td>
+              <td>1 巡目だけプラグイン、2 巡目以降 MCP</td>
+              <td>threadId が取れず経路もちぐはぐ。二重メンテになる</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h4>論点 4: プラグインの Stop review gate と lgtm-loop の重複 → gate は使わない</h4>
+        <p>
+          gate は Stop フックで毎応答後に Codex レビューを走らせ、指摘があれば停止をブロックする。README 自身が
+          「長いループになり usage limits を急速に消費しうる」と<a href="https://github.com/openai/codex-plugin-cc/blob/main/README.md">警告</a>しており、
+          Max プランのセッション上限を並行タスクと共有している現状とも、静かな自動化を好む運用方針とも相性が悪い。
+          明示的に起動する lgtm-loop（機能ゲート AND LGTM、リトライ上限つき）の方が制御可能。
+        </p>
+        <div class="risk">
+          <strong>運用ルール:</strong> <code>/codex:setup --enable-review-gate</code> は使わない（既定 OFF を維持）。誤って有効化すると全セッションの Stop に最大 900 秒のフックが挟まる。
+        </div>
+
+        <h4>論点 5: トリガーと名前空間の衝突</h4>
+        <p>
+          プラグインのコマンドは <code>codex:</code> 名前空間かつ自動発火しないため、<code>/codex-review</code> と<strong>機械的な衝突はない</strong>。
+          問題は人間側の混乱（<code>/codex-review</code> と <code>/codex:review</code> の併存）と、自然文トリガー
+          （「Codex にレビューして」「セカンドオピニオン」）の行き先が自作スキルにしか向かないこと。
+          自作 codex-review を廃止する場合、この自然文の受け皿が消えるので、
+          <strong>description だけ残した薄い誘導スキル</strong>（本体は「<code>/codex:review</code> を案内 or 実行する」1 行）に縮退させるか、
+          CLAUDE.md に誘導を 1 行書く。プラグイン同梱の補助スキル（codex-cli-runtime / codex-result-handling / gpt-5-4-prompting）は
+          Codex CLI 話題でのみ発火する補助で、既存スキルとの競合は実質ない。
+        </p>
+
+        <h4>論点 6: モデル設定の単一ソース原則 → 維持どころか強化される</h4>
+        <p>
+          プラグインも MCP も同じ <code>~/.codex/config.toml</code>（<code>model = "gpt-5.6-sol"</code>）を継承するため、
+          「config.toml の 1 箇所だけ更新すればよい」という現行原則はそのまま両経路に効く。
+          ついでに直すべき既存の記載ずれを発見: 自作 3 スキルの SKILL.md は
+          <code>model_reasoning_effort = max</code> と書いているが、実際の config.toml は <code>xhigh</code>。統合作業のついでに修正する。
+          なお <code>web_search = "live"</code> はレビュー（読み取り専用）には影響せず、rescue でタスク委譲する際に生きる。
+        </p>
+
+        <h4>論点 7: 配布と新ホスト再現性（nanokit への組み込み）</h4>
+        <p>
+          プラグインの実体は <code>~/.claude/plugins/</code> 配下の state で、scrapling / workspace MCP の user スコープ登録と同じ
+          「dotter 管理外・ホストごとに登録が要る」カテゴリに入る。<code>./nanokit codex-install</code>（<code>codex_mcp_register</code> の隣）に
+          marketplace 追加とインストールを冪等に足すのが素直:
+        </p>
+<pre><code class="language-bash">claude plugin marketplace add openai/codex-plugin-cc
+claude plugin install codex@openai-codex</code></pre>
+        <div class="risk">
+          <strong>未確認 2 点:</strong>
+          (1) <code>claude plugin</code> の非対話 CLI での正確な引数（上記はドキュメント上のスラッシュコマンド <code>/plugin ...</code> の CLI 相当。実装時に <code>claude plugin --help</code> で確認）。
+          (2) HDT の隔離設定（<code>CLAUDE_CONFIG_DIR=~/.claude-hdt</code>）にプラグイン state が波及するか。おそらく config dir ごとに別インストールが必要で、claude-settings 側の setup 手順にも追記が要る。
+        </div>
+        <p>
+          依存の Node ≥ 18.18 は codex 本体を npm で入れている既存例外の範囲内（v22.22.3 あり）で、pixi-only 方針への新たな逸脱はない。
+          プラグイン更新で hooks / 挙動が変わるリスクは、rtk と同じ「バージョンアップ時に diff を確認して取り込む」運用でカバーする。
+        </p>
+      </section>
+
+      <!-- ===================== 移行ステップ ===================== -->
+      <section id="phases">
+        <h2>5. 移行ステップ案</h2>
+        <table>
+          <thead>
+            <tr><th>Phase</th><th>やること</th><th>ゲート（次に進む条件）</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>0. 併走試用</strong><br><span class="pill p1">即日・可逆</span></td>
+              <td>marketplace 追加 → <code>/plugin install codex@openai-codex</code> → <code>/codex:setup</code>。review gate は OFF のまま。自作スキルは温存し、レビューだけ <code>/codex:review --background</code> を数回使ってみる</td>
+              <td>レビュー品質・所要時間・usage 消費が自作経路と同等以上</td>
+            </tr>
+            <tr>
+              <td><strong>1. レビュー移行</strong></td>
+              <td>レビュー用途を <code>/codex:review</code> / <code>/codex:adversarial-review</code> に一本化。自作 codex-review は薄い誘導スキルに縮退（or 削除 + CLAUDE.md に誘導 1 行）。SKILL.md の effort 記載ずれ（max → xhigh）修正</td>
+              <td>自然文トリガー（「GPT にレビューして」）が迷子にならない</td>
+            </tr>
+            <tr>
+              <td><strong>2. lgtm-loop 再設計判断</strong></td>
+              <td>案 A（MCP 維持、1 巡目を MCP 直叩き化）を実装。Phase 0-1 の試用感で案 B（毎巡フルレビュー + background）へ進むか判断</td>
+              <td>ループ 1 周の実測（時間・usage）が許容内</td>
+            </tr>
+            <tr>
+              <td><strong>3. nanokit 組み込み</strong></td>
+              <td><code>./nanokit codex-install</code> にプラグイン登録を冪等追加、CLAUDE.md（新ホスト手順・Codex 運用節）更新、HDT config dir への波及を検証して claude-settings 側にも追記</td>
+              <td>新ホストで <code>./nanokit install → codex-install</code> だけで再現</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="intent">
+          <strong>撤退条件:</strong> Phase 0 でレビュー品質が自作プロンプトより明確に劣る、または background ジョブ管理が不安定なら、プラグインは rescue / transfer 専用に格下げし、レビューは現状維持。プラグインのアンインストールだけで完全に元に戻る。
+        </div>
+      </section>
+
+      <!-- ===================== 参考文献 ===================== -->
+      <section id="refs">
+        <h2>参考文献</h2>
+        <ul>
+          <li>OpenAI. <em>Codex plugin for Claude Code</em>. <a href="https://github.com/openai/codex-plugin-cc">github.com/openai/codex-plugin-cc</a>（v1.0.6, 2026-07 時点）</li>
+          <li>コマンド定義: <a href="https://github.com/openai/codex-plugin-cc/blob/main/plugins/codex/commands/review.md">commands/review.md</a>（<code>disable-model-invocation: true</code>、background フロー）</li>
+          <li>フック定義: <a href="https://github.com/openai/codex-plugin-cc/blob/main/plugins/codex/hooks/hooks.json">hooks/hooks.json</a>（SessionStart/End 5s, Stop 900s）</li>
+          <li>レビュー出力スキーマ: <a href="https://github.com/openai/codex-plugin-cc/blob/main/plugins/codex/schemas/review-output.schema.json">schemas/review-output.schema.json</a>（severity 4 段階）</li>
+          <li>OpenAI. <em>Codex app server</em>. <a href="https://developers.openai.com/codex/app-server">developers.openai.com/codex/app-server</a></li>
+        </ul>
+
+        <h3>ローカル資料（本レポートの一次確認対象）</h3>
+        <ul>
+          <li><code>nanokit/claude/skills/codex-review/SKILL.md</code> — threadId 出力契約（末尾 1 行）</li>
+          <li><code>nanokit/claude/skills/codex-discuss/SKILL.md</code> — threadId で最大 3 ラウンド往復</li>
+          <li><code>nanokit/claude/skills/lgtm-loop/SKILL.md</code> — 2 巡目以降 <code>mcp__codex__codex-reply</code> 直叩き</li>
+          <li><code>agentic-knowledge-base/.agents/skills/ultrasurvey/SKILL.md</code> — 検索レッグの <code>mcp__codex__codex</code> 委譲</li>
+          <li><code>nanokit/nanokit</code> — <code>codex_mcp_register()</code> / <code>aris_codex_mcp_setup()</code></li>
+          <li><code>~/.codex/config.toml</code> — <code>model = "gpt-5.6-sol"</code>, <code>model_reasoning_effort = "xhigh"</code>, <code>web_search = "live"</code></li>
+        </ul>
+
+        <h3>本書の改訂履歴</h3>
+        <ul>
+          <li><strong>v1.0:</strong> 初稿。プラグイン v1.0.6 / codex-cli 0.144.1 / claude スキル構成 2026-07-13 時点の棚卸しに基づく。</li>
+          <li><strong>v1.1 (本書):</strong> ユーザー承認を受け Phase 0〜1 + nanokit 反映を実施済み。プラグイン導入 (user スコープ、marketplace/enabledPlugins は <code>claude/settings.json</code> に宣言的に記録され dotter 配布に乗る)、codex-review skill の誘導シム化、lgtm-loop の 1 巡目 MCP 直叩き化 (レビュープロンプト内蔵)、effort 記載ずれ (max → xhigh) 修正、CLAUDE.md に「Codex 連携」節を追加。残タスク: HDT config dir への波及検証 (論点 7)。</li>
+        </ul>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Prism: <pre><code class="language-XXX"> を自動ハイライト -->
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+</body>
+</html>

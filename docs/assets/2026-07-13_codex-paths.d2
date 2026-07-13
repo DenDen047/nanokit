@@ -1,0 +1,91 @@
+direction: down
+
+classes: {
+  own: {
+    style: {
+      fill: "#2563eb"
+      font-color: "#ffffff"
+      bold: true
+      font-size: 16
+      border-radius: 6
+    }
+  }
+  plugin: {
+    style: {
+      fill: "#16a34a"
+      font-color: "#ffffff"
+      bold: true
+      font-size: 16
+      border-radius: 6
+    }
+  }
+  infra: {
+    style: {
+      fill: "#475569"
+      font-color: "#ffffff"
+      bold: true
+      font-size: 16
+      border-radius: 6
+    }
+  }
+  config: {
+    style: {
+      fill: "#d97706"
+      font-color: "#ffffff"
+      bold: true
+      font-size: 16
+      border-radius: 6
+    }
+  }
+  lane: {
+    style: {
+      fill: "#f1f5f9"
+      stroke: "#94a3b8"
+      font-color: "#0f172a"
+      font-size: 18
+      bold: true
+      border-radius: 8
+    }
+  }
+}
+
+cc: "Claude Code セッション" {
+  class: lane
+
+  own: "既存 (残す): 自作スキル + MCP 経路" {
+    class: lane
+    discuss: "/codex-discuss\n(壁打ち・多ラウンド)" { class: own }
+    lgtm: "/lgtm-loop\nREVIEW ステップ" { class: own }
+    survey: "ultrasurvey\nweb 検索レッグ" { class: own }
+    aris: "ARIS\n外部レビュアー" { class: own }
+  }
+
+  pl: "新規 (導入): 公式プラグイン codex@openai-codex" {
+    class: lane
+    review: "/codex:review\n/codex:adversarial-review" { class: plugin }
+    rescue: "/codex:rescue\n/codex:status /codex:result" { class: plugin }
+    transfer: "/codex:transfer\n(セッション引き継ぎ)" { class: plugin }
+  }
+}
+
+mcp: "codex mcp-server\n(MCP / stdio, user スコープ登録)" { class: own }
+broker: "codex-companion.mjs\n→ Codex app server" { class: plugin }
+
+cc.own.discuss -> mcp: "mcp__codex__codex\n+ codex-reply (threadId)"
+cc.own.lgtm -> mcp
+cc.own.survey -> mcp
+cc.own.aris -> mcp
+
+cc.pl.review -> broker: "node (background 可)"
+cc.pl.rescue -> broker
+cc.pl.transfer -> broker
+
+bin: "codex バイナリ v0.144.1 (npm)" { class: infra }
+mcp -> bin
+broker -> bin
+
+conf: "~/.codex/config.toml\nmodel=gpt-5.6-sol / effort=xhigh / web_search=live" { class: config }
+auth: "ChatGPT サブスク認証\n(codex login 共有)" { class: config }
+
+bin -> conf: "両経路が同じ設定を継承"
+bin -> auth

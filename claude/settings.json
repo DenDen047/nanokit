@@ -50,8 +50,7 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "claude-fable-5[1m]",
-  "outputStyle": "concise-clear",
+  "model": "opus[1m]",
   "hooks": {
     "SessionStart": [
       {
@@ -143,7 +142,8 @@
   },
   "enabledPlugins": {
     "warp@claude-code-warp": true,
-    "clangd-lsp@claude-plugins-official": true
+    "clangd-lsp@claude-plugins-official": true,
+    "codex@openai-codex": true
   },
   "extraKnownMarketplaces": {
     "claude-code-warp": {
@@ -151,8 +151,15 @@
         "source": "github",
         "repo": "warpdotdev/claude-code-warp"
       }
+    },
+    "openai-codex": {
+      "source": {
+        "source": "github",
+        "repo": "openai/codex-plugin-cc"
+      }
     }
   },
+  "outputStyle": "concise-clear",
   "effortLevel": "xhigh",
   "autoUpdatesChannel": "latest",
   "tui": "fullscreen",

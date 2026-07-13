@@ -1,122 +1,49 @@
 ---
 name: codex-review
 description: >
-  git diff ベースのコードレビューを Codex MCP (GPT) 経由で取得する。
+  git diff ベースのコードレビューを Codex (GPT) に依頼する。
   コード変更後にセカンドオピニオンが欲しいとき、"codex review", "GPTにレビューして",
-  "セカンドオピニオン" などで呼び出す。
+  "セカンドオピニオン" などで呼び出す。実体は公式プラグイン codex@openai-codex に
+  移行済みで、本 skill は自然文トリガーの受け皿 (誘導シム)。
 user-invocable: true
-argument-hint: "[scope: staged | HEAD~N | branch-diff | file paths]"
-allowed-tools: Bash(*), Read, Grep, Glob, mcp__codex__codex, mcp__codex__codex-reply
+argument-hint: "[--background | --base <ref>]"
+allowed-tools: Bash(node:*), Bash(git:*), Bash(ls:*), Read
 ---
 
-# Codex Review: コード変更のセカンドオピニオン
+# Codex Review: 公式プラグインへの誘導シム
 
-Claude が書いた・修正したコードを、別の AI (GPT) にレビューさせる。
-単一モデルの盲点を補い、エッジケースや設計の穴を検出する。
+コードレビュー機能は公式プラグイン **codex@openai-codex** に統合された
+(経緯: `<nanokit>/docs/2026-07-13_codex-plugin-integration.html`)。
+本 skill は「GPT にレビューして」等の自然文トリガーの受け皿として残してある。
 
-## Context: $ARGUMENTS
+## 使い分け
+
+| やりたいこと | 手段 |
+|---|---|
+| 普通のレビュー (uncommitted / ブランチ diff) | `/codex:review` (`--background` 推奨、ブランチは `--base <ref>`) |
+| 観点を指定して攻めるレビュー | `/codex:adversarial-review <focus テキスト>` |
+| バックグラウンドジョブの確認 / 結果 / 中止 | `/codex:status` `/codex:result` `/codex:cancel` |
+| lgtm-loop の継続レビュー (threadId) | 本 skill ではなく `mcp__codex__codex` 直叩き (lgtm-loop に内蔵) |
+
+## 自然文で頼まれたときの動き
+
+プラグインのコマンドは `disable-model-invocation: true` のため Claude からは起動できない。
+
+1. ユーザーがスラッシュコマンドを打てる文脈なら、上の表から適切なコマンドを 1 行で案内する
+2. 「この場でやって」と言われたら、プラグインコマンドと同じ実体である companion script を直接実行する:
+
+```bash
+# インストール済みバージョンを動的に解決 (バージョン更新でパスが変わるため)
+SCRIPT=$(ls -d ~/.claude/plugins/cache/openai-codex/codex/*/scripts/codex-companion.mjs | sort -V | tail -1)
+node "$SCRIPT" review ""             # working tree レビュー
+node "$SCRIPT" review "--base main"  # ブランチレビュー
+```
+
+大きい diff (目安: 3 ファイル超) は Bash の `run_in_background: true` で流す。
+結果は要約せずそのまま提示し、指摘への対応判断はユーザーに委ねる。
 
 ## モデル設定
 
-モデルと reasoning effort は **`~/.codex/config.toml` の値を継承する** (現状 `model = gpt-5.6-sol` / `model_reasoning_effort = max` = "GPT 5.6 Sol Max")。
-`mcp__codex__codex` / `mcp__codex__codex-reply` 呼び出しで `model` / `config` は **指定しない** こと。
-Codex の最高モデルを切り替えたいときは config.toml の 1 箇所だけを更新すればよい (単一ソース)。
-
-## 前提
-
-- Codex MCP Server が登録済み (`./nanokit codex-install` で自動登録)
-- `mcp__codex__codex` / `mcp__codex__codex-reply` が利用可能
-
-## ワークフロー
-
-### Step 1: diff を収集する
-
-引数に応じて適切な diff を取得する:
-
-| 引数 | 動作 |
-|------|------|
-| なし / `staged` | `git diff --cached` (ステージ済み変更) |
-| `HEAD~N` | `git diff HEAD~N` (直近 N コミット) |
-| ブランチ名 | `git diff main...HEAD` (ブランチ全体) |
-| ファイルパス | 指定ファイルの diff |
-
-diff が空の場合、`git diff HEAD~1` にフォールバックする。
-それでも空なら、ユーザーにスコープを確認する。
-
-### Step 2: コンテキストを補強する
-
-diff だけでは文脈が不足する場合、以下を読む:
-
-- 変更ファイルの周辺コード (関数全体、クラス定義)
-- README.md やプロジェクトの CLAUDE.md (設計方針)
-- 関連するテストファイル
-
-ただしコンテキストは**必要最小限**に絞る。大量のコードを送ると要点がぼける。
-
-### Step 3: Codex にレビューを依頼する
-
-```
-mcp__codex__codex:
-  prompt: |
-    以下のコード変更をレビューしてください。
-
-    ## プロジェクト概要
-    [1-2 文でプロジェクトの目的を説明]
-
-    ## 変更の意図
-    [この変更が何を達成しようとしているか]
-
-    ## Diff
-    ```diff
-    [git diff の出力]
-    ```
-
-    ## レビュー観点
-    以下の観点で問題を指摘してください:
-    1. バグ・ロジックエラー (境界条件、off-by-one、null/undefined)
-    2. エッジケースの見落とし
-    3. セキュリティ上の問題 (入力検証、インジェクション、認証)
-    4. パフォーマンス上の懸念
-    5. エラーハンドリングの不足
-    6. API 設計・インターフェースの問題
-
-    各指摘について:
-    - 重要度: CRITICAL / HIGH / MEDIUM / LOW
-    - 該当箇所: ファイル名と行番号
-    - 問題の説明
-    - 修正案 (コード付き)
-
-    問題がない場合は「LGTM」と明記してください。
-```
-
-### Step 4: 結果を整理して提示する
-
-Codex の応答から指摘を抽出し、重要度順にまとめて提示する。
-
-```
-## Codex Review 結果
-
-CRITICAL: 0 件 | HIGH: 1 件 | MEDIUM: 2 件 | LOW: 1 件
-
-### HIGH: [指摘タイトル]
-- ファイル: path/to/file.py:42
-- 問題: ...
-- 修正案: ...
-
----
-threadId: <Codex 応答に含まれる threadId をそのまま 1 行で>
-```
-
-末尾の `threadId` 行は省略しない。`lgtm-loop` 等の skill が継続レビュー (`mcp__codex__codex-reply`) に渡すため、出力に必ず含める。
-
-### Step 5: フォローアップ (任意)
-
-ユーザーが特定の指摘について深掘りしたい場合、`mcp__codex__codex-reply` で
-threadId を使って会話を継続する。
-
-## ルール
-
-- diff が 500 行を超える場合、ファイルごとに分割してレビューを依頼する
-- Claude 自身のレビューと Codex のレビューは**混ぜない** — Codex の指摘をそのまま提示する
-- 指摘への対応は Claude が行うが、Codex の指摘を勝手に却下しない。ユーザーに判断を委ねる
-- threadId を保持し、同一セッション内での追加質問に対応する。出力末尾に必ず threadId を 1 行で書き出す (継続レビュー skill が利用するため)
+プラグイン / MCP の両経路とも `~/.codex/config.toml` を継承する
+(現状 `model = gpt-5.6-sol` / `model_reasoning_effort = xhigh`)。
+呼び出し側で model / effort を上書きしない (単一ソース)。

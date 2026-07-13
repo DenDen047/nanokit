@@ -22,7 +22,7 @@ allowed-tools: Bash(*), Read, Edit, Write, Grep, Glob, Skill, mcp__codex__codex,
 
 - MAX_ITERATIONS = `10`
 
-モデルと reasoning effort は **`~/.codex/config.toml` の値を継承する** (現状 `model = gpt-5.6-sol` / `model_reasoning_effort = max` = "GPT 5.6 Sol Max")。
+モデルと reasoning effort は **`~/.codex/config.toml` の値を継承する** (現状 `model = gpt-5.6-sol` / `model_reasoning_effort = xhigh`)。
 `mcp__codex__codex` / `mcp__codex__codex-reply` 呼び出しで `model` / `config` は **指定しない** こと。
 Codex の最高モデルを切り替えたいときは config.toml の 1 箇所だけを更新すればよい (単一ソース)。
 
@@ -30,8 +30,10 @@ Codex の最高モデルを切り替えたいときは config.toml の 1 箇所�
 
 - Codex MCP Server が登録済み (`./nanokit codex-install` で自動登録)
 - `mcp__codex__codex` / `mcp__codex__codex-reply` が利用可能
-- `/codex-review` skill が同じ nanokit 配下に存在 (Step 3 の 1 ラウンド目で skill 経由で呼ぶ)
 - `karpathy-guidelines` skill が同居していると望ましい (Step 1b で auto-invoke 想定)。なければ本文 4 原則を inline 参照
+
+> 継続レビューは threadId が必要なため **MCP 経路を使う**。公式プラグイン (`/codex:review`) は
+> threadId を返さないので、1 ショットレビューにのみ使い、本ループでは使わない。
 
 ## Step 0: 起点モード判定
 
@@ -95,20 +97,40 @@ fail → 修正してから再実行。
 
 ## Step 3: REVIEW — Codex によるレビュー
 
-### 1 ラウンド目: `/codex-review` skill 経由
+### 1 ラウンド目: `mcp__codex__codex` 直叩き (新規 thread)
 
 ```
-Skill ツール:
-  skill: codex-review
-  args: <空 (staged diff) or "HEAD~1" or 特定ファイルパス>
+mcp__codex__codex:
+  prompt: |
+    以下のコード変更をレビューしてください。
+
+    ## プロジェクト概要
+    [1-2 文でプロジェクトの目的を説明]
+
+    ## 変更の意図
+    [Step 1a の受け入れ基準の要約]
+
+    ## Diff
+    ```diff
+    [git diff の出力]
+    ```
+
+    ## レビュー観点
+    1. バグ・ロジックエラー (境界条件、off-by-one、null/undefined)
+    2. エッジケースの見落とし
+    3. セキュリティ上の問題 (入力検証、インジェクション、認証)
+    4. パフォーマンス上の懸念
+    5. エラーハンドリングの不足
+    6. API 設計・インターフェースの問題
+
+    各指摘に 重要度 (CRITICAL / HIGH / MEDIUM / LOW)・該当箇所 (ファイル名:行)・
+    問題の説明・修正案 (コード付き) を付けてください。
+    問題がない場合は「LGTM」と明記してください。
 ```
 
-`/codex-review` の応答末尾には `threadId: <id>` 行が含まれる (codex-review SKILL.md ルールで明文化済み)。
-**この threadId をローカル変数に保持** し、2 ラウンド目以降の `mcp__codex__codex-reply` で再利用する。
+応答に含まれる **threadId をローカル変数に保持** し、2 ラウンド目以降の `mcp__codex__codex-reply` で再利用する。
 
-### 2 ラウンド目以降: `mcp__codex__codex-reply` 直叩き
-
-`/codex-review` skill は毎回新 thread を立てる仕様なので、継続レビューには MCP を直接呼ぶ。
+### 2 ラウンド目以降: `mcp__codex__codex-reply` で継続レビュー
 
 ```
 mcp__codex__codex-reply:
@@ -160,7 +182,7 @@ plan-driven モードのときは prompt に 1 行追加: 「plans/foo.md から
 - Codex の指摘を勝手に却下しない (反論はしてよいが threadId 経由で再議論する)
 - Claude のレビューと Codex のレビューは混ぜない — Codex の指摘をそのまま提示し対応する
 - threadId は session 内で保持。別セッションへ持ち越さない
-- diff が 500 行を超える場合はファイル単位で分割レビュー (codex-review 同様)
+- diff が 500 行を超える場合はファイル単位で分割レビュー
 - 各 FIX 後は GATE 通過を確認してから Codex を再度呼ぶ (失敗ゲートのまま re-review しない)
 - IMPLEMENT 中は Karpathy 4 原則を最優先。speculative な機能追加・無関係 refactor は禁止
 - Codex の提案でも Karpathy 原則違反 (新機能追加・余計な抽象化等) なら却下を検討し、ユーザーに判断仰ぐ
@@ -203,11 +225,13 @@ plan-driven モードのときは prompt に 1 行追加: 「plans/foo.md から
 ## 関連 skill
 
 - `karpathy-guidelines` : IMPLEMENT 中の行動規範 (4 原則)
-- `codex-review`        : 1 ショットレビュー (loop 不要時)。本 skill が round-1 で委譲する
+- `/codex:review` (公式プラグイン) : 1 ショットレビュー (loop 不要時)。`--background` でターンを塞がない
 - `codex-discuss`       : 実装前の設計議論
 - `git-commits`         : LGTM 後のコミット粒度整理
 
-## 補足: codex-review 仕様変更との連動
+## 補足: レビュー経路の使い分け
 
-本 skill は `/codex-review` の出力フォーマット (CRITICAL/HIGH/MEDIUM/LOW + 末尾 threadId) を前提に書かれている。
-`codex-review/SKILL.md` の出力形式が変わったら、本 skill の Step 3-4 のパース手順も併せて更新すること。
+レビュー観点プロンプトは本 skill の Step 3 に内蔵している (旧 codex-review skill から移設)。
+公式プラグイン `/codex:review` は threadId を返さず継続レビューができないため、本ループでは MCP 経路を維持する。
+プラグイン側に thread 継続 API が入ったら、REVIEW ステップの背景実行化を再検討する
+(論点整理: `<nanokit>/docs/2026-07-13_codex-plugin-integration.html` 論点 3)。

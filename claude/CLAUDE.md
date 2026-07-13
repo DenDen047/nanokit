@@ -72,6 +72,21 @@ Max プランなので画像認識を惜しまない。**UI・図・ブラウザ
   - https://code.claude.com/docs/en/best-practices
   - https://nyosegawa.com/posts/harness-engineering-best-practices-2026/
 
+## Codex 連携 (公式プラグイン + MCP の二経路)
+
+Claude Code → Codex (GPT) は用途で二経路を使い分ける
+(論点整理: `<nanokit>/docs/2026-07-13_codex-plugin-integration.html`)。
+
+| 用途 | 経路 |
+|---|---|
+| コードレビュー `/codex:review` (`--background` 推奨)、観点指定レビュー `/codex:adversarial-review`、タスク委譲 `/codex:rescue`、ジョブ管理 `/codex:status` `/codex:result` | 公式プラグイン `codex@openai-codex` (Codex app server 直結) |
+| 設計壁打ち `/codex-discuss`、lgtm-loop の threadId 継続レビュー、ultrasurvey 検索レッグ、ARIS レビュアー | `codex mcp-server` (MCP, user スコープ登録) |
+
+- 両経路とも `~/.codex/config.toml` を継承する (モデル・effort の**単一ソース**。呼び出し側で上書きしない)。
+- **review gate (`/codex:setup --enable-review-gate`) は使わない** — Stop フックの自動ループが usage を急速消費するため。明示ループは `/lgtm-loop`。
+- 自然文「GPT にレビューして」の受け皿は `codex-review` skill (誘導シム)。プラグインコマンドは `disable-model-invocation` のため Claude からは起動できず、必要時は companion script を直接叩く。
+- 新ホスト: プラグインは `claude/settings.json` の `extraKnownMarketplaces` + `enabledPlugins` で宣言済み (dotter 配布)。自動導入されなければ `claude plugin install codex@openai-codex`。MCP 登録は `./nanokit codex-install`。
+
 ## Zotero MCP 運用
 
 ホスト横断で 1 つの Zotero ライブラリを参照するために、`zotero-mcp` は HTTP サーバー (`localhost:8321`) として `~/.claude/scripts/zotero-mcp-server.sh` 経由で起動される。バイナリは pixi env (`~/nanokit/claude/mcp-servers/zotero-mcp/`) 内。

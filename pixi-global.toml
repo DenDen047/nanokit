@@ -263,3 +263,8 @@ exposed = { hf = "hf" }
 channels = ["conda-forge"]
 dependencies = { gwq = "*" }
 exposed = { gwq = "gwq" }
+
+# The JarvisLabs CLI (`jl`) is deliberately NOT a pixi-global env: it ships only on
+# PyPI, and pixi global takes conda packages only (prefix-dev/pixi#2261 is still open).
+# It lives in the pixi project at tools/jarvislabs/ and reaches PATH through the
+# dotter-managed shim ~/.pixi/bin/jl. Same pattern as mmdc. Auth: `jl setup`.

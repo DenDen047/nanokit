@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# JarvisLabs CLI (`jl`) wrapper — see ./pixi.toml for why this is not a pixi-global env.
+# Deployed by dotter to ~/.pixi/bin/jl, which is already on PATH.
+set -euo pipefail
+
+# Resolve this script's real directory even when invoked via the dotter symlink at
+# ~/.pixi/bin/jl. BSD readlink has no -f on older macOS, so resolve links by hand.
+src="${BASH_SOURCE[0]}"
+while [ -L "$src" ]; do
+    dir="$(cd -P "$(dirname "$src")" && pwd)"
+    src="$(readlink "$src")"
+    [[ "$src" != /* ]] && src="$dir/$src"
+done
+here="$(cd -P "$(dirname "$src")" && pwd)"
+
+# `pixi run` creates the env from pixi.lock on first use, so a fresh host needs no
+# install step. Auth lives outside this repo (`jl setup`, or the JL_API_KEY env var).
+exec pixi run --manifest-path "$here/pixi.toml" jl "$@"

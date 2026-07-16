@@ -48,6 +48,11 @@
       "mcp__scrapling__close_session",
       "mcp__scrapling__list_sessions"
     ],
+    "ask": [
+      "Bash(jl destroy:*)",
+      "Bash(jl filesystem remove:*)",
+      "Bash(jl deploy delete:*)"
+    ],
     "defaultMode": "auto"
   },
   "model": "opus[1m]",

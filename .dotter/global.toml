@@ -27,6 +27,8 @@ wezterm = { target = "$HOME/.config/wezterm", type = "symbolic", recurse = false
 "claude/scripts/vision-reminder.sh" = "$HOME/.claude/scripts/vision-reminder.sh"
 "claude/scripts/memory-extract.sh" = "$HOME/.claude/scripts/memory-extract.sh"
 "claude/scripts/mmdc" = "$HOME/.pixi/bin/mmdc"
+"tools/jarvislabs/jl" = "$HOME/.pixi/bin/jl"
+"claude/skills/jarvislabs" = { target = "$HOME/.claude/skills/jarvislabs", type = "symbolic", recurse = false }
 "claude/skills/committing-changes" = { target = "$HOME/.claude/skills/committing-changes", type = "symbolic", recurse = false }
 "claude/skills/code-comments" = { target = "$HOME/.claude/skills/code-comments", type = "symbolic", recurse = false }
 "claude/skills/code-review-etiquette" = { target = "$HOME/.claude/skills/code-review-etiquette", type = "symbolic", recurse = false }

@@ -1,0 +1,18 @@
+[workspace]
+name = "jarvislabs"
+channels = ["conda-forge"]
+platforms = ["linux-64", "linux-aarch64", "osx-arm64"]
+
+[dependencies]
+python = ">=3.10"
+
+[pypi-dependencies]
+# Upstream: https://github.com/jarvislabsai/jarvislabs (MIT) — docs: https://docs.jarvislabs.ai/cli/
+# CLI and SDK for the JarvisLabs.ai GPU cloud. The CLI entry point is `jl`.
+# Not on conda-forge, and `pixi global` cannot install PyPI packages
+# (prefix-dev/pixi#2261), hence this project env instead of a pixi-global entry.
+# `jl` is still exposed on PATH via the ~/.pixi/bin/jl shim (see ./jl).
+jarvislabs = ">=0.2.16"
+
+[tasks]
+version = "jl --version"

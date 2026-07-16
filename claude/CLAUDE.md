@@ -60,6 +60,7 @@ Max プランなので画像認識を惜しまない。**UI・図・ブラウザ
 ## 環境管理ポリシー
 
 - **pixi-only**: シェルツールはすべて `pixi global` (conda-forge) で管理する。`brew`, `cargo install`, `pip install`, `go install` でツールを追加しない。
+- **conda-forge に無い CLI**: `pixi global` は conda パッケージしか入れられない (PyPI 対応の [pixi#2261](https://github.com/prefix-dev/pixi/issues/2261) は未解決)。PyPI/npm 専売の CLI は `tools/<name>/pixi.toml` に pixi プロジェクトを作り (`[pypi-dependencies]` で固定、`pixi.lock` をコミット)、同じディレクトリの薄いラッパを dotter で `~/.pixi/bin/<cmd>` に symlink して PATH に出す。ラッパは `pixi run --manifest-path` を exec するだけで、初回起動時に env を自動構築する。現行の実装例は `tools/jarvislabs/` (JarvisLabs GPU クラウドの `jl`) と `claude/scripts/mmdc` (npm の mermaid-cli)。`uv tool install` / `npm -g` で入れ直さないこと。
 - `~/.zshenv` で `unsetopt GLOBAL_RCS` を設定しているため、`/etc/zprofile` の `path_helper` がスキップされ、`/opt/homebrew/bin` 等は PATH に含まれない。これは意図的な設計。
 
 ## ハマりポイント

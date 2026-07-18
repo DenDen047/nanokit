@@ -1,7 +1,6 @@
 ---
 name: committing-changes
 description: Generates focused git commits with well-structured messages. Analyzes the diff, splits unrelated changes via `git add -p`, and writes Problem → Solution → Implications messages (type + subject + body). Use when the user says "commit", "コミット", "コミットして", "git commit", "PR を作って", asks to split a diff, write a commit message, fix up history, or when work is ready to commit. MUST be invoked before any `git commit` bash invocation — the Bash system-prompt "Committing changes with git" section is a fallback, not a substitute.
-user-invocable: true
 ---
 
 # Committing Changes — Workflow と原則

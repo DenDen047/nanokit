@@ -1,7 +1,6 @@
 ---
 name: code-comments
 description: Use this skill when writing or modifying code that involves non-obvious logic, design trade-offs, or hard-learned lessons. Covers the 7 types of valuable comments (TODO, references, correctness arguments, hard-learned lessons, constant rationale, load-bearing choices, why-nots) and the principle of writing "why" not "what".
-user-invocable: true
 ---
 
 # Code Comments: 「Why」を書く技術

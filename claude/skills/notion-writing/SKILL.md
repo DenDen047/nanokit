@@ -14,7 +14,6 @@ description: >
   and update-a-block limitations. Use when adding or updating Notion pages
   via mcp__notion__, creating new pages inside a database, writing task or
   project templates, embedding URLs, or debugging Notion write failures.
-user-invocable: true
 ---
 
 # Notion MCP 書き込みガイド

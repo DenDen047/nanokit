@@ -1,9 +1,18 @@
-# グローバル設定
+# Claude Code / Codex グローバル設定
 
 ## シンボリックリンク構造
 
-このファイル (`~/.claude/CLAUDE.md`) は nanokit リポジトリから dotter によってシンボリックリンクされている。
-編集元は `<nanokit>/claude/CLAUDE.md` であり、`~/.claude/` 配下の以下のファイルも同様:
+このファイル (`<nanokit>/claude/CLAUDE.md`) がグローバル指示の source of truth。
+
+- Claude Code: dotter が `~/.claude/CLAUDE.md` へ symlink する。
+- Codex: `./nanokit agent-config-sync` が `~/.codex/AGENTS.md` へ symlink する。
+- 共有スキル: `<nanokit>/claude/skills/<name>` を原本として、同コマンドが `~/.claude/skills/<name>` と `~/.agents/skills/<name>` の両方へ symlink する。
+
+共有skill内では利用中のクライアントで実在するtoolを選ぶ。Claude Code pluginやaccount-level ConnectorにしかないtoolをCodex側で推測して呼ばず、代替adapterがなければ利用不能であることを明示する。
+
+`agent-config-sync` はclient-safeなHTTP MCP (`scrapling`, `zotero`, `deepwiki`) も両CLIへ登録する。組織固有の `workspace-hdt` / `workspace-personal` はCodex user scopeへ入れず、claude-settingsのproject adapterで認証境界を維持する。
+
+`~/.claude/` 配下のツール固有設定は次のようにdotterで配る。
 
 | リポジトリ内パス | シンボリックリンク先 |
 |---|---|
@@ -16,11 +25,9 @@
 | `claude/scripts/memory-extract-reminder.sh` | `~/.claude/scripts/memory-extract-reminder.sh` |
 | `claude/scripts/mmdc` | `~/.pixi/bin/mmdc` |
 | `claude/ccstatusline/settings.json` | `~/.config/ccstatusline/settings.json` |
-| `claude/skills/*` | `~/.claude/skills/*` |
 | `claude/output-styles` | `~/.claude/output-styles` |
 
-したがって `~/.claude/` 配下のファイルを直接編集すると nanokit リポジトリのワーキングツリーが変更される。
-設定を変更する場合は nanokit リポジトリ側で編集し `dotter deploy` で反映するのが正しいワークフロー。
+設定を変更する場合はnanokit側の原本を編集し、ツール固有設定は `dotter deploy`、共有指示・スキル・Codex設定は `./nanokit agent-config-sync` で反映する。
 
 ## コーディング基本則 (Karpathy 4 tenets)
 
@@ -84,7 +91,7 @@ Claude Code → Codex (GPT) は用途で二経路を使い分ける
 | 設計壁打ち `/codex-discuss`、lgtm-loop の threadId 継続レビュー、ultrasurvey 検索レッグ、ARIS レビュアー | `codex mcp-server` (MCP, user スコープ登録) |
 
 - 両経路とも `~/.codex/config.toml` を継承する (モデル・effort・approval_policy の**単一ソース**。呼び出し側で上書きしない)。
-- そのポータブル設定 (model / model_reasoning_effort / approval_policy / web_search 等) は **nanokit が管理**する。編集元は `<nanokit>/codex/config.toml`、反映は `./nanokit codex-config-sync` (`--diff` でプレビュー)。実ファイルは Codex デスクトップアプリが `[projects.*]` の trust_level 等の端末・クライアント固有状態を書き戻して共有するため symlink 不可 (nanokit は公開リポジトリなので載せられない) → sync が管理キーだけを冪等 upsert し、他セクションは保持する。`codex-install` 内でも自動実行される。
+- そのポータブル設定 (model / model_reasoning_effort / approval_policy / web_search 等) は **nanokit が管理**する。編集元は `<nanokit>/codex/config.toml`、反映は `./nanokit agent-config-sync` (`--diff` でプレビュー)。実ファイルは Codex デスクトップアプリが `[projects.*]` の trust_level 等の端末・クライアント固有状態を書き戻して共有するため symlink 不可 (nanokit は公開リポジトリなので載せられない) → sync が管理キーだけを冪等 upsert し、他セクションは保持する。`codex-install` 内でも自動実行される。
 - **review gate (`/codex:setup --enable-review-gate`) は使わない** — Stop フックの自動ループが usage を急速消費するため。明示ループは `/lgtm-loop`。
 - 自然文「GPT にレビューして」の受け皿は `codex-review` skill (誘導シム)。プラグインコマンドは `disable-model-invocation` のため Claude からは起動できず、必要時は companion script を直接叩く。
 - 新ホスト: プラグインは `claude/settings.json` の `extraKnownMarketplaces` + `enabledPlugins` で宣言済み (dotter 配布)。自動導入されなければ `claude plugin install codex@openai-codex`。MCP 登録は `./nanokit codex-install`。

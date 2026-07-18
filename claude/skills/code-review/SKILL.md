@@ -1,8 +1,6 @@
 ---
 name: code-review
 description: Code review — local uncommitted changes or GitHub PR (pass PR number/URL for PR mode)
-argument-hint: [pr-number | pr-url | blank for local review]
-user-invocable: true
 ---
 
 # Code Review

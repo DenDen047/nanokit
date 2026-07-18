@@ -80,7 +80,8 @@ show_help() {
     echo "  codex-install   🧠 Install OpenAI Codex CLI via npm (optional)"
     echo "  codex-update    🔄 Update Codex CLI to the latest version"
     echo "  codex-uninstall 🧹 Remove Codex CLI"
-    echo "  codex-config-sync ⚙️  Apply nanokit's portable Codex settings to ~/.codex/config.toml (--diff to preview)"
+    echo "  agent-config-sync ⚙️  Sync shared instructions, skills, and portable Codex settings (--diff to preview)"
+    echo "  codex-config-sync ⚙️  Backward-compatible alias for agent-config-sync"
     echo "  gemini-install   ✨ Install Google Gemini CLI via npm (optional)"
     echo "  gemini-update    🔄 Update Gemini CLI to the latest version"
     echo "  gemini-uninstall 🧹 Remove Gemini CLI"
@@ -116,6 +117,54 @@ link_wezterm_cli() {
     mkdir -p "$HOME/.local/bin"
     ln -sfn "$app" "$dst"
     print_success "Linked WezTerm CLI: $dst -> $app"
+}
+
+# Register one safe shared HTTP MCP in every installed local agent client.
+# Client-scoped services (for example workspace-hdt/personal) must NOT use this
+# helper because Codex has one user-level config across all client folders.
+register_shared_http_mcp() {
+    local name="$1"
+    local url="$2"
+    local diff_only="${3:-false}"
+    local current=""
+
+    if command -v claude &> /dev/null; then
+        current="$(claude mcp get "$name" 2>/dev/null || true)"
+        if [[ "$current" == *"URL: $url"* ]]; then
+            [[ "$diff_only" == true ]] || print_info "Claude MCP '$name' already points to $url"
+        elif [[ "$diff_only" == true ]]; then
+            echo "MCP DIFF: Claude '$name' -> $url"
+        else
+            if [[ -n "$current" ]]; then
+                claude mcp remove "$name" -s user >/dev/null
+            fi
+            claude mcp add --transport http -s user "$name" "$url" >/dev/null
+            print_success "Claude MCP '$name' -> $url"
+        fi
+    fi
+
+    if command -v codex &> /dev/null; then
+        current="$(codex mcp get "$name" 2>/dev/null || true)"
+        if [[ "$current" == *"url: $url"* ]]; then
+            [[ "$diff_only" == true ]] || print_info "Codex MCP '$name' already points to $url"
+        elif [[ "$diff_only" == true ]]; then
+            echo "MCP DIFF: Codex '$name' -> $url"
+        else
+            if [[ -n "$current" ]]; then
+                codex mcp remove "$name" >/dev/null
+            fi
+            codex mcp add "$name" --url "$url" >/dev/null
+            print_success "Codex MCP '$name' -> $url"
+        fi
+    fi
+}
+
+sync_shared_http_mcps() {
+    local diff_only="${1:-false}"
+    print_step "Syncing client-safe shared HTTP MCP registrations..."
+    register_shared_http_mcp scrapling "http://127.0.0.1:${SCRAPLING_MCP_PORT:-8323}/mcp" "$diff_only"
+    register_shared_http_mcp zotero "http://127.0.0.1:${ZOTERO_MCP_PORT:-8321}/mcp" "$diff_only"
+    register_shared_http_mcp deepwiki "https://mcp.deepwiki.com/mcp" "$diff_only"
 }
 
 # Install nanokit
@@ -246,6 +295,10 @@ claude_setup() {
     print_success "Config symlinks deployed"
     echo ""
 
+    # Share nanokit's instructions and skills with both Claude Code and Codex.
+    agent_config_sync
+    echo ""
+
     # Setup Scrapling MCP server
     print_step "Setting up Scrapling MCP server..."
     local scrapling_dir="$NANOKIT_ROOT/claude/mcp-servers/scrapling"
@@ -256,19 +309,9 @@ claude_setup() {
         pixi run --manifest-path "$scrapling_dir/pixi.toml" install-browsers 2>/dev/null && \
             print_success "Scrapling browser dependencies installed" || \
             print_warning "Scrapling browser install failed (non-critical, basic scraping still works)"
-        claude mcp add -s user scrapling -- pixi run --manifest-path "$scrapling_dir/pixi.toml" mcp 2>/dev/null && \
-            print_success "Scrapling MCP server registered" || \
-            print_warning "Scrapling MCP registration failed"
     else
         print_warning "Scrapling pixi.toml not found at $scrapling_dir"
     fi
-    echo ""
-
-    # Setup DeepWiki MCP server (remote HTTP, no local install needed)
-    print_step "Setting up DeepWiki MCP server..."
-    claude mcp add -s user deepwiki --transport http -- https://mcp.deepwiki.com/mcp 2>/dev/null && \
-        print_success "DeepWiki MCP server registered" || \
-        print_warning "DeepWiki MCP registration failed"
     echo ""
 
     # Show next steps
@@ -946,8 +989,8 @@ codex_install() {
     codex_mcp_register
     echo ""
 
-    # Apply nanokit's portable Codex settings (model/effort/approval_policy/...)
-    codex_config_sync
+    # Apply shared instructions, skills, and portable Codex settings.
+    agent_config_sync
     echo ""
 
     print_info "Next steps (interactive, run manually):"
@@ -1003,12 +1046,9 @@ codex_uninstall() {
     print_success "🧹 Codex CLI uninstalled"
 }
 
-# Reflect nanokit's portable Codex settings (codex/config.toml) into the live
-# ~/.codex/config.toml. The live file is co-managed by the Codex desktop app and
-# carries host/client-specific state that must not land in this public repo, so it
-# cannot be a dotter symlink; sync-config.py upserts only the managed top-level keys
-# in place (idempotent). Pass --diff to preview.
-codex_config_sync() {
+# Sync the shared instruction/skill sources to both clients while upserting only
+# nanokit's portable keys into Codex's stateful config.toml. Pass --diff to preview.
+agent_config_sync() {
     local script="$NANOKIT_ROOT/codex/sync-config.py"
     if ! command -v python3 &> /dev/null; then
         print_warning "python3 not found; skipping Codex config sync."
@@ -1018,8 +1058,22 @@ codex_config_sync() {
         print_warning "Codex config sync script missing: $script"
         return 1
     fi
-    print_step "Syncing portable Codex settings into ~/.codex/config.toml..."
+    print_step "Syncing shared Claude Code / Codex settings..."
     python3 "$script" "$@"
+
+    local arg
+    for arg in "$@"; do
+        if [[ "$arg" == "--diff" ]]; then
+            sync_shared_http_mcps true
+            return 0
+        fi
+    done
+    sync_shared_http_mcps
+}
+
+# Compatibility for existing scripts and muscle memory.
+codex_config_sync() {
+    agent_config_sync "$@"
 }
 
 # Gemini CLI (Google) optional setup — same npm-under-fnm pattern as Codex above.
@@ -1258,21 +1312,9 @@ zotero_mcp_install() {
     fi
     echo ""
 
-    # --- 3. Register MCP client (idempotent) ---
-    if command -v claude &> /dev/null; then
-        if claude mcp list 2>/dev/null | grep -q '^zotero\b'; then
-            print_info "Claude MCP 'zotero' already registered."
-        else
-            print_step "Registering zotero MCP server in Claude Code (HTTP transport)..."
-            if claude mcp add zotero -s user --transport http "http://localhost:${ZOTERO_MCP_PORT:-8321}/mcp" 2>&1; then
-                print_success "zotero MCP registered"
-            else
-                print_warning "Auto-registration failed. Run manually:"
-                print_info "  claude mcp add zotero -s user --transport http http://localhost:8321/mcp"
-            fi
-        fi
-        echo ""
-    fi
+    # --- 3. Register the same HTTP endpoint in both agent clients ---
+    register_shared_http_mcp zotero "http://127.0.0.1:${ZOTERO_MCP_PORT:-8321}/mcp"
+    echo ""
 
     # --- 4. Health check (restart to pick up credentials) ---
     print_step "Restarting zotero-mcp server to pick up credentials..."
@@ -1494,6 +1536,9 @@ main() {
             ;;
         "codex-config-sync")
             codex_config_sync "${@:2}"
+            ;;
+        "agent-config-sync")
+            agent_config_sync "${@:2}"
             ;;
         "gemini-install")
             gemini_install

@@ -1,7 +1,6 @@
 ---
 name: ai-code-changes
 description: Use this skill when modifying existing code or before creating commits/PRs. Covers pre-change investigation (understand why existing code was written that way) and self-review checklist (correctness, consistency, comment quality, commit quality).
-user-invocable: false
 ---
 
 # AI Code Changes: AI によるコード変更の品質基準
@@ -64,4 +63,3 @@ user-invocable: false
 - [ ] 後方互換性を壊していないか（壊す場合は明示的に説明したか）
 - [ ] パフォーマンスへの影響を考慮したか
 - [ ] セキュリティの懸念はないか（入力検証、認証、SQLインジェクションなど）
-

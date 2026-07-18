@@ -1,7 +1,6 @@
 ---
 name: html-report-writing
 description: 人間が読む長めの文章・レポート・ドキュメント・資料を生成するときに使用する。単一の HTML ファイル (+ 必要なら assets/) として出力し、Markdown が 100 行を超えると読まれなくなる問題を sticky TOC・構造化 callout・優先度 pill・数式 (KaTeX)・コードハイライト (Prism)・D2 ダイアグラム・チャート (matplotlib SVG) で解決する。技術分析・応用検討・設計レポート・選択肢比較・サーベイ・議論ログ (Codex 等の第二視点を取り込む review-log 型) など、500 字を超える / 図表を伴う / 改訂を重ねる文書には必ず使用する。"レポート", "ドキュメント", "資料", "サーベイ", "技術レポート", "HTMLレポート", "応用検討", "選択肢比較", "議論ログ", "review log", "Codex レビュー反復" などのトリガーで発動する。
-user-invocable: true
 ---
 
 # HTML レポート作成ガイド

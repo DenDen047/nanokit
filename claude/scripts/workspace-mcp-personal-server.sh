@@ -80,6 +80,10 @@ cmd_start() {
 
   rm -f "$PID_FILE"
   mkdir -p "$(dirname "$LOG_FILE")"
+  # Rotate at 5MB, one .old generation — this log previously grew unbounded.
+  if [ -f "$LOG_FILE" ] && [ "$(stat -f%z "$LOG_FILE" 2>/dev/null || stat -c%s "$LOG_FILE" 2>/dev/null || echo 0)" -gt 5242880 ]; then
+    mv -f "$LOG_FILE" "${LOG_FILE}.old"
+  fi
   mkdir -p "$CREDENTIALS_DIR_VALUE"
 
   if ! type get_secret >/dev/null 2>&1; then

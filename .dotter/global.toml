@@ -54,12 +54,14 @@ wezterm = { target = "$HOME/.config/wezterm", type = "symbolic", recurse = false
 "claude/skills/grill-with-docs" = { target = "$HOME/.claude/skills/grill-with-docs", type = "symbolic", recurse = false }
 "claude/skills/tdd" = { target = "$HOME/.claude/skills/tdd", type = "symbolic", recurse = false }
 "claude/skills/diagnose" = { target = "$HOME/.claude/skills/diagnose", type = "symbolic", recurse = false }
-"claude/skills/zoom-out" = { target = "$HOME/.claude/skills/zoom-out", type = "symbolic", recurse = false }
 "claude/skills/handoff" = { target = "$HOME/.claude/skills/handoff", type = "symbolic", recurse = false }
 "claude/skills/write-a-skill" = { target = "$HOME/.claude/skills/write-a-skill", type = "symbolic", recurse = false }
 "claude/skills/improve-codebase-architecture" = { target = "$HOME/.claude/skills/improve-codebase-architecture", type = "symbolic", recurse = false }
 "claude/skills/visual-verify" = { target = "$HOME/.claude/skills/visual-verify", type = "symbolic", recurse = false }
 "claude/skills/pdf" = { target = "$HOME/.claude/skills/pdf", type = "symbolic", recurse = false }
+"claude/skills/grilling" = { target = "$HOME/.claude/skills/grilling", type = "symbolic", recurse = false }
+"claude/skills/domain-modeling" = { target = "$HOME/.claude/skills/domain-modeling", type = "symbolic", recurse = false }
+"claude/skills/codebase-design" = { target = "$HOME/.claude/skills/codebase-design", type = "symbolic", recurse = false }
 "claude/skills/ponytail" = { target = "$HOME/.claude/skills/ponytail", type = "symbolic", recurse = false }
 "claude/skills/ponytail-review" = { target = "$HOME/.claude/skills/ponytail-review", type = "symbolic", recurse = false }
 "claude/skills/ponytail-audit" = { target = "$HOME/.claude/skills/ponytail-audit", type = "symbolic", recurse = false }

@@ -22,7 +22,8 @@
 # same hook; it carries MEMEX_CHILD=1 so the hook early-exits for it.
 #
 # Tunables (env): MEMEX_MODEL (default claude-opus-4-8), MEMEX_EFFORT (default
-#                 xhigh), MEMEX_MIN_LINES (default 12), MEMEX_DEST.
+#                 xhigh), MEMEX_MIN_LINES (default 12), MEMEX_DEST,
+#                 MEMEX_TIMEOUT_S (default 900).
 
 set -uo pipefail
 
@@ -32,6 +33,12 @@ RUNDIR="$DEBUG_DIR/memory-extract"
 MODEL="${MEMEX_MODEL:-claude-opus-4-8}"
 EFFORT="${MEMEX_EFFORT:-xhigh}"
 MIN_LINES="${MEMEX_MIN_LINES:-12}"
+# Wall-clock kill switch for the detached child. A normal extraction finishes
+# in 2-5 min; without this, a wedged `claude -p` (opus + xhigh, nohup'd) has
+# NO stop condition at all — no timeout, no turn cap, nothing (2026-07-03
+# loop-engineering audit, finding H2). No `timeout` binary on this Mac, so a
+# sleep+kill watchdog is used.
+TIMEOUT_S="${MEMEX_TIMEOUT_S:-900}"
 # NOTE: dest lives OUTSIDE ~/.claude on purpose. Writes under ~/.claude are an
 # approval-gated "sensitive file" path, which a headless background claude -p
 # cannot satisfy (no interactive approval), so saves were silently blocked.
@@ -131,13 +138,23 @@ EOF
 
 extract() {
   echo "=== memory-extract start $(ts) session=$session reason=$reason dest=$DEST ==="
-  echo "=== transcript=$transcript ($lines lines) model=$MODEL ==="
+  echo "=== transcript=$transcript ($lines lines) model=$MODEL timeout=${TIMEOUT_S}s ==="
+  # set -m: each background job gets its own process group, so the watchdog
+  # can kill claude AND its node children (kill -- -pgid). Killing only the
+  # direct child leaves grandchildren holding the stdout pipe.
+  set -m
   MEMEX_CHILD=1 claude -p "$PROMPT" \
     --model "$MODEL" \
     --effort "$EFFORT" \
     --permission-mode acceptEdits \
-    --allowedTools "Read,Write,Edit,Glob,Grep" </dev/null
-  echo "=== memory-extract exit $? $(ts) ==="
+    --allowedTools "Read,Write,Edit,Glob,Grep" </dev/null &
+  local cpid=$!
+  ( sleep "$TIMEOUT_S" && kill -- -"$cpid" 2>/dev/null \
+      && echo "=== memory-extract KILLED after ${TIMEOUT_S}s timeout $(ts) ===" ) &
+  local wpid=$!
+  wait "$cpid" 2>/dev/null; local rc=$?
+  kill -- -"$wpid" 2>/dev/null
+  echo "=== memory-extract exit $rc $(ts) ==="
 }
 
 case "$mode" in
@@ -155,13 +172,22 @@ case "$mode" in
     ledger "FIRED session=$session reason=$reason ($lines lines) -> spawned log=$runlog"
     # detached + nohup so it outlives the hook and the Claude session.
     # Positional args to the inner shell: 1=transcript 2=session 3=reason
-    # 4=model 5=prompt  (avoids any function/quote serialization).
+    # 4=model 5=prompt 6=effort 7=timeout_s  (avoids any function/quote
+    # serialization). A sleep+kill watchdog bounds the child: without it a
+    # wedged claude -p ran forever (audit finding H2).
     nohup bash -c '
       echo "=== memory-extract start $(date "+%F %T") session=$2 reason=$3 ==="
-      echo "=== transcript=$1 model=$4 effort=$6 ==="
-      MEMEX_CHILD=1 claude -p "$5" --model "$4" --effort "$6" --permission-mode acceptEdits --allowedTools "Read,Write,Edit,Glob,Grep" </dev/null
-      echo "=== memory-extract exit $? $(date "+%F %T") ==="
-    ' _ "$transcript" "$session" "$reason" "$MODEL" "$PROMPT" "$EFFORT" >> "$runlog" 2>&1 &
+      echo "=== transcript=$1 model=$4 effort=$6 timeout=${7}s ==="
+      set -m
+      MEMEX_CHILD=1 claude -p "$5" --model "$4" --effort "$6" --permission-mode acceptEdits --allowedTools "Read,Write,Edit,Glob,Grep" </dev/null &
+      cpid=$!
+      ( sleep "$7" && kill -- -"$cpid" 2>/dev/null \
+          && echo "=== memory-extract KILLED after ${7}s timeout $(date "+%F %T") ===" ) &
+      wpid=$!
+      wait "$cpid" 2>/dev/null; rc=$?
+      kill -- -"$wpid" 2>/dev/null
+      echo "=== memory-extract exit $rc $(date "+%F %T") ==="
+    ' _ "$transcript" "$session" "$reason" "$MODEL" "$PROMPT" "$EFFORT" "$TIMEOUT_S" >> "$runlog" 2>&1 &
     disown 2>/dev/null || true
     ;;
 esac

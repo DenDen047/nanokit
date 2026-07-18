@@ -158,9 +158,14 @@ TL;DR は **本文確定後に最後に書く**。結論を 1-2 文で、`<stron
 5. **可視化で情報を整理** — 構造は D2、定量は matplotlib SVG を `docs/assets/` に生成
 6. **数式は KaTeX で、コードは `language-XXX` class 付きで** — `reference/math-and-code.md` 参照
 7. **TL;DR を最後に書く** — 結論先出しで上に貼る
-8. **検証:**
-   - ブラウザで開く (D2/matplotlib SVG が assets/ にあるか、KaTeX/Prism が render されるか)
-   - ダーク / ライト両方で色コントラスト OK
+8. **検証 (closing gate — スキップ不可):**
+   - **必ず `visual-verify` スキルを最後に実行する** — headless ブラウザで
+     スクリーンショット (ライト / ダーク両方) を撮り、Read で自分の目で
+     チェックリスト採点する。「コードから推測して OK」は検証ではない。
+     NG が出たら修正 → 再描画 → 再 verify のループを pass まで回す
+   - visual-verify のチェック対象: D2/matplotlib SVG が assets/ から描画
+     されるか、KaTeX/Prism の render、ダーク / ライト両方の色コントラスト、
+     図表のはみ出し・見切れ
    - クリックで SVG 原寸表示が動く
    - `Ctrl+P` で印刷プレビュー → PDF 化に耐える
    - リンク切れがないか

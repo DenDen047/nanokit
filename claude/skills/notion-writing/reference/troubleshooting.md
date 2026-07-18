@@ -6,7 +6,7 @@ Notion MCP (`mcp__notion__`) 経由で書き込むときに実際に遭遇した
 
 - `body.children should be an array` エラー
 - `delete-a-block` の Permission denied
-- `update-a-block` の制約
+- `update-a-block` は本文更新に使えない
 - バッチサイズの目安
 - 並列 `patch-block-children` の順序保証
 - 空行・Unicode・レート制限
@@ -51,18 +51,32 @@ deletion.
 3. **削除不可なブロックが残ったら、ユーザーに Notion UI 上での手動削除を依頼**する。`divider` を挟んで視覚的に分離するなど、残存ブロックが邪魔にならない工夫をする。
 4. **`Agent` ツール経由でも同じ制約**がかかる。並列実行で回避できない。
 
-## `update-a-block` の制約
+## `update-a-block` は本文更新に使えない（既存ブロックの rich_text は書き換え不可）
 
-**症状**: `mcp__notion__API-update-a-block` でブロックタイプを変更しようとしても効かない。
+**症状**: `mcp__notion__API-update-a-block` で既存ブロックのテキスト (`rich_text`) を書き換えようとすると、渡し方を問わず必ず 400 で弾かれる。例（空の callout に本文を入れようとしたケース）:
 
-**原因**: Notion API はボディのトップレベルに `heading_2: {...}` のようなキーを期待するが、MCP ツールは `type` キーの下にネストしてしまう。
+```
+{"status":400,"object":"error","code":"validation_error",
+ "message":"body failed validation. Fix one:
+   ... body.callout should be defined, instead was `undefined`.
+   ... body.type should be not present, instead was `{\"callout\":{\"rich_text\":...`."}
+```
 
-**影響**:
-- ブロックタイプの変更 (例: `paragraph` → `heading_2`) は不可
-- `archived: true` でのアーカイブ移動は可能
-- テキスト更新も MCP 経由では制約あり
+**根本原因**（実測で確定、断続現象ではなく決定論的）:
 
-**対処**: **大規模修正は「archive / delete → 再作成」パターンが確実**。ブロックタイプを変えたいなら、新ブロックを `patch-block-children` で追加 → 旧ブロックを `delete-a-block` で削除（削除権限があるならば）。
+- Notion REST API の `PATCH /v1/blocks/{block_id}` は、ボディの **トップレベルにブロックタイプ名のキー**（`callout` / `paragraph` / `heading_2` …）を置くことを期待し、`type` というキーが present だと**明示的に拒否**する。
+- ところがこの MCP ツールは、引数 `type` に渡した値を**そのまま `body.type` にネスト**して送る。したがって `type` に何を入れても（`{"callout":{"rich_text":[...]}}` でも `{"rich_text":[...]}` でも）Notion 側は「`type` は不可、`callout` が無い」と 400 を返す。
+- **ツール経由では `body.callout`（＝トップレベルのタイプキー）に到達する経路が存在しない**。ゆえに rich_text 更新もブロックタイプ変更も一律で不可能。権限やシリアライズの問題ではないので**リトライしても通らない**。
+- 唯一通るのは `archived: true`（アーカイブ = ゴミ箱移動）だけ。
+
+**対処 — 「その場更新」を諦めて append で回す**:
+
+1. **対象が自分（integration bot）が同一セッションで作ったブロックなら**: 旧ブロックを `delete-a-block` で消して `patch-block-children` で作り直す。
+2. **対象が人間作成 or 別セッション作成のブロックなら**: 上の「`delete-a-block` の Permission denied」により**削除もできない**。この場合は**触らずに残し、`after` 指定で直後に同内容の兄弟ブロック（通常は `paragraph`）を `patch-block-children` する**のが唯一確実な手。
+   - 具体例: Task テンプレートに最初から入っている**空の callout (💡) は人間作成なので中身を埋められない**。callout はそのまま残し、その直後に本文 paragraph を足す。後続で同じ `after` に別ブロックを足すなら、順序を保つため**本文 paragraph を先頭にまとめて 1 回の patch で挿入**する。
+3. 見た目上どうしても callout の枠内に入れたい等の要件があれば、ユーザーに Notion UI での手当てを依頼する（ツールでは不可能なため）。
+
+**要点**: このツールは「作る（append）」専用と割り切る。**既存ブロックの中身を書き換える設計にしない**（append-only + 兄弟追加）。
 
 ## バッチサイズの目安
 

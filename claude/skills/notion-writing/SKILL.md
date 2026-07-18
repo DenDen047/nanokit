@@ -73,11 +73,14 @@ MCP ツールスキーマには `paragraph` と `bulleted_list_item` しか明�
 
 ### update: `mcp__notion__API-update-a-block`
 
-MCP ツールのスキーマ都合で **ブロックタイプ変更は事実上不可**。大規模な修正は「新規作成 → 旧ブロック削除（可能なら）」のほうが確実。
+**既存ブロックの中身（`rich_text`）は書き換えられない**。ツールは引数 `type` を `body.type` にネストして送るが、Notion API はトップレベルの `callout`/`paragraph` 等のキーを要求し `type` を拒否するため、渡し方を問わず 400 になる（決定論的、リトライ不可）。通るのは `archived: true` だけ。
+
+→ **その場更新は諦めて append で回す**。自分が同一セッションで作ったブロックなら delete → 再作成。人間作成ブロック（例: Task テンプレートの**空 callout 💡**）は削除もできないので、**残したまま直後に同内容の兄弟ブロックを `after` 指定で追加**する。詳細と正確なエラー文面は [troubleshooting.md](reference/troubleshooting.md)。
 
 ## よくあるエラー
 
 - **`body.children should be an array`** — MCP シリアライズの断続的失敗。同じ payload でリトライすれば通る。
+- **`update-a-block` で `body.type should be not present` / `body.callout should be defined`** — 既存ブロックの本文は更新不可（決定論的、リトライ不可）。兄弟ブロックを追加して回避。
 - **`delete-a-block` Permission denied** — harness ポリシー。append-only 戦略で回避。
 - **並列 `patch-block-children` の順序乱れ** — 同一ページに並列 append すると順序が保証されない。
 

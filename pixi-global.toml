@@ -264,6 +264,11 @@ channels = ["conda-forge"]
 dependencies = { gwq = "*" }
 exposed = { gwq = "gwq" }
 
+[envs.rerun-sdk]
+channels = ["conda-forge"]
+dependencies = { rerun-sdk = "*" }
+exposed = { ensure-pyo3-build-cfg = "ensure-pyo3-build-cfg", ensure-rerun-env = "ensure-rerun-env", ensure-uv-shims = "ensure-uv-shims", rerun = "rerun", uv-shim = "uv-shim", uvpy-shim = "uvpy-shim" }
+
 # The JarvisLabs CLI (`jl`) is deliberately NOT a pixi-global env: it ships only on
 # PyPI, and pixi global takes conda packages only (prefix-dev/pixi#2261 is still open).
 # It lives in the pixi project at tools/jarvislabs/ and reaches PATH through the

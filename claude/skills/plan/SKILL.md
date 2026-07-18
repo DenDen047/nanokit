@@ -1,8 +1,6 @@
 ---
 name: plan
 description: 設計ドキュメントを作成する (project)
-allowed-tools: Bash(TZ=Asia/Tokyo date:*), Write, Read, Glob, Grep
-argument-hint: <設計内容の説明>
 ---
 
 ## 現在の状況

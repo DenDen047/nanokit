@@ -4,9 +4,6 @@ description: >
   設計・アーキテクチャの壁打ちを Codex MCP (GPT) と行う。
   実装前の方針検討、トレードオフ分析、API 設計の相談に使う。
   "codex discuss", "GPTと相談", "壁打ち", "設計を議論" などで呼び出す。
-user-invocable: true
-argument-hint: "[topic or question]"
-allowed-tools: Bash(*), Read, Grep, Glob, mcp__codex__codex, mcp__codex__codex-reply
 ---
 
 # Codex Discuss: 設計の壁打ち

@@ -6,9 +6,6 @@ description: >
   タスク説明 / plan ファイル / 既存 diff のいずれを起点にしてもよい。
   実装フェーズは Karpathy 4 原則 (think before / simplicity / surgical / goal-driven) に従う。
   "lgtm loop", "LGTMまで回す", "実装してレビューして直して", "実装と修正をループで" などで呼び出す。
-user-invocable: true
-argument-hint: "[task description | plans/foo.md | empty for review-only]"
-allowed-tools: Bash(*), Read, Edit, Write, Grep, Glob, Skill, mcp__codex__codex, mcp__codex__codex-reply
 ---
 
 # LGTM Loop: 実装・レビュー・修正の反復

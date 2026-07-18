@@ -1,7 +1,6 @@
 ---
 name: readme-writing
 description: Use this skill when creating or updating a README file. Covers the funnel structure (What → Why → Install → How), keeping it concise, and separating concerns into dedicated files (CONTRIBUTING.md, CHANGELOG.md).
-user-invocable: true
 ---
 
 # README Writing: 読まれるREADMEの構造

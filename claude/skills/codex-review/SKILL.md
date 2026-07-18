@@ -5,9 +5,6 @@ description: >
   コード変更後にセカンドオピニオンが欲しいとき、"codex review", "GPTにレビューして",
   "セカンドオピニオン" などで呼び出す。実体は公式プラグイン codex@openai-codex に
   移行済みで、本 skill は自然文トリガーの受け皿 (誘導シム)。
-user-invocable: true
-argument-hint: "[--background | --base <ref>]"
-allowed-tools: Bash(node:*), Bash(git:*), Bash(ls:*), Read
 ---
 
 # Codex Review: 公式プラグインへの誘導シム

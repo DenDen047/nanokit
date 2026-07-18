@@ -4,7 +4,6 @@ description: >
   Windows で作成された ZIP ファイルを macOS / Linux で展開するときの
   Deflate64 圧縮・Shift_JIS ファイル名・CP932 テキストエンコーディングの
   3 重問題を解決する。ZIP 展開で文字化けやエラーが出たときに参照する。
-user-invocable: false
 ---
 
 # Windows ZIP を macOS / Linux で展開する

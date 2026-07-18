@@ -1,7 +1,6 @@
 ---
 name: cs-paper-writing
 description: Drafts, reviews, and rewrites computer-science research papers (CVPR/NeurIPS/ICML/ACL/SIGGRAPH style). Use when writing or critiquing CS papers, abstracts, introductions, related work, or paragraphs; when asked to structure a contribution around a "nugget" / Problem-Solution / Goal-Problem-Solution pattern; when filling a Nature summary-paragraph or Michael Black Mad Libs abstract; when removing LLM-tell (delve, showcase, allows to, ...) or zombie nouns. Triggers include "論文 執筆", "論文 査読", "論文 添削", "abstract template", "paper skeleton", "introduction review", "related work grouping".
-user-invocable: true
 ---
 
 # CS Paper Writing: 情報科学論文の執筆方針

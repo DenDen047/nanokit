@@ -1,7 +1,6 @@
 ---
 name: code-review-etiquette
 description: Use this skill when reviewing others' code, writing review comments, or responding to code review feedback. Covers actionable comments, question-over-demand style, blocking vs nit distinction, and acknowledging good choices.
-user-invocable: false
 ---
 
 # Code Review Etiquette: レビューの作法

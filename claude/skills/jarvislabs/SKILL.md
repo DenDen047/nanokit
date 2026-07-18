@@ -2,14 +2,6 @@
 name: jarvislabs
 description: Agent guide for running GPU experiments and serverless model deployments with the jl CLI on JarvisLabs.ai.
 ---
-<!-- Vendored verbatim from https://github.com/jarvislabsai/jarvislabs (MIT)
-     jarvislabs/skills/SKILL.md @ 4d6ac2e8176a529c9216c8c44814b849f9f8a102 (2026-06-16, ships with jl 0.2.16).
-     Everything below this comment is byte-identical to upstream, so drift is a clean diff. After a
-     `jl` upgrade (tools/jarvislabs/pixi.toml), compare against the copy inside the pinned env:
-       diff <(sed '/^<!-- Vendored verbatim/,/-->$/d' claude/skills/jarvislabs/SKILL.md) \
-            tools/jarvislabs/.pixi/envs/default/lib/python3*/site-packages/jarvislabs/skills/SKILL.md
-     Put guardrails in claude/CLAUDE.md, not here. `jl setup` writes its own copy to
-     ~/.agents/skills/jarvislabs, which is the path Codex reads; this file is the Claude Code one. -->
 
 # JarvisLabs GPU CLI (`jl`) — Agent Guide
 

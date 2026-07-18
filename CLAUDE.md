@@ -1,6 +1,7 @@
-# nanokit
+# nanokit agent instructions
 
 Dotfile & development environment manager. Config files here are symlinked to `$HOME` via dotter.
+This file is the repository instruction source; `AGENTS.md` is a symlink to it.
 
 ## Design principles
 
@@ -14,6 +15,7 @@ Dotfile & development environment manager. Config files here are symlinked to `$
 ```bash
 ./nanokit install        # Full setup: dotter deploy + pixi global sync
 ./nanokit claude-setup   # Claude Code config + plugin install
+./nanokit agent-config-sync  # Shared Claude Code / Codex instructions, skills, and Codex config
 ./nanokit uninstall      # Remove symlinks and tools
 dotter deploy            # Symlink dotfiles only
 dotter undeploy          # Remove symlinks only
@@ -23,6 +25,7 @@ pixi global sync         # Install/sync tools from pixi-global.toml
 ## Gotchas
 
 - Files in this repo are symlinked to their targets (see `.dotter/global.toml`). Editing `zshrc` here directly changes `~/.zshrc`.
-- `claude/` directory files are symlinked to `~/.claude/`. Changes affect the global Claude Code config immediately.
+- `claude/CLAUDE.md` and `claude/skills/*` are the global agent sources. `agent-config-sync` exposes them to both Claude Code and Codex.
+- Individual skill mappings do not belong in `.dotter/global.toml`; `agent-config-sync` discovers every directory containing `SKILL.md`.
 - The `nanokit` CLI is a Bash script. Always run uninstall from system bash, not pixi-installed zsh.
 - pixi-installed zsh should NOT be set as login shell -- if pixi env breaks, login becomes impossible.

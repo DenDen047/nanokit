@@ -5,11 +5,6 @@ description: >
   画像・図・PDF/SVG）をスクリーンショットで取得し、Read で実際に見て
   チェックリスト採点する。崩れ・はみ出し・重なり・コントラスト不足を検出し、
   NG なら具体的な修正案を返す。Max プランの画像認識を惜しまず使うための専用コマンド。
-user-invocable: true
-allowed-tools:
-  - Bash
-  - Read
-  - Write
 ---
 
 # visual-verify — 見て確かめる

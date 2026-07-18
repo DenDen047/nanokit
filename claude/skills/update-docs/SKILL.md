@@ -1,3 +1,8 @@
+---
+name: update-docs
+description: Synchronize repository documentation with source-of-truth files such as package scripts, environment templates, APIs, and deployment configuration. Use when the user asks to update docs after code changes, regenerate command or environment references, or audit documentation staleness.
+---
+
 # Update Documentation
 
 Sync documentation with the codebase, generating from source-of-truth files.

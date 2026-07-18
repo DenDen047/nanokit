@@ -361,12 +361,12 @@ Basic commands to get started:
 - `:Lazy` - Plugin manager interface
 - `Ctrl+P` - Fuzzy file finder
 
-## 🤖 Claude Code Configuration (Optional)
+## 🤖 Claude Code / Codex shared configuration
 
-nanokit can manage [Claude Code](https://claude.ai/code) global configuration (`~/.claude/settings.json`, `~/.claude/CLAUDE.md`, custom scripts) via dotter symlinks.
+nanokit manages Claude Code's tool-specific settings and the global instructions/skills shared with Codex. Common content has one source; client-specific adapters remain in `claude-settings`.
 
 > [!NOTE]
-> Claude Code itself is installed via npm, not pixi. Only the **configuration files** are managed by nanokit.
+> Claude Code and Codex themselves are installed separately. nanokit manages their portable configuration and shared files.
 
 ### Setup
 
@@ -376,11 +376,21 @@ curl -fsSL https://claude.ai/install.sh | bash
 
 # Setup configuration and plugins
 ./nanokit claude-setup
+
+# Preview or re-apply only shared agent configuration
+./nanokit agent-config-sync --diff
+./nanokit agent-config-sync
 ```
 
 This will:
-1. Symlink configuration files from `nanokit/claude/` to `~/.claude/`
-2. Register plugin marketplaces and install plugins
+1. Symlink Claude-specific settings from `nanokit/claude/` to `~/.claude/` with dotter.
+2. Link `claude/CLAUDE.md` to `~/.codex/AGENTS.md`.
+3. Link every `claude/skills/*/SKILL.md` directory to both `~/.claude/skills/` and `~/.agents/skills/`.
+4. Upsert portable keys from `codex/config.toml` into the stateful `~/.codex/config.toml` without touching host-specific sections.
+5. Register client-safe HTTP MCPs (`scrapling`, `zotero`, `deepwiki`) in both CLIs.
+6. Register Claude Code plugin marketplaces and plugins.
+
+Client-scoped MCPs such as `workspace-hdt` / `workspace-personal` are intentionally not added to Codex user scope; `claude-settings` selects them per project so organization credentials do not leak across clients.
 
 ### Plugins
 
@@ -413,10 +423,13 @@ claude plugin install scientific-skills@claude-scientific-skills
 | File | Description |
 |------|-------------|
 | `claude/settings.json` | Global settings (hooks, env vars, plugins, statusLine) |
-| `claude/CLAUDE.md` | Global instructions |
+| `claude/CLAUDE.md` | Global instructions for Claude Code and Codex |
+| `claude/skills/*` | Shared skill sources for `~/.claude/skills` and `~/.agents/skills` |
+| `codex/config.toml` | Portable Codex top-level settings |
+| `codex/sync-config.py` | Safe, idempotent config/instruction/skill synchronizer |
 | `claude/scripts/zotero-mcp-server.sh` | Zotero MCP server lifecycle script |
 
-Plugin-managed files (`agents/`, `skills/`, `commands/`, `rules/`, `hooks/`) and runtime data are **not** tracked -- they are managed by Claude Code and its plugins.
+Plugin-managed files and runtime data remain outside this synchronization. A non-symlink path or a foreign symlink with the same skill name is treated as a collision and is never overwritten.
 
 ### Post-setup
 
@@ -443,7 +456,7 @@ Configure machine-specific settings manually:
 2. `skills/*/` の各スキルを `~/.claude/skills/<skill-name>` へ symlink
 3. 既存の同名ファイル（非 symlink）があれば衝突回避のためスキップ
 
-clone 先を nanokit リポジトリ配下に置くことで、どこから持ってきた symlink なのかを後から辿りやすくしています。dotter の管轄外なので、`claude/skills/*` の固定 symlink とは独立に追加・削除できます。
+clone先をnanokit配下に置くことでsymlinkの出所を追跡できます。ARISはClaude Code固有の実行構成を含むoptional packageなので、`agent-config-sync`が管理する共通 `claude/skills/*` とは分離しています。Codexへ共有する場合は、Agent Skills互換を確認したskillだけを共通原本へ昇格させます。
 
 ### Update / Uninstall
 

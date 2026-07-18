@@ -83,7 +83,8 @@ Claude Code → Codex (GPT) は用途で二経路を使い分ける
 | コードレビュー `/codex:review` (`--background` 推奨)、観点指定レビュー `/codex:adversarial-review`、タスク委譲 `/codex:rescue`、ジョブ管理 `/codex:status` `/codex:result` | 公式プラグイン `codex@openai-codex` (Codex app server 直結) |
 | 設計壁打ち `/codex-discuss`、lgtm-loop の threadId 継続レビュー、ultrasurvey 検索レッグ、ARIS レビュアー | `codex mcp-server` (MCP, user スコープ登録) |
 
-- 両経路とも `~/.codex/config.toml` を継承する (モデル・effort の**単一ソース**。呼び出し側で上書きしない)。
+- 両経路とも `~/.codex/config.toml` を継承する (モデル・effort・approval_policy の**単一ソース**。呼び出し側で上書きしない)。
+- そのポータブル設定 (model / model_reasoning_effort / approval_policy / web_search 等) は **nanokit が管理**する。編集元は `<nanokit>/codex/config.toml`、反映は `./nanokit codex-config-sync` (`--diff` でプレビュー)。実ファイルは Codex デスクトップアプリが `[projects.*]` の trust_level 等の端末・クライアント固有状態を書き戻して共有するため symlink 不可 (nanokit は公開リポジトリなので載せられない) → sync が管理キーだけを冪等 upsert し、他セクションは保持する。`codex-install` 内でも自動実行される。
 - **review gate (`/codex:setup --enable-review-gate`) は使わない** — Stop フックの自動ループが usage を急速消費するため。明示ループは `/lgtm-loop`。
 - 自然文「GPT にレビューして」の受け皿は `codex-review` skill (誘導シム)。プラグインコマンドは `disable-model-invocation` のため Claude からは起動できず、必要時は companion script を直接叩く。
 - 新ホスト: プラグインは `claude/settings.json` の `extraKnownMarketplaces` + `enabledPlugins` で宣言済み (dotter 配布)。自動導入されなければ `claude plugin install codex@openai-codex`。MCP 登録は `./nanokit codex-install`。

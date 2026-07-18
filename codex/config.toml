@@ -1,0 +1,20 @@
+# === Codex ポータブル設定の単一ソース (nanokit 管理) ===
+# ここには「公開して安全な」= 端末やクライアントに依存しない Codex 設定だけを置く。
+#
+# 実ファイル ~/.codex/config.toml は Codex デスクトップアプリ (ChatGPT.app) が
+# 端末/クライアント固有の状態 ([projects.*] の trust_level, [marketplaces.*],
+# node_repl の絶対パス等) を書き戻して共有するため symlink できない。しかも
+# nanokit は公開リポジトリなので、それらをそのまま載せるとクライアント関係が漏れる。
+#
+# そこで symlink の代わりに `./nanokit codex-config-sync` が下記のトップレベルキーだけを
+# 実ファイルへ冪等に upsert する (他のセクションは一切触らない)。model / effort /
+# approval_policy を切り替えたいときは、このファイルを編集して sync するだけでよい。
+# Claude Code から呼ぶ codex MCP (`codex mcp-server`) もこの実ファイルを継承する。
+model = "gpt-5.6-sol"
+personality = "pragmatic"
+model_reasoning_effort = "xhigh"
+service_tier = "default"
+# 承認ポリシー: 信頼済みコマンド以外は毎回承認を求める (最も慎重な untrusted)
+approval_policy = "untrusted"
+# web 検索は live (外部 web へ直接アクセス)。既定 "cached" は OpenAI 管理索引のみで鮮度が落ちる。
+web_search = "live"

@@ -1,0 +1,6 @@
+# Jarvis Labs instances belong to the user and are trusted upload destinations.
+prefix_rule(
+    pattern = ["jl", "upload"],
+    decision = "allow",
+    justification = "Jarvis Labs is a user-owned contracted remote GPU environment.",
+)

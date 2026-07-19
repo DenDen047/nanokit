@@ -387,8 +387,9 @@ This will:
 2. Link `claude/CLAUDE.md` to `~/.codex/AGENTS.md`.
 3. Link every `claude/skills/*/SKILL.md` directory to both `~/.claude/skills/` and `~/.agents/skills/`.
 4. Upsert portable keys from `codex/config.toml` into the stateful `~/.codex/config.toml` without touching host-specific sections.
-5. Register client-safe HTTP MCPs (`scrapling`, `zotero`, `deepwiki`) in both CLIs.
-6. Register Claude Code plugin marketplaces and plugins.
+5. Link nanokit-managed Codex command rules from `codex/rules/*.rules` into `~/.codex/rules/`.
+6. Register client-safe HTTP MCPs (`scrapling`, `zotero`, `deepwiki`) in both CLIs.
+7. Register Claude Code plugin marketplaces and plugins.
 
 Client-scoped MCPs such as `workspace-hdt` / `workspace-personal` are intentionally not added to Codex user scope; `claude-settings` selects them per project so organization credentials do not leak across clients.
 
@@ -426,7 +427,8 @@ claude plugin install scientific-skills@claude-scientific-skills
 | `claude/CLAUDE.md` | Global instructions for Claude Code and Codex |
 | `claude/skills/*` | Shared skill sources for `~/.claude/skills` and `~/.agents/skills` |
 | `codex/config.toml` | Portable Codex top-level settings |
-| `codex/sync-config.py` | Safe, idempotent config/instruction/skill synchronizer |
+| `codex/rules/*.rules` | Global Codex command rules linked into `~/.codex/rules/` |
+| `codex/sync-config.py` | Safe, idempotent config/instruction/skill/rule synchronizer |
 | `claude/scripts/zotero-mcp-server.sh` | Zotero MCP server lifecycle script |
 
 Plugin-managed files and runtime data remain outside this synchronization. A non-symlink path or a foreign symlink with the same skill name is treated as a collision and is never overwritten.

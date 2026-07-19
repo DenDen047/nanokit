@@ -13,6 +13,7 @@ from pathlib import Path
 
 NANOKIT_ROOT = Path(__file__).resolve().parent.parent
 CONFIG_SOURCE = NANOKIT_ROOT / "codex" / "config.toml"
+RULES_SOURCE = NANOKIT_ROOT / "codex" / "rules"
 INSTRUCTIONS_SOURCE = NANOKIT_ROOT / "claude" / "CLAUDE.md"
 SKILLS_SOURCE = NANOKIT_ROOT / "claude" / "skills"
 KEY_RE = re.compile(r"^([A-Za-z0-9_-]+)\s*=")
@@ -89,7 +90,12 @@ def is_previous_nanokit_link(path: Path) -> bool:
     if not path.is_symlink():
         return False
     raw = os.readlink(path).replace("\\", "/")
-    return "/nanokit/claude/" in raw or raw.startswith("nanokit/claude/")
+    return (
+        "/nanokit/claude/" in raw
+        or raw.startswith("nanokit/claude/")
+        or "/nanokit/codex/" in raw
+        or raw.startswith("nanokit/codex/")
+    )
 
 
 def tree_snapshot(root: Path) -> dict[str, tuple[str, bytes | str]]:
@@ -129,6 +135,8 @@ def desired_links() -> list[tuple[Path, Path, bool]]:
     links: list[tuple[Path, Path, bool]] = [
         (INSTRUCTIONS_SOURCE, codex_home() / "AGENTS.md", True),
     ]
+    for source in sorted(RULES_SOURCE.glob("*.rules")):
+        links.append((source, codex_home() / "rules" / source.name, False))
     skill_dirs = sorted(
         path for path in SKILLS_SOURCE.iterdir() if path.is_dir() and (path / "SKILL.md").is_file()
     )

@@ -326,12 +326,9 @@ grep 結果（`rg -i zotero ~/Documents/Projects/claude-settings`）:
 
 ### Phase 6: ドキュメント更新
 
-**6.1 `~/nanokit/claude/CLAUDE.md`**
+**6.1 運用 runbook**
 - 「シンボリックリンク構造」表への変更は不要（`lib/secret.sh` も `claude/mcp-servers/zotero-mcp/` も非 symlink）
-- 下部に「Zotero MCP 運用」セクションを追記:
-  - モード切替の仕組み（local / web）
-  - WebDAV 運用下では PDF バイナリ取得不可、フルテキストは取得可（Appendix 参照）
-  - トラブルシュート（ログ確認、credentials 再登録）
+- Zotero の運用（モード切替 local/web、WebDAV 運用下では PDF バイナリ取得不可・フルテキストは取得可、トラブルシュート）は `~/nanokit/specs/mcp-operations.md` に記載する（`claude/CLAUDE.md` の「MCP 運用」節からリンク。旧: CLAUDE.md 内の独立節だったが 2026-07 に spec へ集約）。
 
 **6.2 `~/nanokit/README.md`**
 - Commands 一覧に `zotero-mcp-install` を追記

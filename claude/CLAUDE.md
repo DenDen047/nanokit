@@ -100,66 +100,22 @@ Claude Code → Codex (GPT) は用途で二経路を使い分ける
 - 自然文「GPT にレビューして」の受け皿は `codex-review` skill (誘導シム)。プラグインコマンドは `disable-model-invocation` のため Claude からは起動できず、必要時は companion script を直接叩く。
 - 新ホスト: プラグインは `claude/settings.json` の `extraKnownMarketplaces` + `enabledPlugins` で宣言済み (dotter 配布)。自動導入されなければ `claude plugin install codex@openai-codex`。MCP 登録は `./nanokit codex-install`。
 
-## Zotero MCP 運用
+## MCP 運用 (常駐 HTTP シングルトン)
 
-ホスト横断で 1 つの Zotero ライブラリを参照するために、`zotero-mcp` は HTTP サーバー (`localhost:8321`) として `~/.claude/scripts/zotero-mcp-server.sh` 経由で起動される。バイナリは pixi env (`~/nanokit/claude/mcp-servers/zotero-mcp/`) 内。
+zotero / scrapling / workspace-mcp は、Claude Code と Codex が **1 プロセスを共有** する常駐 HTTP サーバとして立てる (stdio だと Playwright/Chromium 等を二重起動する)。bind は `127.0.0.1` のみ・認証なし (ローカル専用)。起動は `settings.json` の SessionStart hook + `ECC_MCP_RECONNECT_*` が冪等に担当 (healthy なら no-op)。
 
-### モードの自動切替
+| サーバ | ポート | ランチャ (`~/.claude/scripts/`) | 用途 |
+|---|---|---|---|
+| zotero-mcp | 8321 | `zotero-mcp-server.sh` | 文献。local/web 自動切替 |
+| workspace-personal | 8322 | `workspace-mcp-personal-server.sh` | 個人 Google (`sh.mn.nat@gmail.com`) |
+| scrapling-mcp | 8323 | `scrapling-mcp-server.sh` | ブラウザ取得 (Playwright) |
+| workspace-hdt | 8324 | `workspace-mcp-hdt-server.sh` | HDT Google (ポータブル OAuth) |
 
-- **`mode=local`** (Zotero.app 起動中) — `curl http://localhost:23119/connector/ping` が通ったとき。`ZOTERO_LOCAL=true` で起動。メタデータ + PDF 本体 + 注釈作成が可能。
-- **`mode=web`** (Zotero.app なし or Linux サーバー) — 上記が通らないとき。`ZOTERO_LOCAL=false` + `ZOTERO_API_KEY` + `ZOTERO_LIBRARY_ID` で起動。メタデータ + フルテキスト（Zotero クラウドの索引）+ ノート + タグ + semantic search が可能。PDF バイナリは取得不可（WebDAV 運用のため）。
+- **アカウント境界**: workspace-* の user スコープ登録は個人アカウントのセッションにのみ効き、HDT の Claude アカウント (`CLAUDE_CONFIG_DIR=~/.claude-hdt`) には波及しない。クライアント別の振り分け・認証境界は claude-settings が担う。
+- 新ホストでは `dotter deploy` 後に HTTP MCP を手動登録する (`~/.claude.json` / `~/.codex/config.toml` は dotter 管理外の state)。登録先はサービスで分ける: **`scrapling`/`zotero`/`deepwiki` は `agent-config-sync` が両 CLI (Claude/Codex の user scope) へ登録**、**`workspace-*` は Claude 個人アカウントの user scope のみ** に登録する (Codex user scope へは入れない — 認証境界は claude-settings の project adapter が維持。上の「シンボリックリンク構造」節と同じ規則)。
+- **起動・登録・トラブルシュート・認証・モード切替・制約の詳細、および RTK バージョンアップ時の設定同期手順は [`specs/mcp-operations.md`](../specs/mcp-operations.md) (実パス `~/nanokit/specs/mcp-operations.md`) を参照。**
 
-判定は `detect_zotero_mode()` が担当。ログの先頭に `mode=local` / `mode=web` が記録される。
-
-### credentials
-
-Web API モードで必要。OS-native な secret store に保存:
-- macOS: Keychain (`security find-generic-password -s claude-zotero -a api-key`)
-- Linux GUI: GNOME Keyring (`secret-tool lookup service claude-zotero account api-key`)
-- fallback: `~/.config/nanokit/secrets.env`
-
-登録は `nanokit zotero-mcp-install` で対話的に行う。
-
-### トラブルシュート
-
-```bash
-# 現状確認
-bash ~/.claude/scripts/zotero-mcp-server.sh status
-tail -20 ~/.claude/debug/zotero-mcp.log
-
-# mode がどちらで立ち上がったか
-grep 'mode=' ~/.claude/debug/zotero-mcp.log | tail -5
-
-# 再起動
-bash ~/.claude/scripts/zotero-mcp-server.sh stop
-bash ~/.claude/scripts/zotero-mcp-server.sh start
-
-# 旧 uv tool 経路への一時切り戻し（もし残っていれば）
-ZOTERO_MCP_BINARY=$HOME/.local/bin/zotero-mcp bash ~/.claude/scripts/zotero-mcp-server.sh start
-```
-
-### 制約
-
-- **PDF バイナリ取得は Web API モード経由では不可**。ファイル同期を WebDAV (pCloud 等) に設定しているため、api.zotero.org は本体 PDF を保持していない。画像ベースの処理が必要になったら `rclone mount pcloud:` 等で WebDAV を直接マウントする（spec Appendix A 参照）。
-- 複数 PC に Zotero アプリを入れて `zotero.sqlite` を同時に書き込む構成は **DB 破損** の危険があるため禁止。Zotero.app は Mac のみ、他ホストは Web API モード専用。
-
-### バージョンアップ時の同期手順
-
-rtk が新版 (新しい hook 仕様等) を出した場合のみ:
-
-```bash
-# tmpdir で新版の rtk init -g を走らせて期待される設定を取得
-TMPHOME=$(mktemp -d)
-mkdir -p "$TMPHOME/.claude"
-HOME="$TMPHOME" rtk init -g --auto-patch
-
-# 出力された $TMPHOME/.claude/{settings.json,CLAUDE.md,RTK.md}
-# と nanokit/claude/{settings.json,CLAUDE.md,RTK.md} を diff し、
-# 必要な変更だけ手動で nanokit 側に反映してコミット → dotter deploy
-diff -u "$TMPHOME/.claude/RTK.md" "$NANOKIT/claude/RTK.md"
-```
-
-### settings.json の反映モデル (symlink ではなく管理反映)
+## settings.json の反映モデル (symlink ではなく管理反映)
 
 `~/.claude/settings.json` は **Claude Code 自身が所有する読み書きファイル**。UI での設定変更 (`/model` `/vim` 出力スタイル プラグイン有効化 など) やキー正規化のたびにアプリが atomic replace で書き戻すため、symlink にすると壊れる (実体ファイル化する)。よって dotter 管理せず、`agent-config-sync` (`codex/sync-config.py` の `settings_change()`) が **nanokit 原本の宣言キーを権威として live へマージ反映**する (Codex `config.toml` と同じ思想)。
 
@@ -171,94 +127,5 @@ diff -u "$TMPHOME/.claude/RTK.md" "$NANOKIT/claude/RTK.md"
 # 手動反映したいとき (通常は不要 — SessionStart で自動)
 cd "$NANOKIT" && ./nanokit agent-config-sync        # --diff で事前確認可
 ```
-
-## Scrapling MCP 運用 (Claude Code ⇄ Codex 共有)
-
-`scrapling-mcp` は streamable-http サーバー (`http://127.0.0.1:8323/mcp`) として `~/.claude/scripts/scrapling-mcp-server.sh` 経由で常駐起動される。バイナリは pixi env (`~/nanokit/claude/mcp-servers/scrapling/`) 内、起動コマンドは `pixi run --manifest-path … mcp --http`。
-
-**狙い**: stdio だと Claude Code と Codex がそれぞれ別プロセス (= Playwright/Chromium を二重に) 起動してしまう。HTTP 化して **1 プロセスを両クライアントが同一 URL で共有** する。zotero (`8321`) / workspace-personal (`8322`) と同じ常駐パターン。bind は `127.0.0.1` のみ、認証なし (ローカル専用)。
-
-### ポート割り当て
-
-| サーバー | ポート | ランチャ |
-|---|---|---|
-| zotero-mcp | `8321` | `zotero-mcp-server.sh` |
-| workspace-mcp (personal) | `8322` | `workspace-mcp-personal-server.sh` |
-| scrapling-mcp | `8323` | `scrapling-mcp-server.sh` |
-| workspace-mcp (HDT) | `8324` | `workspace-mcp-hdt-server.sh` |
-
-### クライアント登録 (どちらも dotter 管理外の state ファイル)
-
-新ホストでは `dotter deploy` 後に **両方を手動で登録** する必要がある:
-
-```bash
-# Claude Code (~/.claude.json) — user scope の HTTP として登録
-claude mcp add --transport http -s user scrapling http://127.0.0.1:8323/mcp
-
-# Codex (~/.codex/config.toml) — [mcp_servers.scrapling] に url を追記
-codex mcp add ...   # または config.toml に直接:
-#   [mcp_servers.scrapling]
-#   url = "http://127.0.0.1:8323/mcp"
-```
-
-起動自体は `settings.json` の SessionStart hook + `ECC_MCP_RECONNECT_SCRAPLING` が担当 (冪等: 既に healthy なら no-op)。
-
-### トラブルシュート
-
-```bash
-# 現状確認
-bash ~/.claude/scripts/scrapling-mcp-server.sh status
-tail -20 ~/.claude/debug/scrapling-mcp.log
-
-# 再起動
-bash ~/.claude/scripts/scrapling-mcp-server.sh stop
-bash ~/.claude/scripts/scrapling-mcp-server.sh start
-
-# 接続確認 (両クライアント)
-claude mcp list | grep scrapling      # → http://127.0.0.1:8323/mcp (HTTP) - ✓ Connected
-codex mcp get scrapling               # → transport: streamable_http
-```
-
-ポート変更は `SCRAPLING_MCP_PORT` 環境変数で上書き可 (変更時は両クライアントの登録 URL も更新)。
-
-## Google Workspace MCP 運用 (複数アカウント・全フォルダ直接)
-
-個人アカウントのどのフォルダからも複数の Google アカウントへ直接届くよう、`workspace-mcp` を **アカウント別の常駐 HTTP シングルトン** として立て、**user スコープ**で登録する。
-
-> **関連リポジトリ (責務分担)**: クライアント (HDT / OpenHeart / uSonar / Lagoon / personal …) ごとの振り分け — direnv `.envrc`・per-client `.mcp.json`・Team アカウントの `CLAUDE_CONFIG_DIR` 隔離 (`~/.claude-hdt`) — は別リポジトリ [`claude-settings`](https://github.com/DenDen047/claude-settings) (private) が担う。nanokit は **個人 `~/.claude` の共通基盤と、ここに挙げた常駐 MCP サーバ (プロセス) の実体**を提供する側。`claude-settings/setup-config-dirs.sh` は `~/.claude-hdt` を作る際に nanokit の `~/.claude/{settings.json,skills,scripts,CLAUDE.md,…}` を symlink するので、HDT の Claude アカウントも nanokit の基盤を継承する。全体像は [`ARCHITECTURE.md`](./ARCHITECTURE.md) の §3.3。
-
-| サーバ名 | ポート | creds dir | Google アカウント | ツール接頭辞 |
-|---|---|---|---|---|
-| `workspace-personal` | `8322` | `personal` | `sh.mn.nat@gmail.com` (= frogiraffe) | `mcp__workspace-personal__*` |
-| `workspace-hdt` | `8324` | `HDT` | `n.muramatsu@hyper-digitaltwins.com` | `mcp__workspace-hdt__*` |
-
-**設計**: いずれも **ポータブルな OAuth creds (タイプA)** を使うため、HDT の **Claude アカウント (軸A, `CLAUDE_CONFIG_DIR=~/.claude-hdt`)** とは独立に HDT の Google データへ到達できる (越境スケジューリングの核心)。OAuth クライアントは両者共通 (`claude-google-oauth`)、creds dir と USER_GOOGLE_EMAIL だけが異なる。常駐は冪等シングルトン、並列 Claude で 1 プロセス共有 (zotero/scrapling と同じ)。
-
-> `workspace` という名前は Claude Code の**予約名**なので使えない → 個人側は `workspace-personal`。
-
-### クライアント登録 (dotter 管理外の state — 新ホストでは手動)
-
-`dotter deploy` 後、`~/.claude.json` に user スコープで手動登録する (scrapling と同じ):
-
-```bash
-claude mcp add --transport http -s user workspace-personal http://127.0.0.1:8322/mcp
-claude mcp add --transport http -s user workspace-hdt        http://127.0.0.1:8324/mcp
-```
-
-起動自体は `settings.json` の SessionStart hook + `ECC_MCP_RECONNECT_WORKSPACE_HDT` が担当 (冪等)。HDT は `CLAUDE_CONFIG_DIR=~/.claude-hdt` 配下の設定を読むため、この user スコープ登録は **個人アカウントのセッションにのみ**効く (HDT フォルダには波及しない)。
-
-### トラブルシュート
-
-```bash
-bash ~/.claude/scripts/workspace-mcp-hdt-server.sh status
-tail -20 ~/.claude/debug/workspace-mcp-hdt.log
-claude mcp list | grep workspace        # → ✔ Connected を確認
-# 接続アカウントの確認 (initialize が "Connected Google account: …" を返す)
-curl -s -X POST http://127.0.0.1:8324/mcp -H 'Content-Type: application/json' \
-  -H 'Accept: application/json, text/event-stream' \
-  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"c","version":"0"}}}'
-```
-
-HDT の OAuth トークンが失効したら creds dir (`~/.config/google-workspace-mcp/HDT`) を削除し、`workspace-mcp` の再認証フローを通す。
 
 @RTK.md

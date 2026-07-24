@@ -68,9 +68,6 @@ show_help() {
     echo -e "${CYAN}Commands:${NC}"
     echo "  install         🚀 Install and setup nanokit environment"
     echo "  claude-setup    🤖 Setup Claude Code configuration and plugins"
-    echo "  aris-install    🌙 Install ARIS research skills into ~/.claude/skills (optional)"
-    echo "  aris-update     🔄 Update ARIS skills to the latest version"
-    echo "  aris-uninstall  🧹 Remove ARIS skills and clone"
     echo "  ecc-install     🔧 Install ECC (Everything Claude Code) skills (optional)"
     echo "  ecc-update      🔄 Update ECC skills to the latest version"
     echo "  ecc-uninstall   🧹 Remove ECC skills and clone"
@@ -319,111 +316,13 @@ claude_setup() {
     print_info "  1. Configure local settings: ~/.claude/settings.local.json"
     print_info "  2. (Optional) Install skill sets:"
     print_info "     ./nanokit ecc-install    # Everything Claude Code skills"
-    print_info "     ./nanokit aris-install   # ARIS research skills"
     print_info "     ./nanokit codex-install  # OpenAI Codex CLI + MCP"
     echo ""
     print_success "🤖 Claude Code setup completed!"
 }
 
-# ARIS (Auto-Research-In-Sleep) optional setup
-ARIS_REPO="https://github.com/wanshuiyin/Auto-claude-code-research-in-sleep.git"
-ARIS_DIR="$NANOKIT_ROOT/claude/external/aris"
-ARIS_SKILLS_DIR="$HOME/.claude/skills"
-
-# Directories under ARIS skills/ that are alternative-stack packages (Codex-as-main,
-# Gemini-as-reviewer, etc.), NOT Claude Code skills. The default ARIS flow is Claude Code
-# as executor + Codex as reviewer via Codex MCP, so these should be excluded from the
-# ~/.claude/skills/ symlink loop.
-ARIS_NON_CLAUDE_PACKAGES=(skills-codex skills-codex-claude-review skills-codex-gemini-review)
-
-aris_is_non_claude_package() {
-    local name="$1"
-    local pkg
-    for pkg in "${ARIS_NON_CLAUDE_PACKAGES[@]}"; do
-        [[ "$name" == "$pkg" ]] && return 0
-    done
-    return 1
-}
-
-aris_install() {
-    print_ascii_art
-
-    print_step "Installing ARIS (Auto-Research-In-Sleep) skills..."
-    echo ""
-
-    if ! command -v git &> /dev/null; then
-        print_error "git is required. Install with: pixi global install git"
-        exit 1
-    fi
-
-    if [[ -d "$ARIS_DIR/.git" ]]; then
-        print_step "Updating existing ARIS clone..."
-        git -C "$ARIS_DIR" pull --ff-only
-    else
-        print_step "Cloning ARIS repository to $ARIS_DIR..."
-        mkdir -p "$(dirname "$ARIS_DIR")"
-        git clone --depth 1 "$ARIS_REPO" "$ARIS_DIR"
-    fi
-    print_success "ARIS repository ready"
-    echo ""
-
-    if [[ ! -d "$ARIS_DIR/skills" ]]; then
-        print_error "ARIS skills directory not found at $ARIS_DIR/skills"
-        exit 1
-    fi
-
-    # Clean up stale non-Claude package symlinks left by earlier nanokit versions
-    # that indiscriminately symlinked every subdirectory of skills/.
-    if [[ -d "$ARIS_SKILLS_DIR" ]]; then
-        local pkg
-        for pkg in "${ARIS_NON_CLAUDE_PACKAGES[@]}"; do
-            local stale="$ARIS_SKILLS_DIR/$pkg"
-            if [[ -L "$stale" ]]; then
-                rm "$stale"
-                print_warning "Removed stale Claude symlink: $stale"
-            fi
-        done
-    fi
-
-    mkdir -p "$ARIS_SKILLS_DIR"
-
-    print_step "Symlinking ARIS skills into $ARIS_SKILLS_DIR..."
-    local count=0
-    local skipped=0
-    for skill_path in "$ARIS_DIR"/skills/*/; do
-        [[ -d "$skill_path" ]] || continue
-        local name
-        name="$(basename "$skill_path")"
-
-        if aris_is_non_claude_package "$name"; then
-            continue
-        fi
-
-        local target="$ARIS_SKILLS_DIR/$name"
-
-        if [[ -e "$target" && ! -L "$target" ]]; then
-            print_warning "Skipping '$name' (existing non-symlink)"
-            skipped=$((skipped + 1))
-            continue
-        fi
-        ln -sfn "${skill_path%/}" "$target"
-        count=$((count + 1))
-    done
-    print_success "Linked $count ARIS skill(s)"
-    if [[ $skipped -gt 0 ]]; then
-        print_warning "$skipped skill(s) skipped due to name collision"
-    fi
-    echo ""
-
-    # ARIS uses Codex as the external reviewer via Codex MCP registered in Claude Code.
-    aris_codex_mcp_setup
-
-    print_info "ARIS docs: https://github.com/wanshuiyin/Auto-claude-code-research-in-sleep"
-    print_success "🌙 ARIS installed. Restart Claude Code to load new skills."
-}
-
 # Register Codex as an MCP server in Claude Code.
-# Shared by codex_install() and aris_codex_mcp_setup().
+# Used by codex_install().
 # Returns 0 on success/already-registered, 1 if claude CLI is unavailable.
 codex_mcp_register() {
     if ! command -v claude &> /dev/null; then
@@ -443,83 +342,6 @@ codex_mcp_register() {
             print_info "  claude mcp add codex -s user -- codex mcp-server"
         fi
     fi
-}
-
-# Set up the Codex reviewer path for ARIS:
-#  1. Ensure Codex CLI is installed
-#  2. Register Codex MCP
-#  3. Remind the user to run interactive setup
-aris_codex_mcp_setup() {
-    print_step "Setting up Codex MCP reviewer for ARIS..."
-    echo ""
-
-    # 1. Ensure Codex CLI is installed
-    if ! command -v codex &> /dev/null; then
-        print_warning "Codex CLI not found. Installing..."
-        codex_install
-        echo ""
-        if ! command -v codex &> /dev/null; then
-            print_error "Codex CLI install failed. Run: ./nanokit codex-install"
-            return 1
-        fi
-    else
-        print_info "Codex CLI present: $(codex --version 2>/dev/null || echo 'unknown')"
-    fi
-    echo ""
-
-    # 2. Register Codex MCP (shared logic)
-    codex_mcp_register || return 1
-    echo ""
-
-    # 3. Remind about interactive setup
-    print_info "Next steps (interactive, run manually):"
-    print_info "  1. codex login        # authenticate Codex"
-    print_info "  2. codex setup        # select gpt-5.6-sol as the default model"
-    print_info "  3. Restart Claude Code to load the new MCP server"
-    echo ""
-}
-
-aris_update() {
-    if [[ ! -d "$ARIS_DIR/.git" ]]; then
-        print_error "ARIS is not installed. Run: ./nanokit aris-install"
-        exit 1
-    fi
-    aris_install
-}
-
-aris_uninstall() {
-    print_ascii_art
-
-    print_warning "This will remove ARIS symlinks and the clone at $ARIS_DIR"
-    read -p "🗑️  Proceed? (y/N): " -n 1 -r
-    echo ""
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        print_info "Cancelled"
-        return 0
-    fi
-
-    if [[ -d "$ARIS_SKILLS_DIR" ]]; then
-        print_step "Removing ARIS symlinks from $ARIS_SKILLS_DIR..."
-        local removed=0
-        for link in "$ARIS_SKILLS_DIR"/*; do
-            [[ -L "$link" ]] || continue
-            local resolved
-            resolved="$(readlink "$link")"
-            if [[ "$resolved" == "$ARIS_DIR"/* ]]; then
-                rm "$link"
-                removed=$((removed + 1))
-            fi
-        done
-        print_success "Removed $removed ARIS symlink(s)"
-    fi
-
-    if [[ -d "$ARIS_DIR" ]]; then
-        print_step "Removing ARIS clone..."
-        rm -rf "$ARIS_DIR"
-        print_success "Removed $ARIS_DIR"
-    fi
-
-    print_success "🧹 ARIS uninstalled"
 }
 
 # last30days optional setup
@@ -1497,15 +1319,6 @@ main() {
             ;;
         "claude-setup")
             claude_setup
-            ;;
-        "aris-install")
-            aris_install
-            ;;
-        "aris-update")
-            aris_update
-            ;;
-        "aris-uninstall")
-            aris_uninstall
             ;;
         "last30days-install")
             last30days_install

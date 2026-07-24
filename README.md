@@ -401,23 +401,17 @@ Client-scoped MCPs such as `workspace-hdt` / `workspace-personal` are intentiona
 
 ```bash
 claude plugin marketplace add affaan-m/everything-claude-code
-claude plugin marketplace add Lum1104/Understand-Anything
-claude plugin marketplace add DenDen047/claude-scientific-skills
 ```
 
 **Step 2: プラグインのインストール**
 
 ```bash
 claude plugin install everything-claude-code@everything-claude-code
-claude plugin install understand-anything@understand-anything
-claude plugin install scientific-skills@claude-scientific-skills
 ```
 
 | Plugin | Marketplace (GitHub) | Description |
 |--------|---------------------|-------------|
 | **everything-claude-code** | [affaan-m/everything-claude-code](https://github.com/affaan-m/everything-claude-code) | Agent, skill, rule の包括的コレクション |
-| **understand-anything** | [Lum1104/Understand-Anything](https://github.com/Lum1104/Understand-Anything) | コードベースの知識グラフ生成・探索 |
-| **scientific-skills** | [DenDen047/claude-scientific-skills](https://github.com/DenDen047/claude-scientific-skills) | 科学計算スキル (データ分析, 可視化, LaTeX 等) |
 
 ### What is managed
 
@@ -438,36 +432,6 @@ Plugin-managed files and runtime data remain outside this synchronization. A non
 Configure machine-specific settings manually:
 - MCP servers: `~/.claude/mcp-configs/mcp-servers.json`
 - Local overrides: `~/.claude/settings.local.json`
-
-## 🌙 ARIS - Auto-Research-In-Sleep (Optional)
-
-[ARIS](https://github.com/wanshuiyin/Auto-claude-code-research-in-sleep) は、自律的な ML リサーチ用の Markdown-only スキル集（論文レビューループ、アイデア探索、実験自動化など 50+ 個）です。Claude plugin marketplace には対応していないため、nanokit では **optional なサブコマンド** として管理します。
-
-> [!NOTE]
-> ARIS は `./nanokit install` では導入されません。必要なときだけ明示的に `aris-install` を叩いてください。
-
-### Install
-
-```bash
-./nanokit aris-install
-```
-
-これにより以下が行われます:
-
-1. `nanokit/claude/external/aris/` に ARIS リポジトリを shallow clone（`.gitignore` 済み）
-2. `skills/*/` の各スキルを `~/.claude/skills/<skill-name>` へ symlink
-3. 既存の同名ファイル（非 symlink）があれば衝突回避のためスキップ
-
-clone先をnanokit配下に置くことでsymlinkの出所を追跡できます。ARISはClaude Code固有の実行構成を含むoptional packageなので、`agent-config-sync`が管理する共通 `claude/skills/*` とは分離しています。Codexへ共有する場合は、Agent Skills互換を確認したskillだけを共通原本へ昇格させます。
-
-### Update / Uninstall
-
-```bash
-./nanokit aris-update      # git pull + symlink 再リンク
-./nanokit aris-uninstall   # ARIS symlink と clone を削除
-```
-
-`aris-uninstall` は `~/.claude/skills/` 配下のうち **`nanokit/claude/external/aris/` を指している symlink のみ** を削除するため、他のスキルには影響しません。
 
 ## 📚 Zotero MCP (Optional)
 

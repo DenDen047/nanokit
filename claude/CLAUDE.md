@@ -2,7 +2,7 @@
 
 ## シンボリックリンク構造
 
-このファイル (`<nanokit>/claude/CLAUDE.md`) がグローバル指示の source of truth。
+このファイル (`<nanokit>/claude/CLAUDE.md`) がグローバル指示の本体。
 
 - Claude Code: dotter が `~/.claude/CLAUDE.md` へ symlink する。
 - Codex: `./nanokit agent-config-sync` が `~/.codex/AGENTS.md` へ symlink する。

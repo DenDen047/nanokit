@@ -197,7 +197,7 @@ claude/
 ├── agents/              # カスタム sub-agent（root-cause, status-briefing）
 ├── ccstatusline/        # ステータスライン設定（→ ~/.config/ccstatusline/）
 ├── mcp-servers/         # MCP サーバの pixi env（zotero-mcp, scrapling）
-└── external/            # 外部クローン置き場（ARIS 等、dotter 管轄外）
+└── external/            # 外部クローン置き場（last30days 等、dotter 管轄外）
 ```
 
 システムに直接組み込まれている skill / agent:

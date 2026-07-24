@@ -171,7 +171,7 @@ flowchart TB
 | `scrapling` | `8323` | [`scrapling-mcp-server.sh`](./scripts/scrapling-mcp-server.sh) | `mcp-servers/scrapling/` | Claude Code ⇄ Codex 共有 |
 | `workspace-hdt` | `8324` | [`workspace-mcp-hdt-server.sh`](./scripts/workspace-mcp-hdt-server.sh) | uvx | `n.muramatsu@hyper-digitaltwins.com` |
 
-> 各サーバの credentials・モード切替・接続確認の手順は [`CLAUDE.md`](./CLAUDE.md) の「Zotero MCP 運用」「Scrapling MCP 運用」「Google Workspace MCP 運用」を参照。
+> 各サーバの credentials・モード切替・接続確認の手順は [`../specs/mcp-operations.md`](../specs/mcp-operations.md) を参照。
 
 ---
 
@@ -233,7 +233,7 @@ claude/
 ## 8. もっと詳しく
 
 - **マルチアカウント／クライアント振り分けのマスター**: [`claude-settings`](https://github.com/DenDen047/claude-settings)（private）— 各クライアントの `templates/`・`deploy.sh`・direnv `.envrc`・`CLAUDE_CONFIG_DIR` 隔離。nanokit と対になる片割れ。
-- **運用 runbook（権威ある詳細）**: [`CLAUDE.md`](./CLAUDE.md) — シンボリックリンク構造 / 環境管理ポリシー / Zotero・Scrapling・Workspace MCP の各運用節。
+- **運用 runbook（権威ある詳細）**: [`CLAUDE.md`](./CLAUDE.md)（シンボリックリンク構造 / 環境管理ポリシー / MCP 運用の原則）と [`../specs/mcp-operations.md`](../specs/mcp-operations.md)（Zotero・Scrapling・Workspace MCP の起動・認証・トラブルシュート）。
 - **Skills vs Commands vs Sub-agents の概念整理**: [`README.md`](./README.md)。
 - **設計の背景・意思決定の記録**: [`../docs/2026-06-29_claude-code-multiproject-cleanup.html`](../docs/2026-06-29_claude-code-multiproject-cleanup.html)。
 - **リポジトリ全体（pixi / dotter / シェル）**: [`../README.md`](../README.md)。

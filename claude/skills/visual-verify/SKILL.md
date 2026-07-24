@@ -32,7 +32,7 @@ description: >
 
    | 対象 | 取得方法 |
    |---|---|
-   | URL | Claude-in-Chrome（`tabs_create_mcp` → `navigate` → `computer` screenshot、無ければ `playwright-cli` スキル）。**主要ブレークポイント**（例 375 / 768 / 1280px）でそれぞれ撮る |
+   | URL | Claude-in-Chrome（`tabs_create_mcp` → `navigate` → `computer` screenshot、無ければヘッドレスブラウザで PNG 出力）。**主要ブレークポイント**（例 375 / 768 / 1280px）でそれぞれ撮る |
    | ローカル HTML | `file://` で同上、またはヘッドレスブラウザで PNG 出力 |
    | SVG | `rsvg-convert -o /tmp/vv.png <file.svg>`（無ければヘッドレスブラウザ） |
    | PDF | `pdftoppm -png -r 150 <file.pdf> /tmp/vv` でページ画像化 |

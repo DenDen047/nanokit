@@ -6,7 +6,7 @@
 
 - Claude Code: dotter が `~/.claude/CLAUDE.md` へ symlink する。
 - Codex: `./nanokit agent-config-sync` が `~/.codex/AGENTS.md` へ symlink する。
-- 共有スキル: `<nanokit>/claude/skills/<name>` を原本として、同コマンドが `~/.claude/skills/<name>` と `~/.agents/skills/<name>` の両方へ symlink する。
+- 共有スキル: `<nanokit>/claude/skills/<name>` を原本として、同コマンドが `~/.claude/skills/<name>` と `~/.agents/skills/<name>` の両方へ symlink する。配布は毎セッション `SessionStart` hook (`agent-config-sync-reconnect.sh`) が冪等に自己修復し、**成功時は無音・未同期が出た時だけ** `systemMessage` で警告する (手動同期漏れによる 2026-07 のスキル配布ドリフト再発防止)。`sync-config.py` は1件の衝突で全体を止めず、該当項目だけスキップして残りを配布し明示報告する (`rc=2`)。
 
 共有skill内では利用中のクライアントで実在するtoolを選ぶ。Claude Code pluginやaccount-level ConnectorにしかないtoolをCodex側で推測して呼ばず、代替adapterがなければ利用不能であることを明示する。
 

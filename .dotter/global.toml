@@ -26,6 +26,7 @@ wezterm = { target = "$HOME/.config/wezterm", type = "symbolic", recurse = false
 "claude/scripts/karpathy-reminder.sh" = "$HOME/.claude/scripts/karpathy-reminder.sh"
 "claude/scripts/vision-reminder.sh" = "$HOME/.claude/scripts/vision-reminder.sh"
 "claude/scripts/memory-extract.sh" = "$HOME/.claude/scripts/memory-extract.sh"
+"claude/scripts/agent-config-sync-reconnect.sh" = "$HOME/.claude/scripts/agent-config-sync-reconnect.sh"
 "claude/scripts/mmdc" = "$HOME/.pixi/bin/mmdc"
 "tools/jarvislabs/jl" = "$HOME/.pixi/bin/jl"
 "claude/agents" = { target = "$HOME/.claude/agents", type = "symbolic", recurse = false }

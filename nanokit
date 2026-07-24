@@ -296,7 +296,7 @@ claude_setup() {
     echo ""
 
     # Share nanokit's instructions and skills with both Claude Code and Codex.
-    agent_config_sync
+    agent_config_sync || print_warning "agent-config-sync reported unsynced items (see the ⚠️ list above)"
     echo ""
 
     # Setup Scrapling MCP server

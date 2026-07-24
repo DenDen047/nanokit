@@ -175,23 +175,36 @@ def main() -> int:
 
     try:
         live, old_text, new_text = config_change()
-        link_actions = [
-            (source, destination, action)
-            for source, destination, replace_empty in desired_links()
-            if (action := plan_link(source, destination, replace_empty_file=replace_empty))
-        ]
     except (OSError, SyncConflict) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
+
+    # Plan links one at a time so a single stale/conflicting path can't abort the
+    # whole sync. (2026-07: one non-symlink dir sitting in ~/.claude/skills made the
+    # old all-or-nothing comprehension raise SyncConflict and skip ALL 40 Claude-side
+    # skill links, while the clean ~/.agents side succeeded -- an invisible failure.)
+    # Collect conflicts instead of raising, apply everything safe, and report loudly.
+    link_actions: list[tuple[Path, Path, str]] = []
+    conflicts: list[str] = []
+    for source, destination, replace_empty in desired_links():
+        try:
+            action = plan_link(source, destination, replace_empty_file=replace_empty)
+        except (OSError, SyncConflict) as exc:
+            conflicts.append(str(exc))
+            continue
+        if action:
+            link_actions.append((source, destination, action))
 
     config_changed = old_text != new_text
     if args.diff:
         print_config_diff(live, old_text, new_text)
         for source, destination, action in link_actions:
             print(f"{action}: {destination} -> {source}")
-        if not config_changed and not link_actions:
+        for msg in conflicts:
+            print(f"WOULD SKIP (conflict): {msg}", file=sys.stderr)
+        if not config_changed and not link_actions and not conflicts:
             print("All shared agent settings are already in sync.")
-        return 0
+        return 2 if conflicts else 0
 
     if config_changed:
         live.parent.mkdir(parents=True, exist_ok=True)
@@ -200,11 +213,32 @@ def main() -> int:
     else:
         print(f"✓ portable Codex config already in sync: {live}")
 
+    failures: list[str] = []
     for source, destination, action in link_actions:
-        apply_link(source, destination, action)
+        try:
+            apply_link(source, destination, action)
+        except OSError as exc:
+            failures.append(f"{destination}: {exc}")
+            continue
         print(f"✓ {action}: {destination} -> {source}")
-    if not link_actions:
+    if not link_actions and not conflicts:
         print("✓ shared instructions and skills already in sync")
+
+    problems = conflicts + failures
+    if problems:
+        print("", file=sys.stderr)
+        print(
+            f"⚠️  agent-config-sync: {len(problems)} shared item(s) NOT synced:",
+            file=sys.stderr,
+        )
+        for msg in problems:
+            print(f"    - {msg}", file=sys.stderr)
+        print(
+            "    Fix: remove the stale non-symlink path above, then re-run "
+            "`./nanokit agent-config-sync`.",
+            file=sys.stderr,
+        )
+        return 2
     return 0
 
 

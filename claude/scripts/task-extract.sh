@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+# STATUS (2026-07): 保留中 — 作成・検証済みだが配線が未完了。radar の chat-log 候補源。
+#   有効化には (1) .dotter/global.toml で ~/.claude/scripts/ へ symlink し、
+#   (2) claude/settings.json の SessionEnd hook に登録する。未配線ゆえ「孤立」に見えるが、
+#   claude-settings の radar/inbox_sync.py が本スクリプトの出力 (chat-queue.jsonl) を
+#   消費する設計。削除しないこと (2026-07 レビューで削除候補に挙がったが radar が依存)。
+#
 # SessionEnd hook: SILENT background extraction of PENDING TASKS the user
 # committed to / that emerged in the just-ended session, into the task-radar
 # chat queue (~/.local/state/task-radar/chat-queue.jsonl).

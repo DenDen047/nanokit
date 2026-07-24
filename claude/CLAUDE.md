@@ -17,7 +17,6 @@
 | リポジトリ内パス | シンボリックリンク先 |
 |---|---|
 | `claude/CLAUDE.md` | `~/.claude/CLAUDE.md` |
-| `claude/settings.json` | `~/.claude/settings.json` |
 | `claude/scripts/zotero-mcp-server.sh` | `~/.claude/scripts/zotero-mcp-server.sh` |
 | `claude/scripts/scrapling-mcp-server.sh` | `~/.claude/scripts/scrapling-mcp-server.sh` |
 | `claude/scripts/workspace-mcp-hdt-server.sh` | `~/.claude/scripts/workspace-mcp-hdt-server.sh` |
@@ -27,7 +26,7 @@
 | `claude/ccstatusline/settings.json` | `~/.config/ccstatusline/settings.json` |
 | `claude/output-styles` | `~/.claude/output-styles` |
 
-設定を変更する場合はnanokit側の原本を編集し、ツール固有設定は `dotter deploy`、共有指示・スキル・Codex設定は `./nanokit agent-config-sync` で反映する。
+設定を変更する場合はnanokit側の原本を編集し、ツール固有設定は `dotter deploy`、共有指示・スキル・Codex設定・`settings.json` は `./nanokit agent-config-sync` で反映する。`settings.json` だけは Claude Code 自身がUI変更やキー正規化で書き戻す (= symlink 不可) ため dotter ではなく agent-config-sync が管理する (下記「settings.json の反映モデル」)。
 
 ## コーディング基本則 (Karpathy 4 tenets)
 
@@ -160,18 +159,17 @@ HOME="$TMPHOME" rtk init -g --auto-patch
 diff -u "$TMPHOME/.claude/RTK.md" "$NANOKIT/claude/RTK.md"
 ```
 
-### symlink 破壊からの復旧
+### settings.json の反映モデル (symlink ではなく管理反映)
 
-万一 `~/.claude/settings.json` が通常ファイル化していたら:
+`~/.claude/settings.json` は **Claude Code 自身が所有する読み書きファイル**。UI での設定変更 (`/model` `/vim` 出力スタイル プラグイン有効化 など) やキー正規化のたびにアプリが atomic replace で書き戻すため、symlink にすると壊れる (実体ファイル化する)。よって dotter 管理せず、`agent-config-sync` (`codex/sync-config.py` の `settings_change()`) が **nanokit 原本の宣言キーを権威として live へマージ反映**する (Codex `config.toml` と同じ思想)。
+
+- 原本が宣言するトップレベルキーは原本が勝つ。**live 側だけのアプリ由来キー (`hasCompletedOnboarding` 等) は保持**する (データ損失なし)。
+- 反映は毎セッション `SessionStart` hook (`agent-config-sync-reconnect.sh`) が冪等に自己修復。実体ファイルがズレても次セッションで自動的に再マージされるので **手動復旧は不要**。
+- 含意: アプリ内で管理キーを変えても次の同期で原本値に戻る。恒久化したい変更は **nanokit 原本の `settings.json` を編集**する (単一ソース)。
 
 ```bash
-# 1. ~/.claude 側の最新内容を nanokit に取り込み (通常ファイル → リポジトリへ)
-cp ~/.claude/settings.json "$NANOKIT/claude/settings.json"
-# 2. 通常ファイルを削除して dotter で symlink を回復
-rm ~/.claude/settings.json
-cd "$NANOKIT" && dotter deploy
-# 3. 検証
-readlink ~/.claude/settings.json   # → $NANOKIT/claude/settings.json が出れば OK
+# 手動反映したいとき (通常は不要 — SessionStart で自動)
+cd "$NANOKIT" && ./nanokit agent-config-sync        # --diff で事前確認可
 ```
 
 ## Scrapling MCP 運用 (Claude Code ⇄ Codex 共有)

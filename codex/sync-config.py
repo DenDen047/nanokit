@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import difflib
+import json
 import os
 import re
 import shutil
@@ -16,6 +17,7 @@ CONFIG_SOURCE = NANOKIT_ROOT / "codex" / "config.toml"
 RULES_SOURCE = NANOKIT_ROOT / "codex" / "rules"
 INSTRUCTIONS_SOURCE = NANOKIT_ROOT / "claude" / "CLAUDE.md"
 SKILLS_SOURCE = NANOKIT_ROOT / "claude" / "skills"
+SETTINGS_SOURCE = NANOKIT_ROOT / "claude" / "settings.json"
 KEY_RE = re.compile(r"^([A-Za-z0-9_-]+)\s*=")
 SECTION_RE = re.compile(r"^\s*\[")
 
@@ -77,6 +79,53 @@ def config_change() -> tuple[Path, str, str]:
     old_text = live.read_text() if live.exists() else ""
     new_text = upsert(old_text, managed_lines()) if live.exists() else CONFIG_SOURCE.read_text()
     return live, old_text, new_text
+
+
+def settings_change() -> tuple[Path, str, str] | None:
+    """Reflect nanokit's settings.json into ~/.claude/settings.json.
+
+    Claude Code owns this file at runtime -- it rewrites it (via atomic replace)
+    to persist in-app setting changes and to reorder keys -- so it cannot be a
+    dotter symlink: the app's rewrite would clobber the link with a regular file.
+    Instead nanokit is the source of truth for the top-level keys it declares,
+    and any top-level key present only in the live file (app-added runtime state)
+    is preserved. Consequence: in-app changes to a managed key reset to nanokit's
+    value on the next sync; to make one stick, edit nanokit's settings.json.
+    """
+    if not SETTINGS_SOURCE.exists():
+        return None
+    live = home_path() / ".claude" / "settings.json"
+    try:
+        source_obj = json.loads(SETTINGS_SOURCE.read_text())
+    except ValueError as exc:
+        raise SyncConflict(f"invalid JSON in {SETTINGS_SOURCE}: {exc}") from exc
+
+    live_obj: dict = {}
+    is_symlink = live.is_symlink()
+    if live.exists() and not is_symlink:
+        try:
+            live_obj = json.loads(live.read_text())
+        except (OSError, ValueError):
+            live_obj = {}
+
+    merged = dict(source_obj)  # nanokit keys win, in nanokit's order
+    for key, value in live_obj.items():
+        if key not in merged:  # preserve app-only top-level keys
+            merged[key] = value
+
+    new_text = json.dumps(merged, indent=2, ensure_ascii=False) + "\n"
+    # Empty old_text when the path is still a symlink guarantees old != new, so
+    # the first sync flips ownership from the symlink to a managed regular file.
+    old_text = live.read_text() if (live.exists() and not is_symlink) else ""
+    return live, old_text, new_text
+
+
+def atomic_write(path: Path, text: str) -> None:
+    """Write text, atomically replacing an existing regular file OR symlink."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".nanokit.tmp")
+    tmp.write_text(text)
+    os.replace(tmp, path)
 
 
 def resolved_link(path: Path) -> Path | None:
@@ -175,6 +224,7 @@ def main() -> int:
 
     try:
         live, old_text, new_text = config_change()
+        settings = settings_change()
     except (OSError, SyncConflict) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
@@ -196,13 +246,16 @@ def main() -> int:
             link_actions.append((source, destination, action))
 
     config_changed = old_text != new_text
+    settings_changed = settings is not None and settings[1] != settings[2]
     if args.diff:
         print_config_diff(live, old_text, new_text)
+        if settings_changed:
+            print_config_diff(settings[0], settings[1], settings[2])
         for source, destination, action in link_actions:
             print(f"{action}: {destination} -> {source}")
         for msg in conflicts:
             print(f"WOULD SKIP (conflict): {msg}", file=sys.stderr)
-        if not config_changed and not link_actions and not conflicts:
+        if not config_changed and not settings_changed and not link_actions and not conflicts:
             print("All shared agent settings are already in sync.")
         return 2 if conflicts else 0
 
@@ -212,6 +265,14 @@ def main() -> int:
         print(f"✓ synced portable Codex config: {live}")
     else:
         print(f"✓ portable Codex config already in sync: {live}")
+
+    if settings is not None:
+        s_live, _s_old, s_new = settings
+        if settings_changed:
+            atomic_write(s_live, s_new)
+            print(f"✓ reflected settings.json: {s_live}")
+        else:
+            print(f"✓ settings.json already in sync: {s_live}")
 
     failures: list[str] = []
     for source, destination, action in link_actions:

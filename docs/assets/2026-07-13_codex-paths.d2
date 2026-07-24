@@ -57,7 +57,6 @@ cc: "Claude Code セッション" {
     discuss: "/codex-discuss\n(壁打ち・多ラウンド)" { class: own }
     lgtm: "/lgtm-loop\nREVIEW ステップ" { class: own }
     survey: "ultrasurvey\nweb 検索レッグ" { class: own }
-    aris: "ARIS\n外部レビュアー" { class: own }
   }
 
   pl: "新規 (導入): 公式プラグイン codex@openai-codex" {
@@ -74,7 +73,6 @@ broker: "codex-companion.mjs\n→ Codex app server" { class: plugin }
 cc.own.discuss -> mcp: "mcp__codex__codex\n+ codex-reply (threadId)"
 cc.own.lgtm -> mcp
 cc.own.survey -> mcp
-cc.own.aris -> mcp
 
 cc.pl.review -> broker: "node (background 可)"
 cc.pl.rescue -> broker

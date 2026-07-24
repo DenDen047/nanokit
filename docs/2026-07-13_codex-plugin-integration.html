@@ -197,7 +197,7 @@
         <p class="lead">
           <strong>全面置き換えは不可、「レビュー系 = 公式プラグイン / 対話・検索系 = 既存 MCP」の役割分担が現実解。</strong>
           公式プラグインは MCP ではなく Codex app server を直接叩く別経路で、threadId を使った継続対話の仕組みを持たない。
-          そのため codex-discuss・ultrasurvey 検索レッグ・ARIS が依存する <code>codex mcp-server</code> の登録は存続が必須。
+          そのため codex-discuss・ultrasurvey 検索レッグが依存する <code>codex mcp-server</code> の登録は存続が必須。
           一方、両経路とも同じ <code>~/.codex/config.toml</code> と認証を継承するので「最高モデルの単一ソース」原則はそのまま保たれる。
         </p>
         <div class="intent">
@@ -264,7 +264,6 @@
             <tr><td><code>/codex-discuss</code></td><td><code>nanokit/claude/skills/codex-discuss</code></td><td>設計壁打ち。threadId で最大 3 ラウンド往復</td><td><span class="pill p5">不可</span> 対応物なし</td></tr>
             <tr><td><code>/lgtm-loop</code></td><td><code>nanokit/claude/skills/lgtm-loop</code></td><td>1 巡目は /codex-review、2 巡目以降は <code>codex-reply</code>（threadId）で継続レビュー。severity を TaskCreate に分解</td><td><span class="pill p3">部分的</span> 要再設計（論点 3）</td></tr>
             <tr><td>ultrasurvey 検索レッグ</td><td><code>agentic-knowledge-base/.agents/skills/ultrasurvey</code></td><td>web 検索クエリを Codex（<code>web_search = "live"</code>）に委譲</td><td><span class="pill p5">不可</span> rescue はタスク委譲形で不適</td></tr>
-            <tr><td>ARIS レビュアー</td><td><code>./nanokit aris-install</code>（<code>aris_codex_mcp_setup</code>）</td><td>Claude 実行 + Codex 外部レビューの前提で Codex MCP を要求</td><td><span class="pill p5">不可</span></td></tr>
           </tbody>
         </table>
 
@@ -331,7 +330,7 @@
               <td><span class="pill p3">要再設計</span></td>
             </tr>
             <tr>
-              <td>ultrasurvey 検索レッグ / ARIS</td>
+              <td>ultrasurvey 検索レッグ</td>
               <td>なし</td>
               <td>—</td>
               <td>—</td>
@@ -354,7 +353,7 @@
 
         <h4>論点 1: <code>codex mcp-server</code> の登録を廃止できるか → できない</h4>
         <p>
-          プラグインは MCP ツールを提供しないので、廃止すると codex-discuss・ultrasurvey 検索レッグ・ARIS が全滅する。
+          プラグインは MCP ツールを提供しないので、廃止すると codex-discuss・ultrasurvey 検索レッグが全滅する。
           さらに headless 文脈（task-radar の実行レッグ等、<code>claude -p</code> で回る仕事）ではスラッシュコマンドより MCP ツールの方が扱いやすい。
         </p>
         <div class="ok">
@@ -504,7 +503,7 @@ claude plugin install codex@openai-codex</code></pre>
           <li><code>nanokit/claude/skills/codex-discuss/SKILL.md</code> — threadId で最大 3 ラウンド往復</li>
           <li><code>nanokit/claude/skills/lgtm-loop/SKILL.md</code> — 2 巡目以降 <code>mcp__codex__codex-reply</code> 直叩き</li>
           <li><code>agentic-knowledge-base/.agents/skills/ultrasurvey/SKILL.md</code> — 検索レッグの <code>mcp__codex__codex</code> 委譲</li>
-          <li><code>nanokit/nanokit</code> — <code>codex_mcp_register()</code> / <code>aris_codex_mcp_setup()</code></li>
+          <li><code>nanokit/nanokit</code> — <code>codex_mcp_register()</code></li>
           <li><code>~/.codex/config.toml</code> — <code>model = "gpt-5.6-sol"</code>, <code>model_reasoning_effort = "xhigh"</code>, <code>web_search = "live"</code></li>
         </ul>
 

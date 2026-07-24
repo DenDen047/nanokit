@@ -14,8 +14,8 @@ model = "gpt-5.6-sol"
 personality = "pragmatic"
 model_reasoning_effort = "xhigh"
 service_tier = "default"
-# 承認ポリシー: 信頼済みコマンド以外は毎回承認を求める (最も慎重な untrusted)
-approval_policy = "untrusted"
+# 承認ポリシー: never = どのコマンドも承認を求めず自律実行する (最も緩い)
+approval_policy = "never"
 # web 検索は live (外部 web へ直接アクセス)。既定 "cached" は OpenAI 管理索引のみで鮮度が落ちる。
 web_search = "live"
 # Nested repositories can still discover a client-level CLAUDE.md when AGENTS.md is absent.

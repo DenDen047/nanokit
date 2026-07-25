@@ -1,18 +1,26 @@
 # MCP 運用 runbook (Zotero / Scrapling / Workspace)
 
 常駐 HTTP シングルトン MCP の起動・登録・認証・トラブルシュートの詳細。
-原則とポート表は `claude/CLAUDE.md` の「MCP 運用」節にあり、ここは故障時に開く手順書。
+原則は `claude/CLAUDE.md` の「MCP 運用」節にあり、ここは構成表と故障時に開く手順書。
 
 いずれも Claude Code と Codex が 1 プロセスを共有する常駐 HTTP サーバ。bind は `127.0.0.1`
 のみ、認証なし (ローカル専用)。起動は `settings.json` の SessionStart hook +
 `ECC_MCP_RECONNECT_*` が冪等に担当 (既に healthy なら no-op)。
 
-| サーバ | ポート | ランチャ (`~/.claude/scripts/`) |
-|---|---|---|
-| zotero-mcp | 8321 | `zotero-mcp-server.sh` |
-| workspace-personal | 8322 | `workspace-mcp-personal-server.sh` |
-| scrapling-mcp | 8323 | `scrapling-mcp-server.sh` |
-| workspace-hdt | 8324 | `workspace-mcp-hdt-server.sh` |
+| サーバ | ポート | ランチャ (`~/.claude/scripts/`) | 用途 |
+|---|---|---|---|
+| zotero-mcp | 8321 | `zotero-mcp-server.sh` | 文献。local/web 自動切替 |
+| workspace-personal | 8322 | `workspace-mcp-personal-server.sh` | 個人 Google (`sh.mn.nat@gmail.com`) |
+| scrapling-mcp | 8323 | `scrapling-mcp-server.sh` | ブラウザ取得 (Playwright) |
+| workspace-hdt | 8324 | `workspace-mcp-hdt-server.sh` | HDT Google (ポータブル OAuth) |
+
+### 登録先の振り分け
+
+新ホストでは `dotter deploy` 後に HTTP MCP を手動登録する (`~/.claude.json` /
+`~/.codex/config.toml` は dotter 管理外の state)。登録先はサービスで分ける。
+
+- **`scrapling` / `zotero` / `deepwiki`** — `agent-config-sync` が両 CLI (Claude / Codex の user scope) へ登録する。
+- **`workspace-*`** — Claude 個人アカウントの user scope のみ。Codex user scope へは入れない (認証境界は claude-settings の project adapter が維持する)。
 
 ---
 

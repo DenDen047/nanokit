@@ -1,32 +1,12 @@
 # Claude Code / Codex グローバル設定
 
-## シンボリックリンク構造
+## このファイルについて
 
-このファイル (`<nanokit>/claude/CLAUDE.md`) がグローバル指示の本体。
-
-- Claude Code: dotter が `~/.claude/CLAUDE.md` へ symlink する。
-- Codex: `./nanokit agent-config-sync` が `~/.codex/AGENTS.md` へ symlink する。
-- 共有スキル: `<nanokit>/claude/skills/<name>` を原本として、同コマンドが `~/.claude/skills/<name>` と `~/.agents/skills/<name>` の両方へ symlink する。配布は毎セッション `SessionStart` hook (`agent-config-sync-reconnect.sh`) が冪等に自己修復し、**成功時は無音・未同期が出た時だけ** `systemMessage` で警告する (手動同期漏れによる 2026-07 のスキル配布ドリフト再発防止)。`sync-config.py` は1件の衝突で全体を止めず、該当項目だけスキップして残りを配布し明示報告する (`rc=2`)。
+原本は `<nanokit>/claude/CLAUDE.md`。配布の仕組みと編集手順は nanokit リポジトリの `CLAUDE.md` を参照する。
 
 共有skill内では利用中のクライアントで実在するtoolを選ぶ。Claude Code pluginやaccount-level ConnectorにしかないtoolをCodex側で推測して呼ばず、代替adapterがなければ利用不能であることを明示する。
 
-`agent-config-sync` はclient-safeなHTTP MCP (`scrapling`, `zotero`, `deepwiki`) も両CLIへ登録する。組織固有の `workspace-hdt` / `workspace-personal` はCodex user scopeへ入れず、claude-settingsのproject adapterで認証境界を維持する。
-
-`~/.claude/` 配下のツール固有設定は次のようにdotterで配る。
-
-| リポジトリ内パス | シンボリックリンク先 |
-|---|---|
-| `claude/CLAUDE.md` | `~/.claude/CLAUDE.md` |
-| `claude/scripts/zotero-mcp-server.sh` | `~/.claude/scripts/zotero-mcp-server.sh` |
-| `claude/scripts/scrapling-mcp-server.sh` | `~/.claude/scripts/scrapling-mcp-server.sh` |
-| `claude/scripts/workspace-mcp-hdt-server.sh` | `~/.claude/scripts/workspace-mcp-hdt-server.sh` |
-| `claude/scripts/vision-reminder.sh` | `~/.claude/scripts/vision-reminder.sh` |
-| `claude/scripts/memory-extract-reminder.sh` | `~/.claude/scripts/memory-extract-reminder.sh` |
-| `claude/scripts/mmdc` | `~/.pixi/bin/mmdc` |
-| `claude/ccstatusline/settings.json` | `~/.config/ccstatusline/settings.json` |
-| `claude/output-styles` | `~/.claude/output-styles` |
-
-設定を変更する場合はnanokit側の原本を編集し、ツール固有設定は `dotter deploy`、共有指示・スキル・Codex設定・`settings.json` は `./nanokit agent-config-sync` で反映する。`settings.json` だけは Claude Code 自身がUI変更やキー正規化で書き戻す (= symlink 不可) ため dotter ではなく agent-config-sync が管理する (下記「settings.json の反映モデル」)。
+組織固有の `workspace-hdt` / `workspace-personal` はCodex user scopeへ入れず、claude-settingsのproject adapterで認証境界を維持する。
 
 ## コーディング基本則 (Karpathy 4 tenets)
 
@@ -95,38 +75,15 @@ Claude Code → Codex (GPT) は用途で二経路を使い分ける
 | コードレビュー `/codex:review` (`--background` 推奨)、観点指定レビュー `/codex:adversarial-review`、タスク委譲 `/codex:rescue`、ジョブ管理 `/codex:status` `/codex:result` | 公式プラグイン `codex@openai-codex` (Codex app server 直結) |
 | 設計壁打ち `/codex-discuss`、lgtm-loop の threadId 継続レビュー、ultrasurvey 検索レッグ | `codex mcp-server` (MCP, user スコープ登録) |
 
-- 両経路とも `~/.codex/config.toml` を継承する (モデル・effort・approval_policy の**単一ソース**。呼び出し側で上書きしない)。
-- そのポータブル設定 (model / model_reasoning_effort / approval_policy / web_search 等) は **nanokit が管理**する。編集元は `<nanokit>/codex/config.toml`、反映は `./nanokit agent-config-sync` (`--diff` でプレビュー)。実ファイルは Codex デスクトップアプリが `[projects.*]` の trust_level 等の端末・クライアント固有状態を書き戻して共有するため symlink 不可 (nanokit は公開リポジトリなので載せられない) → sync が管理キーだけを冪等 upsert し、他セクションは保持する。`codex-install` 内でも自動実行される。
+- 両経路とも `~/.codex/config.toml` を継承する (モデル・effort・approval_policy の**単一ソース**。呼び出し側で上書きしない)。設定の編集元と反映手順は nanokit の `CLAUDE.md` を参照。
 - **review gate (`/codex:setup --enable-review-gate`) は使わない** — Stop フックの自動ループが usage を急速消費するため。明示ループは `/lgtm-loop`。
 - 自然文「GPT にレビューして」の受け皿は `codex-review` skill (誘導シム)。プラグインコマンドは `disable-model-invocation` のため Claude からは起動できず、必要時は companion script を直接叩く。
-- 新ホスト: プラグインは `claude/settings.json` の `extraKnownMarketplaces` + `enabledPlugins` で宣言済み (dotter 配布)。自動導入されなければ `claude plugin install codex@openai-codex`。MCP 登録は `./nanokit codex-install`。
 
 ## MCP 運用 (常駐 HTTP シングルトン)
 
 zotero / scrapling / workspace-mcp は、Claude Code と Codex が **1 プロセスを共有** する常駐 HTTP サーバとして立てる (stdio だと Playwright/Chromium 等を二重起動する)。bind は `127.0.0.1` のみ・認証なし (ローカル専用)。起動は `settings.json` の SessionStart hook + `ECC_MCP_RECONNECT_*` が冪等に担当 (healthy なら no-op)。
 
-| サーバ | ポート | ランチャ (`~/.claude/scripts/`) | 用途 |
-|---|---|---|---|
-| zotero-mcp | 8321 | `zotero-mcp-server.sh` | 文献。local/web 自動切替 |
-| workspace-personal | 8322 | `workspace-mcp-personal-server.sh` | 個人 Google (`sh.mn.nat@gmail.com`) |
-| scrapling-mcp | 8323 | `scrapling-mcp-server.sh` | ブラウザ取得 (Playwright) |
-| workspace-hdt | 8324 | `workspace-mcp-hdt-server.sh` | HDT Google (ポータブル OAuth) |
-
 - **アカウント境界**: workspace-* の user スコープ登録は個人アカウントのセッションにのみ効き、HDT の Claude アカウント (`CLAUDE_CONFIG_DIR=~/.claude-hdt`) には波及しない。クライアント別の振り分け・認証境界は claude-settings が担う。
-- 新ホストでは `dotter deploy` 後に HTTP MCP を手動登録する (`~/.claude.json` / `~/.codex/config.toml` は dotter 管理外の state)。登録先はサービスで分ける: **`scrapling`/`zotero`/`deepwiki` は `agent-config-sync` が両 CLI (Claude/Codex の user scope) へ登録**、**`workspace-*` は Claude 個人アカウントの user scope のみ** に登録する (Codex user scope へは入れない — 認証境界は claude-settings の project adapter が維持。上の「シンボリックリンク構造」節と同じ規則)。
-- **起動・登録・トラブルシュート・認証・モード切替・制約の詳細、および RTK バージョンアップ時の設定同期手順は [`specs/mcp-operations.md`](../specs/mcp-operations.md) (実パス `~/nanokit/specs/mcp-operations.md`) を参照。**
-
-## settings.json の反映モデル (symlink ではなく管理反映)
-
-`~/.claude/settings.json` は **Claude Code 自身が所有する読み書きファイル**。UI での設定変更 (`/model` `/vim` 出力スタイル プラグイン有効化 など) やキー正規化のたびにアプリが atomic replace で書き戻すため、symlink にすると壊れる (実体ファイル化する)。よって dotter 管理せず、`agent-config-sync` (`codex/sync-config.py` の `settings_change()`) が **nanokit 原本の宣言キーを権威として live へマージ反映**する (Codex `config.toml` と同じ思想)。
-
-- 原本が宣言するトップレベルキーは原本が勝つ。**live 側だけのアプリ由来キー (`hasCompletedOnboarding` 等) は保持**する (データ損失なし)。
-- 反映は毎セッション `SessionStart` hook (`agent-config-sync-reconnect.sh`) が冪等に自己修復。実体ファイルがズレても次セッションで自動的に再マージされるので **手動復旧は不要**。
-- 含意: アプリ内で管理キーを変えても次の同期で原本値に戻る。恒久化したい変更は **nanokit 原本の `settings.json` を編集**する (単一ソース)。
-
-```bash
-# 手動反映したいとき (通常は不要 — SessionStart で自動)
-cd "$NANOKIT" && ./nanokit agent-config-sync        # --diff で事前確認可
-```
+- **ポート表・登録先・起動・トラブルシュート・認証・モード切替・制約の詳細、および RTK バージョンアップ時の設定同期手順は [`specs/mcp-operations.md`](../specs/mcp-operations.md) (実パス `~/nanokit/specs/mcp-operations.md`) を参照。**
 
 @RTK.md

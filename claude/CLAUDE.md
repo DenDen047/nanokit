@@ -49,6 +49,7 @@ Max プランなので画像認識を惜しまない。**UI・図・ブラウザ
 - フロントエンド編集・プロット生成・ブラウザ操作の後は `PostToolUse` hook (`vision-reminder.sh`) がスクショ確認を促す。
 - 明示的に確認したいときは `/visual-verify <url|file>` でスクショ→チェックリスト採点。
 - SVG/PDF は Vision が直接読めない → PNG 化してから `Read`。
+- 人物3D再構成・生成で複数モデルまたは学習条件の比較結果を報告する場合、固定定性ケースは X-Humans `00039/train/Take4/f00063`。定量指標に加えてこのケースを全比較条件で必ず出す。比較図・同期 3D viewer・定性評価・SyncHuman 外部 baseline・provenance の作成手順と再現条件は `qualitative-3d-evaluation` skill に従う。
 
 ## メモリ・パーソナライゼーション
 

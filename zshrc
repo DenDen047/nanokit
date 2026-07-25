@@ -91,3 +91,6 @@ export WEBHOOK_URL=
 
 # comfy-env
 # source "$HOME/.comfy-env-profile"
+
+# ⏱️ ActivityWatch ターミナル・ウォッチャー (cwd/リポジトリを passive 記録)
+source "$HOME/nanokit/zsh/aw-terminal-watcher.zsh"

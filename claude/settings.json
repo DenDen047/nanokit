@@ -150,7 +150,7 @@
   },
   "enabledPlugins": {
     "warp@claude-code-warp": true,
-    "clangd-lsp@claude-plugins-official": true,
+    "clangd-lsp@claude-plugins-official": false,
     "codex@openai-codex": true
   },
   "extraKnownMarketplaces": {

@@ -62,6 +62,7 @@ claude/mcp-servers/*/.pixi/
 claude/external/
 claude/mcp-servers/*/.pixi/
 tools/*/.pixi/
+claude/skills/*/.pixi/
 
 # Python bytecode
 __pycache__/

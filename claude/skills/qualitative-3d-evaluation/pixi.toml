@@ -1,0 +1,14 @@
+[workspace]
+name = "qualitative-3d-evaluation"
+channels = ["conda-forge"]
+platforms = ["linux-64", "linux-aarch64", "osx-arm64"]
+
+[dependencies]
+python = "3.12.*"
+pyyaml = "6.*"
+
+[tasks]
+check-synchuman-cache = "python scripts/check_synchuman_cache.py"
+build-3d-viewer = "python scripts/build_3d_viewer.py"
+serve = "python -m http.server"
+test = "python -m unittest discover -s tests -p 'test_*.py'"

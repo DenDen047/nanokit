@@ -1,0 +1,4 @@
+interface:
+  display_name: "Qualitative 3D Evaluation"
+  short_description: "Build synchronized 3D experiment comparisons"
+  default_prompt: "Use $qualitative-3d-evaluation to produce the standard qualitative comparison and reuse a valid SyncHuman cache."

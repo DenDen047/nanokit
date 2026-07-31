@@ -67,6 +67,7 @@ show_help() {
     echo ""
     echo -e "${CYAN}Commands:${NC}"
     echo "  install         🚀 Install and setup nanokit environment"
+    echo "  deploy          📦 Apply all config changes: dotter symlinks + agent config sync (--diff to preview)"
     echo "  claude-setup    🤖 Setup Claude Code configuration and plugins"
     echo "  ecc-install     🔧 Install ECC (Everything Claude Code) skills (optional)"
     echo "  ecc-update      🔄 Update ECC skills to the latest version"
@@ -93,6 +94,8 @@ show_help() {
     echo ""
     echo -e "${CYAN}Examples:${NC}"
     echo "  nanokit install"
+    echo "  nanokit deploy --diff"
+    echo "  nanokit deploy"
     echo "  nanokit uninstall"
     echo ""
 }
@@ -286,15 +289,10 @@ claude_setup() {
         exit 1
     fi
 
-    # Deploy config symlinks via dotter
-    print_step "Deploying Claude Code config symlinks..."
-    dotter deploy
-    print_success "Config symlinks deployed"
-    echo ""
+    # Symlink config files and share nanokit's instructions/skills with both
+    # Claude Code and Codex. Warnings are non-fatal here.
+    deploy_all || true
 
-    # Share nanokit's instructions and skills with both Claude Code and Codex.
-    agent_config_sync || print_warning "agent-config-sync reported unsynced items (see the ⚠️ list above)"
-    echo ""
 
     # Setup Scrapling MCP server
     print_step "Setting up Scrapling MCP server..."
@@ -898,6 +896,61 @@ codex_config_sync() {
     agent_config_sync "$@"
 }
 
+# Reflect every config change in this repo with one command: dotter symlinks
+# (new/changed mappings) plus the merge-based agent/Codex settings sync.
+# Pass --diff to preview both without writing anything.
+deploy_all() {
+    local diff_only=false
+    local arg
+    for arg in "$@"; do
+        case "$arg" in
+            --diff|--dry-run)
+                diff_only=true
+                ;;
+            *)
+                print_error "Unknown option for deploy: $arg"
+                print_info "Usage: nanokit deploy [--diff]"
+                return 1
+                ;;
+        esac
+    done
+
+    if ! command -v dotter &> /dev/null; then
+        print_error "dotter not found. Install with: pixi global install dotter-rs"
+        return 1
+    fi
+
+    local rc=0
+
+    if [[ "$diff_only" == true ]]; then
+        print_step "Previewing dotfile symlinks (dry run)..."
+        (cd "$NANOKIT_ROOT" && dotter deploy --dry-run) || rc=1
+        echo ""
+        agent_config_sync --diff || rc=1
+        echo ""
+        print_info "Preview only — nothing was written. Re-run without --diff to apply."
+        return "$rc"
+    fi
+
+    print_step "Deploying dotfile symlinks..."
+    (cd "$NANOKIT_ROOT" && dotter deploy) || rc=1
+    print_success "Dotfiles deployed"
+    echo ""
+
+    agent_config_sync || {
+        print_warning "agent-config-sync reported unsynced items (see the ⚠️ list above)"
+        rc=1
+    }
+    echo ""
+
+    if [[ "$rc" -eq 0 ]]; then
+        print_success "🚀 All configuration changes deployed"
+    else
+        print_warning "Deploy finished with warnings — review the output above"
+    fi
+    return "$rc"
+}
+
 # Gemini CLI (Google) optional setup — same npm-under-fnm pattern as Codex above.
 # Requires Node >= 20 (fnm-managed; see zshrc `fnm env`). conda-forge has no
 # @google/gemini-cli package, so npm is the supported install path.
@@ -1316,6 +1369,9 @@ main() {
     case "${1:-}" in
         "install")
             install
+            ;;
+        "deploy")
+            deploy_all "${@:2}"
             ;;
         "claude-setup")
             claude_setup

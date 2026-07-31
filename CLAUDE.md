@@ -13,6 +13,7 @@ This file is the repository instruction source; `AGENTS.md` is a symlink to it.
 ## Key commands
 
 ```bash
+./nanokit deploy         # Apply every config change: dotter deploy + agent-config-sync (--diff previews)
 ./nanokit install        # Full setup: dotter deploy + pixi global sync
 ./nanokit claude-setup   # Claude Code config + plugin install
 ./nanokit agent-config-sync  # Shared Claude Code / Codex instructions, skills, and Codex config
@@ -22,9 +23,11 @@ dotter undeploy          # Remove symlinks only
 pixi global sync         # Install/sync tools from pixi-global.toml
 ```
 
+`./nanokit deploy` is the default way to reflect an edit made in this repo — it covers both distribution mechanisms below, so there is no need to remember which one a given file uses. It works from any directory and is safe to re-run.
+
 ## Agent config distribution
 
-`claude/CLAUDE.md` and `claude/skills/*` are the global agent sources. Two mechanisms distribute them:
+`claude/CLAUDE.md` and `claude/skills/*` are the global agent sources. Two mechanisms distribute them, and `./nanokit deploy` runs both:
 
 - **dotter** symlinks tool-specific files under `~/.claude/` (scripts, output styles, ccstatusline config). The mappings live in `.dotter/global.toml` — that file is the source of truth, do not restate it elsewhere. Reflect changes with `dotter deploy`.
 - **`./nanokit agent-config-sync`** distributes the shared instructions, skills, Codex config, and `settings.json`. It symlinks `claude/CLAUDE.md` → `~/.codex/AGENTS.md` and each `claude/skills/<name>` → both `~/.claude/skills/<name>` and `~/.agents/skills/<name>`. A `SessionStart` hook (`agent-config-sync-reconnect.sh`) re-runs it idempotently every session: **silent on success, `systemMessage` warning only when something is out of sync** (added after skill distribution silently drifted in 2026-07). `sync-config.py` does not abort the whole run on one collision — it skips that item, distributes the rest, and reports explicitly (`rc=2`).
@@ -41,7 +44,7 @@ Individual skill mappings do not belong in `.dotter/global.toml`; `agent-config-
 
 ```bash
 # Manual reflection (normally unnecessary — SessionStart does it)
-cd "$NANOKIT" && ./nanokit agent-config-sync        # --diff to preview
+./nanokit deploy        # --diff to preview
 ```
 
 ### Codex config

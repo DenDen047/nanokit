@@ -377,7 +377,11 @@ curl -fsSL https://claude.ai/install.sh | bash
 # Setup configuration and plugins
 ./nanokit claude-setup
 
-# Preview or re-apply only shared agent configuration
+# Re-apply every configuration change (dotter symlinks + shared agent config)
+./nanokit deploy --diff
+./nanokit deploy
+
+# Or re-apply only the shared agent configuration
 ./nanokit agent-config-sync --diff
 ./nanokit agent-config-sync
 ```

@@ -88,6 +88,8 @@ Container instances expose default HTTP ports (each gets its own HTTPS URL):
 
 VM instances (`jl create --gpu ... --vm`) get SSH-only access. VMs require at least one SSH key registered (`jl ssh-key add`). Use `ssh_command` from `jl get <id> --json`.
 
+Instance IPs change on every launch, but `~/.ssh/config` already covers the whole JarvisLabs range with a `Host 217.18.55.*` block (`User root`, `IdentityFile ~/.ssh/jarvislabs_ed25519`, `IdentitiesOnly yes`, `StrictHostKeyChecking no`). Plain `ssh root@<IP>`, `scp`, and `rsync` work as-is — never append a per-IP `Host` block.
+
 To expose a service (FastAPI, Gradio, etc.), bind to `0.0.0.0:6006` — it's accessible via `endpoints[0]` on generic templates. Use `--http-ports "7860,8080"` at creation or resume to expose custom ports. Custom port URLs appear in `endpoints` after the default 6006 entry.
 
 Run `jl get <id> --json` to find all service URLs (`url`, `vs_url`, `endpoints`).
@@ -416,6 +418,7 @@ Agent rule:
 - Do not trust `jl run list` without `--refresh` — state shows as `"saved"` (stale). Use `--refresh` or `--status` for live state.
 - Do not assume `machine_id` is stable after `jl resume` — it may return a new ID. Always use the returned ID.
 - Do not forget to pause/destroy instances after experiments — they cost money.
+- Do not append a per-IP `Host <IP>` block to `~/.ssh/config` for a new instance — the `Host 217.18.55.*` wildcard already covers the range, and per-IP blocks accumulate as dead config.
 
 ## Command Discovery
 

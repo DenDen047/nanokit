@@ -84,6 +84,4 @@ Claude Code → Codex (GPT) は用途で二経路を使い分ける
 zotero / scrapling / workspace-mcp は、Claude Code と Codex が **1 プロセスを共有** する常駐 HTTP サーバとして立てる (stdio だと Playwright/Chromium 等を二重起動する)。bind は `127.0.0.1` のみ・認証なし (ローカル専用)。起動は `settings.json` の SessionStart hook + `ECC_MCP_RECONNECT_*` が冪等に担当 (healthy なら no-op)。
 
 - **アカウント境界**: workspace-* の user スコープ登録は個人アカウントのセッションにのみ効き、HDT の Claude アカウント (`CLAUDE_CONFIG_DIR=~/.claude-hdt`) には波及しない。クライアント別の振り分け・認証境界は claude-settings が担う。
-- **ポート表・登録先・起動・トラブルシュート・認証・モード切替・制約の詳細、および RTK バージョンアップ時の設定同期手順は [`specs/mcp-operations.md`](../specs/mcp-operations.md) (実パス `~/nanokit/specs/mcp-operations.md`) を参照。**
-
-@RTK.md
+- **ポート表・登録先・起動・トラブルシュート・認証・モード切替・制約の詳細は [`specs/mcp-operations.md`](../specs/mcp-operations.md) (実パス `~/nanokit/specs/mcp-operations.md`) を参照。**

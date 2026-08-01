@@ -57,7 +57,6 @@ flowchart TB
     start --> work["ツール実行ループ<br/>(Edit / Bash / MCP ...)"]
 
     work -->|"PreToolUse : Edit/Write"| kar["karpathy-reminder.sh<br/>コーディング 4 原則を注入"]
-    work -->|"PreToolUse : Bash"| rtk["rtk hook<br/>コマンドをトークン最適化"]
     work -->|"PostToolUse : 編集 / 画像 / ブラウザ"| vis["vision-reminder.sh<br/>スクショ目視を促す"]
     work --> endh["SessionEnd"]
 
@@ -149,7 +148,6 @@ flowchart TB
 |---|---|---|---|---|
 | `SessionStart` | `*` | `zotero` / `workspace-personal` / `workspace-hdt` / `scrapling` の各 `*-server.sh start` | 常駐 MCP を冪等起動 | 不可視（出力無視） |
 | `PreToolUse` | `Edit\|Write\|MultiEdit\|NotebookEdit` | `karpathy-reminder.sh` | コーディング 4 原則を初回注入 | system-reminder |
-| `PreToolUse` | `Bash` | `rtk hook claude` | Bash コマンドをトークン最適化（透過） | 透過 |
 | `PostToolUse` | `Write\|Edit\|MultiEdit\|Bash` | `vision-reminder.sh` | 編集・プロット後にスクショ目視を促す | system-reminder（クールダウン付） |
 | `PostToolUse` | `mcp__claude-in-chrome__navigate` | `vision-reminder.sh` | ブラウザ遷移後にスクショ目視を促す | 同上 |
 | `SessionEnd` | `*` | `memory-extract.sh` | 個人メモリへ無音抽出（detached `claude -p`） | **完全に不可視** |
@@ -182,7 +180,6 @@ claude/
 ├── CLAUDE.md            # グローバル指示 + 各 MCP 運用 runbook（権威ある詳細はここ）
 ├── README.md            # Skills / Commands / Sub-agents の概念整理
 ├── ARCHITECTURE.md      # 本書（システム全体像）
-├── RTK.md               # rtk (token killer) リファレンス（CLAUDE.md から @import）
 ├── settings.json        # hooks / env / permissions / model / plugins
 ├── scripts/             # フック実装 + MCP ランチャ
 │   ├── karpathy-reminder.sh        # PreToolUse: コーディング 4 原則

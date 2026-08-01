@@ -199,11 +199,6 @@ channels = ["conda-forge"]
 dependencies = { nvtop = "*" }
 exposed = { nvtop = "nvtop" }
 
-[envs.rtk-cli]
-channels = ["conda-forge"]
-dependencies = { rtk-cli = "*" }
-exposed = { rtk = "rtk" }
-
 [envs.python]
 channels = ["conda-forge"]
 dependencies = { python = "*", numpy = "*", scipy = "*", pillow = "*", matplotlib = "*", pandas = "*", ipython = "*" , beautifulsoup4 = "*" , trimesh = "*", loguru = "*", scikit-learn = "*", pypdf = "*", pdfplumber = "*", pdf2image = "*", reportlab = "*" }

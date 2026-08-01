@@ -171,21 +171,3 @@ curl -s -X POST http://127.0.0.1:8324/mcp -H 'Content-Type: application/json' \
 
 HDT の OAuth トークンが失効したら creds dir (`~/.config/google-workspace-mcp/HDT`) を削除し、
 `workspace-mcp` の再認証フローを通す。
-
----
-
-## Appendix: RTK バージョンアップ時の設定同期
-
-rtk が新版 (新しい hook 仕様等) を出したときのみ:
-
-```bash
-# tmpdir で新版の rtk init -g を走らせて期待される設定を取得
-TMPHOME=$(mktemp -d)
-mkdir -p "$TMPHOME/.claude"
-HOME="$TMPHOME" rtk init -g --auto-patch
-
-# 出力された $TMPHOME/.claude/{settings.json,CLAUDE.md,RTK.md}
-# と nanokit/claude/{settings.json,CLAUDE.md,RTK.md} を diff し、
-# 必要な変更だけ手動で nanokit 側に反映してコミット → dotter deploy
-diff -u "$TMPHOME/.claude/RTK.md" "$NANOKIT/claude/RTK.md"
-```

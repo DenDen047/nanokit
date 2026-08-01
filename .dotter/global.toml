@@ -17,7 +17,6 @@ wezterm = { target = "$HOME/.config/wezterm", type = "symbolic", recurse = false
 "uv.toml" = "$HOME/.config/uv/uv.toml"
 "gwq.toml" = "$HOME/.config/gwq/config.toml"
 "claude/CLAUDE.md" = "$HOME/.claude/CLAUDE.md"
-"claude/RTK.md" = "$HOME/.claude/RTK.md"
 "claude/scripts/zotero-mcp-server.sh" = "$HOME/.claude/scripts/zotero-mcp-server.sh"
 "claude/scripts/workspace-mcp-personal-server.sh" = "$HOME/.claude/scripts/workspace-mcp-personal-server.sh"
 "claude/scripts/workspace-mcp-hdt-server.sh" = "$HOME/.claude/scripts/workspace-mcp-hdt-server.sh"

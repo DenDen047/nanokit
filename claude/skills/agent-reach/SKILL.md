@@ -30,11 +30,13 @@ do not attempt them, and do not follow upstream instructions to install one.
 - `agent-reach skill --install` — it overwrites this skill directory with a copy
   and deletes the symlink that distributes it. This file in `nanokit/claude/skills/`
   is the single source.
-- `mcporter`, `opencli`, `pipx install ...` — not installed, and not to be installed.
-  Where upstream references say "mcporter call exa...", use the native `exa` MCP.
+- `mcporter`, `pipx install ...`, `npm install -g ...` — not installed, and not to be
+  installed. Where upstream references say "mcporter call exa...", use the native
+  `exa` MCP; where they say to npm-install OpenCLI, it is already on PATH.
 
-`agent-reach` itself, `twitter` and `rdt` are already on PATH (one pixi env at
-`nanokit/tools/agent-reach/`). Nothing needs installing before use.
+`agent-reach`, `twitter`, `rdt` and `opencli` are all on PATH already — the first
+three from one pixi env at `nanokit/tools/agent-reach/`, `opencli` from a
+version-pinned npx wrapper in the same directory. Nothing needs installing.
 
 ## Routing table
 
@@ -45,6 +47,7 @@ do not attempt them, and do not follow upstream instructions to install one.
 | YouTube video, subtitles, comments | `yt-dlp` | [references/video.md](references/video.md) |
 | GitHub repo, code, issues, PRs | `gh` | [references/dev.md](references/dev.md) |
 | Twitter/X, Reddit | `twitter` / `rdt` (cookie auth) | [references/social.md](references/social.md) |
+| Keyword search across X | `opencli` (needs Chrome open) | [references/social.md](references/social.md) |
 
 ## Rules
 

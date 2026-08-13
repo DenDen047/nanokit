@@ -32,6 +32,8 @@ wezterm = { target = "$HOME/.config/wezterm", type = "symbolic", recurse = false
 "tools/agent-reach/agent-reach" = "$HOME/.pixi/bin/agent-reach"
 "tools/agent-reach/twitter" = "$HOME/.pixi/bin/twitter"
 "tools/agent-reach/rdt" = "$HOME/.pixi/bin/rdt"
+# OpenCLI だけは npm 専売なので同じ env には入らず、npx 固定のラッパを配る。
+"tools/agent-reach/opencli" = "$HOME/.pixi/bin/opencli"
 "claude/agents" = { target = "$HOME/.claude/agents", type = "symbolic", recurse = false }
 "claude/output-styles" = { target = "$HOME/.claude/output-styles", type = "symbolic", recurse = false }
 "claude/ccstatusline/settings.json" = "$HOME/.config/ccstatusline/settings.json"

@@ -15,6 +15,7 @@ npmrc = "$HOME/.npmrc"
 wezterm = { target = "$HOME/.config/wezterm", type = "symbolic", recurse = false }
 "starship.toml" = "$HOME/.config/starship.toml"
 "uv.toml" = "$HOME/.config/uv/uv.toml"
+"yt-dlp/config" = "$HOME/.config/yt-dlp/config"
 "gwq.toml" = "$HOME/.config/gwq/config.toml"
 "claude/CLAUDE.md" = "$HOME/.claude/CLAUDE.md"
 "claude/scripts/zotero-mcp-server.sh" = "$HOME/.claude/scripts/zotero-mcp-server.sh"
@@ -27,6 +28,10 @@ wezterm = { target = "$HOME/.config/wezterm", type = "symbolic", recurse = false
 "claude/scripts/agent-config-sync-reconnect.sh" = "$HOME/.claude/scripts/agent-config-sync-reconnect.sh"
 "claude/scripts/mmdc" = "$HOME/.pixi/bin/mmdc"
 "tools/jarvislabs/jl" = "$HOME/.pixi/bin/jl"
+# Agent Reach env が出す 3 コマンド。実体はどれも tools/agent-reach/run-in-env。
+"tools/agent-reach/agent-reach" = "$HOME/.pixi/bin/agent-reach"
+"tools/agent-reach/twitter" = "$HOME/.pixi/bin/twitter"
+"tools/agent-reach/rdt" = "$HOME/.pixi/bin/rdt"
 "claude/agents" = { target = "$HOME/.claude/agents", type = "symbolic", recurse = false }
 "claude/output-styles" = { target = "$HOME/.claude/output-styles", type = "symbolic", recurse = false }
 "claude/ccstatusline/settings.json" = "$HOME/.config/ccstatusline/settings.json"

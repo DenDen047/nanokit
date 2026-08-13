@@ -1,0 +1,29 @@
+[workspace]
+name = "agent-reach"
+channels = ["conda-forge"]
+platforms = ["linux-64", "linux-aarch64", "osx-arm64"]
+
+[dependencies]
+python = ">=3.10"
+
+# インターネット取得の単一の入口。ルータ本体 (agent-reach) と、それが選定した
+# 上流 CLI を 1 つの env にまとめ、run-in-env 経由で 3 コマンドを PATH に出す
+# (agent-reach / twitter / rdt)。どれも PyPI 側にしか無く、pixi global は conda
+# パッケージしか入れられない (prefix-dev/pixi#2261) ため、pixi-global.toml では
+# なくこのプロジェクト env に置く。
+#
+# 禁止: `agent-reach install --system` (brew/apt/npm -g/pipx を直接叩き pixi-only
+# を壊す) と `agent-reach skill --install` (skill の symlink を消して実体コピーを
+# 置く)。スキルは claude/skills/agent-reach/ を単一ソースとして vendor 済み。
+[pypi-dependencies]
+# https://github.com/Panniantong/Agent-Reach (MIT) — PyPI 未公開なので rev 固定。
+# 更新は rev を上げて `pixi update` し、claude/skills/agent-reach/ も同じ rev から貼り直す。
+agent-reach = { git = "https://github.com/Panniantong/agent-reach.git", rev = "93ae1d18c37b707dec053c7c4f9d91cd8ef8943d" }
+# Twitter/X 読み取り。Cookie (TWITTER_AUTH_TOKEN / TWITTER_CT0) が要る。
+twitter-cli = ">=0.8.5"
+# Reddit 読み取り。PyPI 版は古く、upstream が指定する rev に合わせる。
+rdt-cli = { git = "https://github.com/public-clis/rdt-cli.git", rev = "5e4fb3720d5c174e976cd425ccc3b879d52cac66" }
+
+[tasks]
+doctor = "agent-reach doctor"
+version = "agent-reach --version"

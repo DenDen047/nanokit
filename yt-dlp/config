@@ -1,0 +1,5 @@
+# yt-dlp のグローバル設定 (→ ~/.config/yt-dlp/config)
+# YouTube は再生ページの JS を解かないと字幕・一部フォーマットが取れないため、
+# JS ランタイムに node を使わせる。node は fnm 管理なので、cron / launchd から
+# 叩くときは PATH にその bin を通すこと。
+--js-runtimes node

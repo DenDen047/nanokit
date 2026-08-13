@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Agent Reach env の共有ラッパ。呼ばれた名前をそのまま env 内のコマンドとして実行する。
+#
+# 同ディレクトリの agent-reach / twitter / rdt は、このファイルへの symlink。
+# dotter がそれぞれを ~/.pixi/bin/<name> に配り (PATH 済み)、実行時の $0 の
+# basename で分岐する。実装を 1 つに保ちつつ、コマンド名を ls で見えるようにする形。
+# なぜ pixi global ではなくプロジェクト env なのかは ./pixi.toml を参照。
+set -euo pipefail
+
+# 呼ばれた名前 = 実行するコマンド。symlink を辿る前に確定させる。
+cmd="$(basename "$0")"
+
+# このスクリプトの実体があるディレクトリを解決する。~/.pixi/bin/<name> →
+# tools/agent-reach/<name> → run-in-env と 2 段の symlink を辿るので繰り返す。
+# 古い macOS の BSD readlink には -f が無いため手で辿る。
+src="${BASH_SOURCE[0]}"
+while [ -L "$src" ]; do
+    dir="$(cd -P "$(dirname "$src")" && pwd)"
+    src="$(readlink "$src")"
+    [[ "$src" != /* ]] && src="$dir/$src"
+done
+here="$(cd -P "$(dirname "$src")" && pwd)"
+
+# twitter-cli は Cookie を環境変数でしか受け取らない。`agent-reach configure
+# twitter-cookies` がユーザ自身の手で保存した値をそのまま渡す (値は出力しない)。
+# 上流はここを手動 export に任せているが、保存先も用途も一意なので橋渡しする。
+if [[ "$cmd" == "twitter" ]]; then
+    ar_config="$HOME/.agent-reach/config.yaml"
+    if [[ -f "$ar_config" ]]; then
+        read_key() { sed -n "s/^$1: *//p" "$ar_config" | head -1 | tr -d "\"' "; }
+        [[ -n "${TWITTER_AUTH_TOKEN:-}" ]] || TWITTER_AUTH_TOKEN="$(read_key twitter_auth_token)"
+        [[ -n "${TWITTER_CT0:-}" ]] || TWITTER_CT0="$(read_key twitter_ct0)"
+        [[ -z "$TWITTER_AUTH_TOKEN" ]] || export TWITTER_AUTH_TOKEN
+        [[ -z "$TWITTER_CT0" ]] || export TWITTER_CT0
+    fi
+    if [[ -z "${TWITTER_AUTH_TOKEN:-}" || -z "${TWITTER_CT0:-}" ]]; then
+        echo "twitter: Cookie 未設定。'agent-reach configure twitter-cookies' で登録してください。" >&2
+    fi
+fi
+
+# `pixi run` は初回に pixi.lock から env を作るので、新しいホストでも準備は不要。
+# 認証情報はこのリポジトリの外 (~/.agent-reach/ と環境変数) に置く。
+exec pixi run --manifest-path "$here/pixi.toml" "$cmd" "$@"

@@ -19,7 +19,7 @@
 新ホストでは `dotter deploy` 後に HTTP MCP を手動登録する (`~/.claude.json` /
 `~/.codex/config.toml` は dotter 管理外の state)。登録先はサービスで分ける。
 
-- **`scrapling` / `zotero` / `deepwiki`** — `agent-config-sync` が両 CLI (Claude / Codex の user scope) へ登録する。
+- **`scrapling` / `zotero` / `deepwiki` / `exa`** — `agent-config-sync` が両 CLI (Claude / Codex の user scope) へ登録する。`deepwiki` と `exa` はリモート HTTP MCP でキー不要、常駐プロセスを持たない。
 - **`workspace-*`** — Claude 個人アカウントの user scope のみ。Codex user scope へは入れない (認証境界は claude-settings の project adapter が維持する)。
 
 ---

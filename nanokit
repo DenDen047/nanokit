@@ -165,6 +165,9 @@ sync_shared_http_mcps() {
     register_shared_http_mcp scrapling "http://127.0.0.1:${SCRAPLING_MCP_PORT:-8323}/mcp" "$diff_only"
     register_shared_http_mcp zotero "http://127.0.0.1:${ZOTERO_MCP_PORT:-8321}/mcp" "$diff_only"
     register_shared_http_mcp deepwiki "https://mcp.deepwiki.com/mcp" "$diff_only"
+    # Agent Reach が推す Exa 検索。upstream は npm の mcporter 経由で呼ぶが、
+    # 実体はキー不要の HTTP MCP なので両クライアントへ直接登録する。
+    register_shared_http_mcp exa "https://mcp.exa.ai/mcp" "$diff_only"
 }
 
 # Install nanokit

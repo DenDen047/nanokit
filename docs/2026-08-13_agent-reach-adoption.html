@@ -197,7 +197,7 @@
       <h1>Agent Reach 導入記録</h1>
       <div class="sub">既存環境と何が重複したか、pixi-only と単一ソースを保ったままどう組み込んだか</div>
       <div class="meta">
-        <span class="badge">v1.1</span>
+        <span class="badge">v1.2</span>
         <span>作成日 2026-08-13</span>
         <span>読了 10 分</span>
         <span>ブランチ <code>trial/agent-reach</code></span>
@@ -214,7 +214,7 @@
         <li><a href="#scope">採否の判断</a></li>
         <li><a href="#wiring">配布経路</a></li>
         <li><a href="#done">実施したこと</a></li>
-        <li><a href="#todo">残っている手動ステップ</a></li>
+        <li><a href="#todo">認証の状態</a></li>
         <li><a href="#rollback">撤去手順</a></li>
         <li><a href="#refs">参考資料 + 改訂履歴</a></li>
       </ol>
@@ -233,8 +233,8 @@
           <strong>今の状態:</strong> <code>trial/agent-reach</code> ブランチに導入済みで、
           <code>agent-reach</code> / <code>twitter</code> / <code>rdt</code> の 3 コマンドが PATH に出ている。
           Exa は npm の mcporter ではなくネイティブ MCP として両クライアントに登録済み。
-          last30days は撤去。残るのは <strong>Twitter / Reddit の捨てアカウント作成と Cookie 投入</strong>だけで、
-          これはユーザー自身の作業。
+          last30days は撤去。Twitter / Reddit の Cookie 投入も完了し、
+          <strong>X のキーワード検索だけが上流の不具合で使えない</strong>状態で稼働している。
         </div>
       </section>
 
@@ -497,45 +497,39 @@
 
       <!-- ===================== 残作業 ===================== -->
       <section id="todo">
-        <h2>残っている手動ステップ</h2>
-        <p>いずれもアカウントと認証に関わるのでユーザー自身の作業。</p>
+        <h2>認証の状態 <small>2026-08-13 実測</small></h2>
+        <p>Cookie 投入後に 1 コマンドずつ実際に叩いて確認した結果。</p>
         <table>
-          <thead><tr><th>#</th><th>やること</th><th>確認方法</th></tr></thead>
+          <thead><tr><th>コマンド</th><th>結果</th><th>備考</th></tr></thead>
           <tbody>
-            <tr>
-              <td>1</td>
-              <td>X と Reddit の<strong>捨てアカウント</strong>を用意し、Chrome でログインしておく</td>
-              <td>—</td>
-            </tr>
-            <tr>
-              <td>2</td>
-              <td><a href="https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm">Cookie-Editor</a> で x.com の Cookie を Export → Header String し、<code>agent-reach configure twitter-cookies</code> に貼る</td>
-              <td><code>twitter feed -n 5</code> が返る</td>
-            </tr>
-            <tr>
-              <td>3</td>
-              <td><code>rdt login</code>（ブラウザ Cookie を自動抽出）</td>
-              <td><code>rdt popular --limit 3</code> が返る</td>
-            </tr>
-            <tr>
-              <td>4</td>
-              <td>Claude Code のセッションを開き直す</td>
-              <td>Exa MCP のツールがセッション内で使えるようになる（セッション途中の登録は反映されない）</td>
-            </tr>
-            <tr>
-              <td>5</td>
-              <td>1〜2 週間使ってから残すか決める</td>
-              <td>残すなら main へ merge、要らなければブランチごと破棄</td>
-            </tr>
+            <tr><td><code>rdt popular / sub / read / search</code></td><td>✅ 動作</td><td>認証情報は <code>~/.config/rdt-cli/credential.json</code>（600）</td></tr>
+            <tr><td><code>twitter feed</code></td><td>✅ 動作</td><td>捨てアカのホームタイムラインが返る</td></tr>
+            <tr><td><code>twitter user</code> / <code>user-posts</code> / <code>tweet</code></td><td>✅ 動作</td><td>特定アカウントを追う用途はこれで足りる</td></tr>
+            <tr><td><code>twitter search</code></td><td>❌ HTTP 404</td><td>Cookie が正しくても失敗する。下記の上流不具合</td></tr>
           </tbody>
         </table>
+
+        <div class="risk">
+          <strong>X のキーワード検索は使えない:</strong> twitter-cli は x.com の JS を
+          スクレイプして transaction ID を組み立てるが、そのスクレイパが現在の X に対して壊れている
+          （実行のたびに <code>Failed to init ClientTransaction</code> が出る）。検索エンドポイントが道連れになっている。
+          PyPI の最新は <strong>0.8.5（2026-03-17）で、これが既に入っている版</strong>なので更新では直らず、
+          上流が案内する代替バックエンド（OpenCLI）は不採用のため無い。
+          → <code>user-posts</code> で個別アカウントを追うか、素直に「X の全文検索は不可」と答える運用にした（スキルに明記）。
+        </div>
+
+        <div class="intent">
+          <strong>残っているのは判断だけ:</strong> Claude Code を再起動すると Exa MCP がツールとして見えるようになる。
+          Codex 側の Exa は登録時に OAuth コールバックのタイムアウトが出たままなので、初回利用時に応答するか見ておきたい。
+          あとは 1〜2 週間使って、残すなら <code>trial/agent-reach</code> を main へ merge。
+        </div>
       </section>
 
       <!-- ===================== 撤去 ===================== -->
       <section id="rollback">
         <h2>撤去手順</h2>
 <pre><code class="language-bash">git switch main                       # trial ブランチを捨てる
-./nanokit deploy                      # dotter が 3 コマンドと yt-dlp config を落とす
+./nanokit deploy                      # 3 コマンドと yt-dlp config を落とす
 rm -rf ~/.agent-reach                 # Cookie を含む設定（作られていれば）
 claude mcp remove exa -s user &amp;&amp; codex mcp remove exa</code></pre>
         <p class="footnote">
@@ -564,7 +558,9 @@ claude mcp remove exa -s user &amp;&amp; codex mcp remove exa</code></pre>
 
         <h3>本書の改訂履歴</h3>
         <ul>
-          <li><strong>v1.1 (本書):</strong> 導入を実施し、記録として書き直した。上流 CLI を 1 env に統合する形に変更（当初案はツールごとに別プロジェクト）、Exa は nanokit の MCP 登録経路へ、doctor が symlink を辿らない問題を 7 件目として追加。</li>
+          <li><strong>v1.2 (本書):</strong> Cookie 投入後の実測を反映。Reddit は全面的に動作、X は feed / user-posts /
+            tweet が動き search のみ上流不具合で 404（0.8.5 が最新のため更新では直らない）。</li>
+          <li><strong>v1.1:</strong> 導入を実施し、記録として書き直した。上流 CLI を 1 env に統合する形に変更（当初案はツールごとに別プロジェクト）、Exa は nanokit の MCP 登録経路へ、doctor が symlink を辿らない問題を 7 件目として追加。</li>
           <li><strong>v1.0:</strong> 初稿。doctor の実測（4/15）と pixi プロジェクト経由の起動確認を根拠に Tier 0/1 を推奨、Tier 2/3 を判断待ちとした。</li>
         </ul>
       </section>

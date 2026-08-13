@@ -29,6 +29,14 @@ twitter user-posts @username -n 20
 twitter user @username
 ```
 
+### Checking that you are actually logged in
+
+Without cookies the CLI still answers some calls through a guest token — profile
+lookups and `feed` return plausible data — so **getting output back is not proof of
+authentication**. The tells are the `Failed to init ClientTransaction` warning on
+stderr and `twitter search` returning HTTP 404. If you see either, treat Twitter as
+unconfigured and say so instead of reporting the guest results as the user's timeline.
+
 ### Less stable
 
 ```bash

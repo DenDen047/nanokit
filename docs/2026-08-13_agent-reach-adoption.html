@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent Reach 導入記録 — nanokit 整合性と構成</title>
+  <!-- KaTeX (数式) と Prism (コードハイライト): CDN 読み込み。
+       オフライン配布時は scripts/setup-libs.sh でローカル化 (reference/math-and-code.md 参照) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --accent: #2563eb;
+      --accent-soft: #eff6ff;
+      --intent-bg: #fff7ed;
+      --intent-border: #f59e0b;
+      --code-bg: #f8fafc;
+      --ok-bg: #dcfce7;
+      --ok-border: #16a34a;
+      --risk-bg: #fef2f2;
+      --risk-border: #ef4444;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a; --fg: #f1f5f9; --muted: #94a3b8;
+        --border: #1e293b; --accent: #60a5fa; --accent-soft: #1e3a8a;
+        --intent-bg: #422006; --intent-border: #f59e0b;
+        --code-bg: #1e293b;
+        --ok-bg: #14532d; --ok-border: #22c55e;
+        --risk-bg: #450a0a; --risk-border: #f87171;
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+      line-height: 1.7;
+      color: var(--fg);
+      background: var(--bg);
+      margin: 0;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 240px minmax(0, 1fr);
+      gap: 48px;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 32px 24px 96px;
+    }
+    @media (max-width: 800px) {
+      .layout { grid-template-columns: 1fr; gap: 24px; }
+      nav.toc { position: static; }
+    }
+    header.doc {
+      grid-column: 1 / -1;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+    header.doc h1 { margin: 0 0 4px; font-size: 1.75rem; }
+    header.doc .sub { color: var(--muted); }
+    header.doc .meta {
+      margin-top: 8px; display: flex; gap: 12px; flex-wrap: wrap;
+      font-size: 0.875rem; color: var(--muted);
+    }
+    .badge {
+      display: inline-block; padding: 2px 8px;
+      border: 1px solid var(--accent); color: var(--accent);
+      border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+    }
+    nav.toc { position: sticky; top: 24px; align-self: start; font-size: 0.9rem; }
+    nav.toc h2 {
+      font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--muted); margin: 0 0 8px;
+    }
+    nav.toc ol { list-style: none; padding: 0; margin: 0; }
+    nav.toc li { margin: 6px 0; }
+    nav.toc a {
+      color: var(--fg); text-decoration: none;
+      border-left: 2px solid transparent; padding-left: 8px; display: block;
+    }
+    nav.toc a:hover { color: var(--accent); border-left-color: var(--accent); }
+    main { min-width: 0; }
+    .lead {
+      font-size: 1.15rem; line-height: 1.65;
+      border-left: 4px solid var(--accent);
+      padding: 12px 16px; background: var(--accent-soft); margin: 0 0 24px;
+    }
+    section { margin: 40px 0; }
+    section h2 {
+      font-size: 1.4rem; border-bottom: 1px solid var(--border);
+      padding-bottom: 6px; margin-bottom: 12px;
+    }
+    section h2 small {
+      font-size: 0.75rem; color: var(--muted); font-weight: 400; margin-left: 8px;
+    }
+    section h3 {
+      font-size: 0.85rem; margin: 24px 0 8px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    section h4 { font-size: 1rem; margin: 18px 0 6px; }
+    .intent {
+      background: var(--intent-bg); border-left: 4px solid var(--intent-border);
+      padding: 12px 16px; margin: 16px 0; font-size: 0.95rem;
+    }
+    .intent strong { color: var(--intent-border); }
+    .risk {
+      background: var(--risk-bg); border-left: 4px solid var(--risk-border);
+      padding: 12px 16px; margin: 12px 0; font-size: 0.95rem;
+    }
+    .ok {
+      background: var(--ok-bg); border-left: 4px solid var(--ok-border);
+      padding: 12px 16px; margin: 12px 0; font-size: 0.95rem;
+    }
+    table {
+      width: 100%; border-collapse: collapse;
+      margin: 12px 0; font-size: 0.92rem;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 8px 12px; text-align: left; vertical-align: top;
+    }
+    th { background: var(--code-bg); font-weight: 600; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tr.win td { font-weight: 600; }
+    .pill {
+      white-space: nowrap;
+      display: inline-block; padding: 1px 8px;
+      border-radius: 999px; font-size: 0.72rem; font-weight: 600;
+      border: 1px solid currentColor;
+    }
+    .pill.p1 { color: #16a34a; }
+    .pill.p2 { color: #2563eb; }
+    .pill.p3 { color: #f59e0b; }
+    .pill.p4 { color: #64748b; }
+    .pill.p5 { color: #ef4444; }
+    code {
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      background: var(--code-bg); padding: 1px 6px;
+      border-radius: 4px; font-size: 0.9em;
+    }
+    pre {
+      background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 12px 14px; overflow-x: auto;
+      font-size: 0.85rem; line-height: 1.55;
+    }
+    pre code { background: transparent; padding: 0; }
+    .formula {
+      background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 10px 14px; margin: 10px 0;
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 0.9rem; overflow-x: auto;
+    }
+    a { color: var(--accent); }
+    a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .diagram-scroll {
+      width: 100%;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+    }
+    .diagram-scroll a { display: block; cursor: zoom-in; line-height: 0; }
+    .diagram-scroll img { display: block; width: 100%; height: auto; max-width: 100%; }
+    .footnote { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+    blockquote {
+      border-left: 4px solid var(--accent);
+      padding-left: 16px; margin-left: 0;
+      color: var(--muted); font-style: italic;
+    }
+    @media (max-width: 800px) {
+      /* 1fr は min-content 下限を持つため、長い pre がページ幅を押し広げる */
+      .layout { grid-template-columns: minmax(0, 1fr); }
+    }
+    @media (max-width: 620px) {
+      table { display: block; overflow-x: auto; }
+      .layout { padding: 24px 16px 72px; }
+    }
+    @media print {
+      body { font-size: 11pt; color: #000; background: #fff; }
+      .layout { display: block; padding: 0; max-width: none; }
+      nav.toc { display: none; }
+      section { page-break-inside: avoid; }
+      .intent, .risk, .ok { background: #fff; }
+      a { color: inherit; text-decoration: none; }
+      a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.85em; color: #555; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <header class="doc">
+      <h1>Agent Reach 導入記録</h1>
+      <div class="sub">既存環境と何が重複したか、pixi-only と単一ソースを保ったままどう組み込んだか</div>
+      <div class="meta">
+        <span class="badge">v1.1</span>
+        <span>作成日 2026-08-13</span>
+        <span>読了 10 分</span>
+        <span>ブランチ <code>trial/agent-reach</code></span>
+      </div>
+    </header>
+
+    <nav class="toc" aria-label="目次">
+      <h2>目次</h2>
+      <ol>
+        <li><a href="#tldr">TL;DR</a></li>
+        <li><a href="#what">Agent Reach の実体</a></li>
+        <li><a href="#overlap">既存環境との重複</a></li>
+        <li><a href="#conflicts">非互換ポイント 7 件</a></li>
+        <li><a href="#scope">採否の判断</a></li>
+        <li><a href="#wiring">配布経路</a></li>
+        <li><a href="#done">実施したこと</a></li>
+        <li><a href="#todo">残っている手動ステップ</a></li>
+        <li><a href="#rollback">撤去手順</a></li>
+        <li><a href="#refs">参考資料 + 改訂履歴</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <!-- ===================== TL;DR ===================== -->
+      <section id="tldr">
+        <h2>TL;DR</h2>
+        <p class="lead">
+          機能で見れば Agent Reach の大半は既存資産と重複する（追加インストール無しで使える渠道は実測 15 中 4 件）。
+          それでも入れる価値は<strong>「インターネット取得の入口が 1 つに揃うこと」</strong>にあるので、
+          機能の寄せ集めではなく <strong>1 つの pixi env と 1 つのスキル</strong>に構造をまとめて導入した。
+        </p>
+        <div class="intent">
+          <strong>今の状態:</strong> <code>trial/agent-reach</code> ブランチに導入済みで、
+          <code>agent-reach</code> / <code>twitter</code> / <code>rdt</code> の 3 コマンドが PATH に出ている。
+          Exa は npm の mcporter ではなくネイティブ MCP として両クライアントに登録済み。
+          last30days は撤去。残るのは <strong>Twitter / Reddit の捨てアカウント作成と Cookie 投入</strong>だけで、
+          これはユーザー自身の作業。
+        </div>
+      </section>
+
+      <!-- ===================== 実体 ===================== -->
+      <section id="what">
+        <h2>Agent Reach の実体 <small>ラッパではなくセレクタ</small></h2>
+        <p>
+          <a href="https://github.com/Panniantong/Agent-Reach">Panniantong/Agent-Reach</a> は MIT ライセンスの Python CLI で、
+          15 プラットフォームそれぞれについて「今いちばん動く上流ツール」を選び、インストールし、
+          <code>doctor</code> で疎通を見て、SKILL.md でエージェントに使い方を教える。
+          データ取得そのものは上流ツール（<code>gh</code> / <code>yt-dlp</code> / <code>twitter-cli</code> / <code>rdt-cli</code> など）が行い、
+          Agent Reach は間に立たない。つまり <strong>価値の本体はコードではなく「選定と手順の維持」</strong>にある。
+          これは今回の判断の土台でもある。個々の機能は代替できても、
+          <em>どのプラットフォームをどの裏側で取るかが 1 か所に集まっている</em>状態は代替しにくい。
+        </p>
+
+        <h3>リポジトリの健全性</h3>
+        <table>
+          <thead><tr><th>項目</th><th>値</th><th>評価</th></tr></thead>
+          <tbody>
+            <tr><td>Stars / Forks</td><td class="num">71,305 / 6,047</td><td>✅ 大規模に使われている</td></tr>
+            <tr><td>ライセンス</td><td>MIT</td><td>✅ 商用利用に制約なし</td></tr>
+            <tr><td>最終 push</td><td>2026-08-12（本書の前日）</td><td>✅ アクティブ</td></tr>
+            <tr><td>作成日 / open issues</td><td>2026-02-24 / 74</td><td>⚠ 若く、issue は積み気味</td></tr>
+            <tr><td>導入 UX</td><td>「この URL をエージェントに貼る」方式</td><td>⚠ 遠隔 markdown に追従実行させる設計</td></tr>
+          </tbody>
+        </table>
+        <div class="risk">
+          <strong>衛生上の注意:</strong> 公式の導入手順は <code>docs/install.md</code> の生 URL をエージェントに読ませて、
+          その指示どおり動かす形をとる。内容は導入時点でレビュー済みだが、この方式は
+          「遠隔で書き換わる指示書に従う」構造そのもの。本導入では
+          <strong>レビュー済みリビジョン <code>93ae1d1</code> を <code>pixi.toml</code> に固定</strong>し、更新は明示的な rev 引き上げだけで行う。
+        </div>
+
+        <h3>この環境での実測 <small>doctor の出力</small></h3>
+<pre><code class="language-text">✅ V2EX / RSS / 任意の Web ページ（Jina Reader）/ B站検索
+[!] GitHub  — gh は入っているが doctor は認証状態を自分で確認しない
+[!] YouTube — yt-dlp はあるが --js-runtimes node が未設定（後述の誤検知）
+[X] 全網検索 — mcporter + Exa MCP が要る（ネイティブ MCP で代替済み）
+状態: 4/15 個の渠道が利用可能</code></pre>
+        <div class="ok">
+          <strong>含意:</strong> ゼロ設定で増える機能はほぼ無い。増えるのは
+          <strong>入口の一本化</strong>と、<strong>取得手段が陳腐化したときに気付ける仕組み</strong>（月 1 回 <code>doctor</code> を見るだけでよい）。
+        </div>
+      </section>
+
+      <!-- ===================== 重複 ===================== -->
+      <section id="overlap">
+        <h2>既存環境との重複</h2>
+        <p>用途ごとに、いま何で足りているか。<span class="pill p4">重複</span> は機能が増えない、<span class="pill p1">新規</span> は本当に増える。</p>
+        <table>
+          <thead>
+            <tr><th>用途</th><th>採用した裏側</th><th>既存との関係</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Web 検索</td><td>Exa MCP（ネイティブ登録）</td><td><span class="pill p1">新規</span> WebSearch / Codex 検索委譲とは別の英語・技術寄りの検索</td></tr>
+            <tr><td>Web ページ読み取り</td><td>Jina Reader → scrapling MCP → WebFetch</td><td><span class="pill p4">重複</span> 3 段の再試行チェーンとして整理し直しただけ</td></tr>
+            <tr><td>YouTube 字幕</td><td><code>yt-dlp</code>（pixi global）</td><td><span class="pill p4">重複</span> JS runtime 設定という実利のみ</td></tr>
+            <tr><td>GitHub</td><td><code>gh</code>（pixi global）+ deepwiki MCP</td><td><span class="pill p4">重複</span></td></tr>
+            <tr><td>RSS</td><td><code>feedparser</code>（env 内）</td><td><span class="pill p3">小</span></td></tr>
+            <tr><td><strong>Twitter / X</strong></td><td><code>twitter</code>（Cookie）</td><td><span class="pill p1">新規</span> 代替手段が無かった</td></tr>
+            <tr><td><strong>Reddit</strong></td><td><code>rdt</code>（Cookie）</td><td><span class="pill p1">新規</span> 同上</td></tr>
+            <tr><td>小红书 / B站 / 雪球 / 小宇宙 / V2EX / FB / IG / LinkedIn</td><td>—</td><td><span class="pill p5">不採用</span> スキルの記述ごと削除（存在しない手段を教えない）</td></tr>
+          </tbody>
+        </table>
+
+        <div class="intent">
+          <strong>last30days は撤去した。</strong> Reddit / X / YouTube を横断する同種のスキルだったが、
+          必須の <code>SCRAPECREATORS_API_KEY</code> が環境にも Keychain にも無く機能していなかった。
+          入口を 1 つにするという今回の趣旨からも、動かない二番目の入口は残さない。
+        </div>
+      </section>
+
+      <!-- ===================== 非互換 ===================== -->
+      <section id="conflicts">
+        <h2>非互換ポイント 7 件</h2>
+        <p>公式手順のまま入れると、この環境の設計原則を 7 か所で踏む。すべて回避または明文化した。</p>
+
+        <h4>1. <code>install --system</code> が pixi-only を壊す <span class="pill p5">回避</span></h4>
+        <p>
+          <code>--system</code> は <code>brew install</code> / <code>apt-get install</code> / <code>npm install -g</code> / <code>pipx install</code> を直接呼ぶ。
+          そもそも <code>~/.zshenv</code> で <code>GLOBAL_RCS</code> を落としているため <strong>brew は PATH にすら居ない</strong>。
+          → このモードは使わず、必要な CLI を <code>tools/agent-reach/pixi.toml</code> に自前で固定した。
+        </p>
+
+        <h4>2. <code>skill --install</code> が単一ソースを壊す <span class="pill p5">回避</span></h4>
+        <p>
+          このサブコマンドは <code>~/.claude/skills/</code> と <code>~/.agents/skills/</code> に SKILL を<strong>実体コピー</strong>し、
+          既存が symlink なら消してから置く。2026-07 に「実体ディレクトリが 1 つ紛れて配布が静かに壊れた」事故と同じ形。
+          → スキルは <code>claude/skills/agent-reach/</code> に vendor し、<code>agent-config-sync</code> の symlink 配布に乗せた。
+          禁止コマンドは SKILL.md 冒頭と <code>pixi.toml</code> のコメントに明記。
+        </p>
+
+        <h4>3. スキルの発火条件が広すぎる <span class="pill p3">修正</span></h4>
+        <p>
+          同梱 SKILL.md の description は <em>「MUST USE ... anything on the internet」</em>で、
+          ultrasurvey / knowledge-base-query / WebSearch / scrapling / deepwiki、
+          さらに「検索レッグは Codex に投げる」運用と正面衝突する。
+          → <strong>プラットフォーム名か URL が出たときだけ</strong>に絞り、
+          「オープンな調査は ultrasurvey へ」と明示的に除外を書いた。
+        </p>
+
+        <h4>4. 更新チェックの催促 <span class="pill p3">削除</span></h4>
+        <p>常設ルール 5「タスクごとに <code>check-update</code> して新版を毎回知らせろ」は静かな自動化に反するので削除した。</p>
+
+        <h4>5. Cookie 認証の BAN リスク <span class="pill p3">緩和</span></h4>
+        <p>
+          Twitter / Reddit はどちらも Cookie 前提で、上流も「捨てアカウント推奨、高頻度呼び出しは BAN リスク」と明記している。
+          → <strong>捨てアカウント運用</strong>を前提とし、スキル側に「読み取り専用」「間隔を空ける」
+          「<code>followers</code> / <code>following</code> の列挙は禁止」を明記した。
+          書き込み系コマンド（<code>rdt comment</code> など）は呼ばせない。
+        </p>
+
+        <h4>6. yt-dlp の二重管理 <span class="pill p4">許容</span></h4>
+        <p>
+          Agent Reach は依存に <code>yt-dlp[default]</code> を持つため env 内にも別実体が入る。PATH 上の pixi global 版が優先されるので実害は無い。
+          なお PATH 上の <code>yt-dlp</code> は 2026.03.17 と 5 か月前で、本体が更新を促してくる（<code>pixi global update yt-dlp</code>）。
+          <code>pixi-global.toml</code> に別作業の未コミット変更があるため今回は触っていない。
+        </p>
+
+        <h4>7. doctor が symlink を辿らない <span class="pill p3">明文化</span></h4>
+        <p>
+          Agent Reach は認証情報の保護として「private path は symlink を辿らずに読む」実装になっている
+          (<code>read_small_text_no_follow</code>)。ところが dotter 配布はまさに symlink なので、
+          <code>~/.config/yt-dlp/config</code> を <strong>doctor が読めず、設定済みなのに警告が残る</strong>。
+          実際には読まれていることを確認済み:
+        </p>
+<pre><code class="language-text">$ yt-dlp -v --simulate "ytsearch1:test" | grep "User config"
+[debug] User config ".../.config/yt-dlp/config": ['--js-runtimes', 'node']</code></pre>
+        <p>
+          → 実体ファイルに置き換えれば警告は消えるが、それは単一ソースを捨てるということ。
+          <strong>警告のほうを既知の誤検知として SKILL.md に書いた</strong>。将来のセッションが「直そう」としないための予防線。
+        </p>
+      </section>
+
+      <!-- ===================== 採否 ===================== -->
+      <section id="scope">
+        <h2>採否の判断</h2>
+        <table>
+          <thead><tr><th>段</th><th>内容</th><th>判断</th></tr></thead>
+          <tbody>
+            <tr class="win">
+              <td><span class="pill p1">Tier 0</span></td>
+              <td>Exa MCP のネイティブ登録 / <code>yt-dlp</code> の <code>--js-runtimes node</code></td>
+              <td>採用・完了</td>
+            </tr>
+            <tr class="win">
+              <td><span class="pill p2">Tier 1</span></td>
+              <td>Agent Reach 本体をルータ + スキルとして導入</td>
+              <td>採用・完了</td>
+            </tr>
+            <tr class="win">
+              <td><span class="pill p3">Tier 2</span></td>
+              <td>Twitter / Reddit（<code>twitter-cli</code> / <code>rdt-cli</code>）</td>
+              <td>採用・配管は完了、Cookie 投入待ち</td>
+            </tr>
+            <tr>
+              <td><span class="pill p5">Tier 3</span></td>
+              <td>OpenCLI / 小红书 / B站フル / 雪球 / 小宇宙 / LinkedIn</td>
+              <td>不採用（npm -g、Chrome 拡張の二重化、使う場面が無い）</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="intent">
+          <strong>構造上の要点:</strong> 上流 CLI をツールごとに別プロジェクトへ散らすと、
+          「インターネット取得の入口が 1 つ」という利点がすぐ崩れる。
+          そこで <strong>3 コマンドを 1 つの pixi env にまとめ</strong>、共有ラッパ <code>run-in-env</code> を
+          3 つの名前で配る形にした（<code>pixi global</code> の <code>exposed</code> と同じ発想）。
+          env・lock・更新の単位が 1 つで済む。
+        </div>
+      </section>
+
+      <!-- ===================== 配線図 ===================== -->
+      <section id="wiring">
+        <h2>配布経路</h2>
+        <p>緑が今回追加したもの、橙が既存の配布機構、赤が <strong>使ってはいけない</strong>公式コマンド。新しい機構は増やしていない。</p>
+
+        <figure style="margin: 0;">
+          <div class="diagram-scroll">
+            <a href="assets/2026-08-13_agent-reach-distribution.svg"
+               target="_blank" rel="noopener"
+               title="クリックで原寸を新タブで開く">
+              <img src="assets/2026-08-13_agent-reach-distribution.svg"
+                   alt="nanokit を単一ソースとして、tools/agent-reach と yt-dlp/config を dotter が、claude/skills/agent-reach と exa MCP 登録を agent-config-sync が配る構成。install --system と skill --install は同じ出力先を実体で上書きするため禁止。"
+                   loading="lazy">
+            </a>
+          </div>
+          <figcaption class="footnote" style="text-align: center; margin-top: 8px;">
+            <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 8px 0 10px; font-size: 0.85rem;">
+              <span style="display: inline-flex; align-items: center; gap: 6px;">
+                <span style="display: inline-block; width: 14px; height: 14px; background: #16a34a; border-radius: 3px;"></span>
+                今回追加
+              </span>
+              <span style="display: inline-flex; align-items: center; gap: 6px;">
+                <span style="display: inline-block; width: 14px; height: 14px; background: #d97706; border-radius: 3px;"></span>
+                既存の配布機構
+              </span>
+              <span style="display: inline-flex; align-items: center; gap: 6px;">
+                <span style="display: inline-block; width: 14px; height: 14px; background: #dc2626; border-radius: 3px;"></span>
+                禁止コマンド
+              </span>
+            </div>
+            ソース: <code>docs/assets/2026-08-13_agent-reach-distribution.d2</code>
+            (再生成 = <code>d2 --layout=dagre -t 200 input.d2 output.svg</code>)
+          </figcaption>
+        </figure>
+      </section>
+
+      <!-- ===================== 実施 ===================== -->
+      <section id="done">
+        <h2>実施したこと</h2>
+        <p>すべて <code>trial/agent-reach</code> ブランチ上。<code>pixi-global.toml</code> の未コミット変更（shellcheck 追加）には触れていない。</p>
+
+        <h3>1. 3 コマンドを 1 env にまとめた</h3>
+<pre><code class="language-text">tools/agent-reach/
+├── pixi.toml       # agent-reach (rev 固定) + twitter-cli + rdt-cli
+├── pixi.lock       # linux-64 / linux-aarch64 / osx-arm64
+├── run-in-env      # 共有ラッパ。$0 の名前をそのまま env 内で実行
+├── agent-reach ──┐
+├── twitter ──────┼─→ run-in-env への symlink
+└── rdt ──────────┘</code></pre>
+        <p>
+          dotter は 1 つの source を複数の target に配れない（TOML のキー重複になる）ため、
+          リポジトリ側に 3 つの名前を symlink として置き、それぞれを <code>~/.pixi/bin/</code> に配っている。
+          <code>run-in-env</code> は <code>twitter</code> のときだけ、ユーザーが自分で保存した Cookie を
+          <code>~/.agent-reach/config.yaml</code> から環境変数に橋渡しする（値は表示しない）。
+        </p>
+        <div class="ok">
+          <strong>検証:</strong> <code>agent-reach v1.5.0</code> / <code>twitter 0.8.5</code> / <code>rdt 0.4.2</code> が
+          同一 env で解決し、<code>~/.pixi/bin/</code> 経由で 3 つとも起動することを確認済み。
+        </div>
+
+        <h3>2. Exa は npm を経由せずネイティブ MCP に</h3>
+        <p>
+          Exa の実体はキー不要の HTTP MCP なので、<code>nanokit</code> スクリプトの
+          <code>sync_shared_http_mcps</code> に 1 行足して、既存の scrapling / zotero / deepwiki と同じ経路で
+          Claude / Codex の user scope に登録した。
+        </p>
+<pre><code class="language-bash">register_shared_http_mcp exa "https://mcp.exa.ai/mcp" "$diff_only"</code></pre>
+        <div class="risk">
+          <strong>要確認:</strong> Claude 側は <code>claude mcp list</code> で <code>✔ Connected</code>。
+          Codex 側は登録に成功したが、その過程で <code>timed out waiting for OAuth callback</code> が一度出た。
+          エントリ自体は <code>enabled: true</code> で残っているので、<strong>Codex から初めて使うときに実際に応答するか確認</strong>したい。
+        </div>
+
+        <h3>3. yt-dlp 設定を nanokit 管理下に</h3>
+        <p><code>yt-dlp/config</code> を追加し、dotter で <code>~/.config/yt-dlp/config</code> に配った（既存の <code>uv.toml</code> と同じ形）。</p>
+
+        <h3>4. スキルを vendor して絞った</h3>
+        <p>
+          <code>claude/skills/agent-reach/</code> に rev <code>93ae1d1</code> の英語版をコピーし、
+          description を絞り、更新催促を削り、未採用プラットフォームの記述を references ごと削除した。
+          残したのは search / web / video / dev / social（Twitter・Reddit のみ）の 5 本。
+          doctor の既知の誤検知 3 件（YouTube・GitHub・Exa）も明記した。
+        </p>
+
+        <h3>5. last30days を撤去</h3>
+        <p><code>~/.claude/skills/last30days</code> の symlink と <code>claude/external/</code> を削除し、<code>ARCHITECTURE.md</code> の記述も落とした。</p>
+      </section>
+
+      <!-- ===================== 残作業 ===================== -->
+      <section id="todo">
+        <h2>残っている手動ステップ</h2>
+        <p>いずれもアカウントと認証に関わるのでユーザー自身の作業。</p>
+        <table>
+          <thead><tr><th>#</th><th>やること</th><th>確認方法</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td>X と Reddit の<strong>捨てアカウント</strong>を用意し、Chrome でログインしておく</td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td><a href="https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm">Cookie-Editor</a> で x.com の Cookie を Export → Header String し、<code>agent-reach configure twitter-cookies</code> に貼る</td>
+              <td><code>twitter feed -n 5</code> が返る</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td><code>rdt login</code>（ブラウザ Cookie を自動抽出）</td>
+              <td><code>rdt popular --limit 3</code> が返る</td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td>Claude Code のセッションを開き直す</td>
+              <td>Exa MCP のツールがセッション内で使えるようになる（セッション途中の登録は反映されない）</td>
+            </tr>
+            <tr>
+              <td>5</td>
+              <td>1〜2 週間使ってから残すか決める</td>
+              <td>残すなら main へ merge、要らなければブランチごと破棄</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ===================== 撤去 ===================== -->
+      <section id="rollback">
+        <h2>撤去手順</h2>
+<pre><code class="language-bash">git switch main                       # trial ブランチを捨てる
+./nanokit deploy                      # dotter が 3 コマンドと yt-dlp config を落とす
+rm -rf ~/.agent-reach                 # Cookie を含む設定（作られていれば）
+claude mcp remove exa -s user &amp;&amp; codex mcp remove exa</code></pre>
+        <p class="footnote">
+          公式の <code>agent-reach uninstall</code> は npm / pipx で入れた上流ツールの削除案内も出すが、
+          本構成ではそれらを入れていないので使う必要はない。
+        </p>
+      </section>
+
+      <!-- ===================== 参考 ===================== -->
+      <section id="refs">
+        <h2>参考資料</h2>
+        <ul>
+          <li><a href="https://github.com/Panniantong/Agent-Reach">Panniantong/Agent-Reach</a> — 本体（MIT、v1.5.0、固定 rev <code>93ae1d1</code>）</li>
+          <li><a href="https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/install.md">docs/install.md</a> — 公式導入手順（<code>--system</code> の挙動とチャネル一覧の出典）</li>
+          <li><code>agent_reach/cli.py</code> — <code>_install_skill</code> のコピー配布、brew/apt/npm/pipx 呼び出しの実装</li>
+          <li><code>agent_reach/channels/youtube.py</code> / <code>utils/paths.py</code> — symlink を辿らない読み取り（誤検知の原因）</li>
+        </ul>
+
+        <h3>プロジェクト内資料</h3>
+        <ul>
+          <li><code>claude/CLAUDE.md</code> — pixi-only 原則と <code>tools/&lt;name&gt;/</code> パターン（本導入で実装例に追記）</li>
+          <li><code>specs/mcp-operations.md</code> — 共有 HTTP MCP の登録先振り分け（exa を追記）</li>
+          <li><code>tools/jarvislabs/</code> — PyPI 専売 CLI を pixi プロジェクト + ラッパで PATH に出す既存パターン</li>
+          <li><code>docs/2026-07-13_codex-plugin-integration.html</code> — 外部ツールを二経路で使い分けた前例</li>
+        </ul>
+
+        <h3>本書の改訂履歴</h3>
+        <ul>
+          <li><strong>v1.1 (本書):</strong> 導入を実施し、記録として書き直した。上流 CLI を 1 env に統合する形に変更（当初案はツールごとに別プロジェクト）、Exa は nanokit の MCP 登録経路へ、doctor が symlink を辿らない問題を 7 件目として追加。</li>
+          <li><strong>v1.0:</strong> 初稿。doctor の実測（4/15）と pixi プロジェクト経由の起動確認を根拠に Tier 0/1 を推奨、Tier 2/3 を判断待ちとした。</li>
+        </ul>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- KaTeX auto-render: $...$ / $$...$$ / \(...\) / \[...\] を数式化 -->
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false},
+              {left: '\\(', right: '\\)', display: false},
+              {left: '\\[', right: '\\]', display: true}
+            ],
+            throwOnError: false
+          });"></script>
+
+  <!-- Prism: <pre><code class="language-XXX"> を自動ハイライト -->
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markup.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-css.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-clike.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-rust.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-go.min.js"></script>
+</body>
+</html>

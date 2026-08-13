@@ -1,0 +1,116 @@
+direction: down
+
+vars: {
+  d2-config: {
+    theme-id: 200
+    dark-theme-id: 200
+  }
+}
+
+classes: {
+  new: {
+    style: {
+      fill: "#16a34a"
+      stroke: "#14532d"
+      stroke-width: 2
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
+    }
+  }
+  base: {
+    style: {
+      fill: "#475569"
+      stroke: "#1e293b"
+      stroke-width: 1
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
+    }
+  }
+  attn: {
+    style: {
+      fill: "#d97706"
+      stroke: "#7c2d12"
+      stroke-width: 2
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
+    }
+  }
+  bad: {
+    style: {
+      fill: "#dc2626"
+      stroke: "#7f1d1d"
+      stroke-width: 2
+      font-color: "#ffffff"
+      font-size: 18
+      bold: true
+    }
+  }
+}
+
+src: "nanokit (単一ソース)" {
+  class: base
+
+  env: "tools/agent-reach/\npixi.toml + run-in-env" {
+    class: new
+  }
+  skill: "claude/skills/agent-reach/" {
+    class: new
+  }
+  ytdlp: "yt-dlp/config" {
+    class: new
+  }
+  mcp: "nanokit (exa の 1 行)" {
+    class: new
+  }
+}
+
+dotter: "dotter deploy" {
+  class: attn
+}
+sync: "agent-config-sync" {
+  class: attn
+}
+
+bins: "~/.pixi/bin/\nagent-reach · twitter · rdt" {
+  class: new
+}
+ytconf: "~/.config/yt-dlp/config" {
+  class: new
+}
+skills: "~/.claude/skills/ と\n~/.agents/skills/" {
+  class: new
+}
+mcpreg: "Claude / Codex user scope\nexa MCP" {
+  class: new
+}
+
+banned: "禁止: install --system / skill --install\n(brew·npm -g·pipx を叩く / symlink を実体コピーで潰す)" {
+  class: bad
+}
+
+src.env -> dotter
+src.ytdlp -> dotter
+src.skill -> sync
+src.mcp -> sync
+dotter -> bins
+dotter -> ytconf
+sync -> skills
+sync -> mcpreg
+
+banned -> bins: "上書き" {
+  style: {
+    stroke: "#dc2626"
+    stroke-dash: 4
+    font-color: "#dc2626"
+  }
+}
+banned -> skills: "上書き" {
+  style: {
+    stroke: "#dc2626"
+    stroke-dash: 4
+    font-color: "#dc2626"
+  }
+}

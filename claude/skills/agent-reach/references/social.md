@@ -33,19 +33,26 @@ twitter user @username
 
 Without cookies the CLI still answers some calls through a guest token — profile
 lookups and `feed` return plausible data — so **getting output back is not proof of
-authentication**. The tells are the `Failed to init ClientTransaction` warning on
-stderr and `twitter search` returning HTTP 404. If you see either, treat Twitter as
-unconfigured and say so instead of reporting the guest results as the user's timeline.
+authentication**. The reliable tell is the wrapper: it prints "Cookie 未設定" on
+stderr when the config holds no credentials. The
+`Failed to init ClientTransaction` warning is *not* a tell — it appears in every
+run, authenticated or not.
 
-### Less stable
+### search is unavailable (verified 2026-08-13)
 
 ```bash
-twitter search "query" -n 10        # X changes its GraphQL endpoints often; 404s happen
+twitter search "query" -n 10        # HTTP 404, even with valid cookies
 ```
 
-Retry chain for `search`: run it once more (transient failures are common), then
-fall back to `twitter feed` / `twitter user-posts @someone` and filter locally.
-Do not "fix" it by installing another backend.
+twitter-cli builds an X transaction ID by scraping x.com's JS; that scraper is
+broken against the current site (`Failed to init ClientTransaction`), which takes
+the search endpoint with it. 0.8.5 is the newest release on PyPI (2026-03-17), so
+upgrading is not a fix, and the upstream fallbacks (OpenCLI) are not installed here.
+
+Work around it with the commands above: `twitter user-posts @account` for a known
+source, or `twitter feed` and filter locally. If keyword search across all of X is
+genuinely required, say it is unavailable rather than substituting a web search and
+presenting it as X data.
 
 Use `--json` or `--yaml` for structured output. Avoid `followers` / `following`
 enumeration entirely — that is the fastest way to get an account flagged.

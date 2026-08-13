@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# OpenCLI — Agent Reach のブラウザセッション系バックエンド (Apache-2.0)。
+# ユーザーの Chrome の既存ログインを使って読むので、twitter-cli が壊している
+# X の全文検索をここで代替する。Chrome 拡張が別途必要 (手動インストール)。
+#
+# npm 専売のため隣の pixi env には入らない。claude/scripts/mmdc と同じく
+# バージョン固定の npx で実行する。node は fnm 管理なので cron / launchd からは
+# PATH が通らないが、そもそも Chrome が起動している対話セッション専用なので許容。
+# 更新はこの行のバージョンを上げるだけ。
+set -euo pipefail
+exec npx -y "@jackwener/opencli@1.8.6" "$@"

@@ -392,7 +392,7 @@ This will:
 3. Link every `claude/skills/*/SKILL.md` directory to both `~/.claude/skills/` and `~/.agents/skills/`.
 4. Upsert portable keys from `codex/config.toml` into the stateful `~/.codex/config.toml` without touching host-specific sections.
 5. Link nanokit-managed Codex command rules from `codex/rules/*.rules` into `~/.codex/rules/`.
-6. Register client-safe HTTP MCPs (`scrapling`, `zotero`, `deepwiki`) in both CLIs.
+6. Register client-safe HTTP MCPs (`scrapling`, `zotero`, `deepwiki`, `exa`) in both CLIs.
 7. Register Claude Code plugin marketplaces and plugins.
 
 Client-scoped MCPs such as `workspace-hdt` / `workspace-personal` are intentionally not added to Codex user scope; `claude-settings` selects them per project so organization credentials do not leak across clients.

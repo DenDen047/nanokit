@@ -56,6 +56,9 @@ src: "nanokit (単一ソース)" {
   env: "tools/agent-reach/\npixi.toml + run-in-env" {
     class: new
   }
+  npx: "tools/agent-reach/opencli\n(npx をバージョン固定)" {
+    class: new
+  }
   skill: "claude/skills/agent-reach/" {
     class: new
   }
@@ -74,7 +77,7 @@ sync: "agent-config-sync" {
   class: attn
 }
 
-bins: "~/.pixi/bin/\nagent-reach · twitter · rdt" {
+bins: "~/.pixi/bin/\nagent-reach · twitter · rdt · opencli" {
   class: new
 }
 ytconf: "~/.config/yt-dlp/config" {
@@ -92,6 +95,7 @@ banned: "禁止: install --system / skill --install\n(brew·npm -g·pipx を叩�
 }
 
 src.env -> dotter
+src.npx -> dotter
 src.ytdlp -> dotter
 src.skill -> sync
 src.mcp -> sync

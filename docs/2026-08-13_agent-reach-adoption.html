@@ -197,7 +197,7 @@
       <h1>Agent Reach 導入記録</h1>
       <div class="sub">既存環境と何が重複したか、pixi-only と単一ソースを保ったままどう組み込んだか</div>
       <div class="meta">
-        <span class="badge">v1.2</span>
+        <span class="badge">v1.3</span>
         <span>作成日 2026-08-13</span>
         <span>読了 10 分</span>
         <span>ブランチ <code>trial/agent-reach</code></span>
@@ -233,8 +233,8 @@
           <strong>今の状態:</strong> <code>trial/agent-reach</code> ブランチに導入済みで、
           <code>agent-reach</code> / <code>twitter</code> / <code>rdt</code> の 3 コマンドが PATH に出ている。
           Exa は npm の mcporter ではなくネイティブ MCP として両クライアントに登録済み。
-          last30days は撤去。Twitter / Reddit の Cookie 投入も完了し、
-          <strong>X のキーワード検索だけが上流の不具合で使えない</strong>状態で稼働している。
+          last30days は撤去。Twitter / Reddit の認証も完了し、当初落としていた OpenCLI を
+          後から採用したことで <strong>X のキーワード検索まで含めて全経路が動いている</strong>。
         </div>
       </section>
 
@@ -347,6 +347,12 @@
           「<code>followers</code> / <code>following</code> の列挙は禁止」を明記した。
           書き込み系コマンド（<code>rdt comment</code> など）は呼ばせない。
         </p>
+        <p>
+          後から採用した OpenCLI は Cookie を直接持たずブラウザセッションで読むため、この点ではむしろ安全側。
+          ただし <strong>隔離の担保が「Chrome にどの X アカウントでログインしているか」に移る</strong>。
+          claude-in-chrome と並ぶ 2 つ目の自動化拡張になる点も含めて許容し、
+          スキルには「<code>opencli twitter profile</code> で読み手が burner か確認し、違えば止める」と書いた。
+        </p>
 
         <h4>6. yt-dlp の二重管理 <span class="pill p4">許容</span></h4>
         <p>
@@ -389,12 +395,17 @@
             <tr class="win">
               <td><span class="pill p3">Tier 2</span></td>
               <td>Twitter / Reddit（<code>twitter-cli</code> / <code>rdt-cli</code>）</td>
-              <td>採用・配管は完了、Cookie 投入待ち</td>
+              <td>採用・完了（Cookie 投入済み）</td>
+            </tr>
+            <tr class="win">
+              <td><span class="pill p3">Tier 2'</span></td>
+              <td>OpenCLI（X の全文検索）</td>
+              <td>後から採用・完了</td>
             </tr>
             <tr>
               <td><span class="pill p5">Tier 3</span></td>
-              <td>OpenCLI / 小红书 / B站フル / 雪球 / 小宇宙 / LinkedIn</td>
-              <td>不採用（npm -g、Chrome 拡張の二重化、使う場面が無い）</td>
+              <td>小红书 / B站フル / 雪球 / 小宇宙 / LinkedIn</td>
+              <td>不採用（使う場面が無い）</td>
             </tr>
           </tbody>
         </table>
@@ -403,7 +414,16 @@
           「インターネット取得の入口が 1 つ」という利点がすぐ崩れる。
           そこで <strong>3 コマンドを 1 つの pixi env にまとめ</strong>、共有ラッパ <code>run-in-env</code> を
           3 つの名前で配る形にした（<code>pixi global</code> の <code>exposed</code> と同じ発想）。
-          env・lock・更新の単位が 1 つで済む。
+          env・lock・更新の単位が 1 つで済む。npm 専売の OpenCLI だけは同じ env に入らないが、
+          ラッパは同じディレクトリに置いて入口の集約を保った。
+        </div>
+        <div class="risk">
+          <strong>OpenCLI を落としたのは早計だった:</strong> 当初は「<code>npm install -g</code> が pixi-only に反する」
+          「Chrome 拡張が増える」「使う場面が無い」で Tier 3 に入れた。しかし 1 つ目は
+          <code>claude/scripts/mmdc</code> と同じ<strong>バージョン固定 npx をラッパで包む</strong>形で回避でき、
+          3 つ目は <code>twitter search</code> が上流不具合で死んだ時点で崩れた
+          （OpenCLI が X 全文検索を取り戻す唯一の経路になった）。
+          制約を「原理的な限界」と「回避策のあるコスト」に分けずに落としていた。
         </div>
       </section>
 
@@ -493,6 +513,22 @@
 
         <h3>5. last30days を撤去</h3>
         <p><code>~/.claude/skills/last30days</code> の symlink と <code>claude/external/</code> を削除し、<code>ARCHITECTURE.md</code> の記述も落とした。</p>
+
+        <h3>6. OpenCLI を後から追加</h3>
+        <p>
+          <code>@jackwener/opencli</code>（Apache-2.0）を <code>npm install -g</code> ではなく
+          <strong>バージョン固定の npx ラッパ</strong>として <code>tools/agent-reach/opencli</code> に置き、dotter で配った。
+          pixi env には入らないので <code>run-in-env</code> への symlink ではなく独立スクリプトだが、
+          置き場所を揃えることで「インターネット取得の入口は 1 ディレクトリ」を保っている。
+          Chrome 拡張の導入だけはユーザーの手作業（Chrome のセキュリティモデル上プログラムからは入れられない）。
+        </p>
+        <div class="risk">
+          <strong>上流ドキュメントのコマンド名が古い:</strong> Agent Reach のリファレンスは
+          <code>opencli twitter user-posts ... -f yaml</code> と書いているが、OpenCLI 1.8.6 に
+          <code>user-posts</code> は無い（正しくは <code>tweets</code>）。実機で <code>opencli list</code> と
+          <code>--help</code> を読んで、実在するコマンドとフラグに直してからスキルに載せた。
+          上流の rev を上げるときは、ここも同じ手順で確認し直すこと。
+        </div>
       </section>
 
       <!-- ===================== 残作業 ===================== -->
@@ -506,20 +542,24 @@
             <tr><td><code>twitter feed</code></td><td>✅ 動作</td><td>捨てアカのホームタイムラインが返る</td></tr>
             <tr><td><code>twitter user</code> / <code>user-posts</code> / <code>tweet</code></td><td>✅ 動作</td><td>特定アカウントを追う用途はこれで足りる</td></tr>
             <tr><td><code>twitter search</code></td><td>❌ HTTP 404</td><td>Cookie が正しくても失敗する。下記の上流不具合</td></tr>
+            <tr><td><code>opencli doctor</code></td><td>✅ connected</td><td>daemon 127.0.0.1:19825 + 拡張 v1.0.22</td></tr>
+            <tr><td><code>opencli twitter profile</code></td><td>✅ 動作</td><td>読み手が burner であることの確認手段</td></tr>
+            <tr><td><code>opencli twitter search</code></td><td>✅ 動作</td><td>likes / views / メディア URL つき。<code>--product live</code>、<code>--from</code>、<code>--top-by-engagement</code> も使える</td></tr>
           </tbody>
         </table>
 
         <div class="risk">
-          <strong>X のキーワード検索は使えない:</strong> twitter-cli は x.com の JS を
+          <strong>twitter-cli 側の検索は死んでいる:</strong> twitter-cli は x.com の JS を
           スクレイプして transaction ID を組み立てるが、そのスクレイパが現在の X に対して壊れている
           （実行のたびに <code>Failed to init ClientTransaction</code> が出る）。検索エンドポイントが道連れになっている。
           PyPI の最新は <strong>0.8.5（2026-03-17）で、これが既に入っている版</strong>なので更新では直らず、
-          上流が案内する代替バックエンド（OpenCLI）は不採用のため無い。
-          → <code>user-posts</code> で個別アカウントを追うか、素直に「X の全文検索は不可」と答える運用にした（スキルに明記）。
+          → 代替バックエンドの OpenCLI を後から採用して穴を塞いだ。X のバックエンド選択は
+          <strong>Chrome が起動していれば OpenCLI、していなければ twitter-cli</strong> という機械的なルールにしてある。
         </div>
 
         <div class="intent">
           <strong>残っているのは判断だけ:</strong> Claude Code を再起動すると Exa MCP がツールとして見えるようになる。
+          Chrome を本アカウントに切り替えると OpenCLI の読み手も変わるので、burner 固定にしておくこと。
           Codex 側の Exa は登録時に OAuth コールバックのタイムアウトが出たままなので、初回利用時に応答するか見ておきたい。
           あとは 1〜2 週間使って、残すなら <code>trial/agent-reach</code> を main へ merge。
         </div>
@@ -558,7 +598,9 @@ claude mcp remove exa -s user &amp;&amp; codex mcp remove exa</code></pre>
 
         <h3>本書の改訂履歴</h3>
         <ul>
-          <li><strong>v1.2 (本書):</strong> Cookie 投入後の実測を反映。Reddit は全面的に動作、X は feed / user-posts /
+          <li><strong>v1.3 (本書):</strong> 当初 Tier 3 で落としていた OpenCLI を採用し、X の全文検索を回復。
+            npm -g を避けてバージョン固定 npx ラッパで導入。上流ドキュメントとコマンド名が食い違っていた点も記録。</li>
+          <li><strong>v1.2:</strong> Cookie 投入後の実測を反映。Reddit は全面的に動作、X は feed / user-posts /
             tweet が動き search のみ上流不具合で 404（0.8.5 が最新のため更新では直らない）。</li>
           <li><strong>v1.1:</strong> 導入を実施し、記録として書き直した。上流 CLI を 1 env に統合する形に変更（当初案はツールごとに別プロジェクト）、Exa は nanokit の MCP 登録経路へ、doctor が symlink を辿らない問題を 7 件目として追加。</li>
           <li><strong>v1.0:</strong> 初稿。doctor の実測（4/15）と pixi プロジェクト経由の起動確認を根拠に Tier 0/1 を推奨、Tier 2/3 を判断待ちとした。</li>

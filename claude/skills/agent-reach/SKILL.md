@@ -46,8 +46,8 @@ version-pinned npx wrapper in the same directory. Nothing needs installing.
 | A web page / article / RSS feed | Jina Reader, scrapling MCP, feedparser | [references/web.md](references/web.md) |
 | YouTube video, subtitles, comments | `yt-dlp` | [references/video.md](references/video.md) |
 | GitHub repo, code, issues, PRs | `gh` | [references/dev.md](references/dev.md) |
-| Twitter/X, Reddit | `twitter` / `rdt` (cookie auth) | [references/social.md](references/social.md) |
-| Keyword search across X | `opencli` (needs Chrome open) | [references/social.md](references/social.md) |
+| Twitter/X | `opencli` when Chrome is up, else `twitter` | [references/social.md](references/social.md) |
+| Reddit | `rdt` (cookie auth) | [references/social.md](references/social.md) |
 
 ## Rules
 

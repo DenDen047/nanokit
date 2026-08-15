@@ -23,7 +23,7 @@ description: >
 | HTTP | httpx | 同期で数件叩くだけのスクリプト |
 | CLI | Typer | 標準ライブラリだけで完結させたい (argparse)、細かい制御が要る (Click) |
 | データ構造 | 外部から入る値は Pydantic `BaseModel`、内部だけなら dataclass | |
-| 2 次元のグラフ | Plotly | HTML レポートに埋める図は html-report-writing skill (matplotlib SVG) |
+| 2 次元のグラフ | Plotly | 読んで終わりの静的な図は matplotlib SVG (html-report-writing skill)。読み手が値を読む・拡大する・時間を送る必要がある図は、レポート内でも Plotly |
 | 3 次元データの可視化 | Rerun | |
 | ブラウザ自動操作・E2E | Playwright | 既存が Selenium |
 | ノートブック | marimo | チームが Jupyter を採用 |

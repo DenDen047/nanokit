@@ -136,9 +136,10 @@ TL;DR は **本文確定後に最後に書く**。結論を 1-2 文で、`<stron
 | 種類 | ツール | 用途 | 詳細 |
 |---|---|---|---|
 | 構造図 (ノード・矢印・配置) | D2 (TALA layout 基本) | データフロー、アーキ図、依存図 | [`reference/d2-diagrams.md`](reference/d2-diagrams.md) |
-| 定量グラフ | matplotlib (SVG 出力) | line / bar / heatmap / scatter | [`reference/charts-and-plots.md`](reference/charts-and-plots.md) |
+| 定量グラフ (読んで終わり) | matplotlib (SVG 出力) | line / bar / heatmap / scatter | [`reference/charts-and-plots.md`](reference/charts-and-plots.md) |
+| 定量グラフ (読み手が操作する) | Plotly (HTML に埋め込み) | 値の読み取り、拡大、時間送りが要る図 | `writing-python` skill |
 
-共通運用: 出力は `docs/assets/*.svg` に置き、HTML から `<img>` + クリック原寸表示で参照。
+共通運用: D2 / matplotlib の出力は `docs/assets/*.svg` に置き、HTML から `<img>` + クリック原寸表示で参照。
 インライン SVG ではなく外部ファイル。
 
 要点:
@@ -147,6 +148,7 @@ TL;DR は **本文確定後に最後に書く**。結論を 1-2 文で、`<stron
 - **凡例は HTML figcaption 側に書く** (D2 内 legend は viewBox を壊す)
 - **D2 ノードは saturated fill + 白テキスト + bold + ≥16px** で light/dark 両対応 (pastel fill + 暗色テキストは dark mode browser で読めなくなる、`reference/d2-diagrams.md` 参照)
 - matplotlib は **`transparent=True`** + ニュートラル軸色で light/dark 両対応
+- **Plotly は plotly.js をインライン化する** (CDN 参照はオフラインと CSP で壊れる)。ファイルが数 MB 増えるので、操作が要る図だけに使う
 
 ## 作成手順 (汎用フロー)
 

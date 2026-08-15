@@ -2,7 +2,8 @@
 name: writing-python
 description: >
   Python の実装スタイル指針。ライブラリの既定 (pixi / Ruff / Pyrefly / Polars / httpx / Typer /
-  Pydantic / Plotly / Rerun / Playwright / marimo / pytest)、NumPy 形式の docstring、型ヒント、命名、クラス設計。
+  Pydantic / Plotly / Rerun / Playwright / marimo / pytest)、NumPy 形式の docstring、型ヒント、命名、クラス設計、
+  `.gitignore` テンプレート。
   Python コードを書く・レビューする・リファクタするとき、Python プロジェクトを新規に作るとき、
   依存ライブラリや lint / format / 型チェック / テスト / グラフ描画のツールを選ぶときに使う。
   pixi.toml の書き方と conda-forge / PyPI の使い分けは pixi-env skill。
@@ -56,6 +57,12 @@ NumPy 形式。要約 1 行 + 該当する `Parameters` / `Returns` / `Raises` �
 リファクタリングは振る舞いを変えない範囲で、テストで前後が一致することを担保してから入れる。好みの範囲の書き換えは入れない。
 
 ## 骨格
+
+`.gitignore` はこのスキルと同じディレクトリの `gitignore.template` をコピーして作る (Python / macOS / Windows / VS Code をまとめた gitignore.io 由来)。中身は書き換えず、プロジェクト固有の除外だけを末尾に追記する。
+
+```bash
+cp ~/.claude/skills/writing-python/gitignore.template .gitignore   # Codex は ~/.agents/skills/writing-python/
+```
 
 ```toml
 [tool.pixi.feature.dev.dependencies]

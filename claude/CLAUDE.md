@@ -64,6 +64,10 @@ Max プランなので画像認識を惜しまない。**UI・図・ブラウザ
 - CLAUDE.md を編集する時
   - https://code.claude.com/docs/en/best-practices
   - https://nyosegawa.com/posts/harness-engineering-best-practices-2026/
+- Google プロダクト (Cloud / Ads / Analytics / Android / Flutter / Firebase …) の API・CLI・SDK を扱う時
+  - 公式ハブ https://github.com/google/skills。**ローカルに入れず都度 GitHub の最新を読む** (`npx skills add`・marketplace 追加はしない)。`gh api -H "Accept: application/vnd.github.raw" repos/google/skills/contents/<path>` で README (索引) → `skills/<cloud|ads|analytics>/<name>/SKILL.md`。README から Android/Flutter/Firebase 等の別リポジトリへも辿れる。
+  - `plugins/cloud/data-agent-kit/` は submodule で再帰取得しても展開されない。本文は upstream (`gemini-cli-extensions/<name>` 等) を直接読む。
+  - Workspace (Gmail/Calendar/Drive) のスキルは無い → `workspace-*` MCP を使う。
 
 ## Codex 連携 (公式プラグイン + MCP の二経路)
 

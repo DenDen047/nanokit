@@ -32,6 +32,7 @@ sticky TOC / 折りたたみ / 図表並列 / 数式 / コードハイライト�
 | スキル | 役割 | 読者 | 形式 |
 |---|---|---|---|
 | `cto-briefing` | アルゴリズム俯瞰、What/Why の説明、実装詳細禁止 | CTO / 投資家 | HTML (読者層特化) |
+| `dialogue-report-writing` | 仕組み・設計・現在地を素人 ⇄ 上級者の吹き出し対話で解説 | 非専門家 / 前提を共有していない同僚 | HTML (話法特化) |
 | **`html-report-writing` (本スキル)** | HTML レポート全般の基盤、type 別 pattern を navigate | テックリード / 共同設計者 / 自分 | HTML (形式特化) |
 
 cto-briefing が **読者層特化** (= 「CTO 向けに何を書くか」)、本スキルは **形式特化** (= 「HTML でどう書くか」)。

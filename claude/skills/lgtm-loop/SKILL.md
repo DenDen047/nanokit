@@ -230,5 +230,4 @@ plan-driven モードのときは prompt に 1 行追加: 「plans/foo.md から
 
 レビュー観点プロンプトは本 skill の Step 3 に内蔵している (旧 codex-review skill から移設)。
 公式プラグイン `/codex:review` は threadId を返さず継続レビューができないため、本ループでは MCP 経路を維持する。
-プラグイン側に thread 継続 API が入ったら、REVIEW ステップの背景実行化を再検討する
-(論点整理: `<nanokit>/docs/2026-07-13_codex-plugin-integration.html` 論点 3)。
+プラグイン側に thread 継続 API が入ったら、REVIEW ステップの背景実行化を再検討する。

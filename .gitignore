@@ -67,3 +67,8 @@ claude/skills/*/.pixi/
 # Python bytecode
 __pycache__/
 *.pyc
+
+### nanokit ###
+# 日付付きの一過性レポートは追跡しない (生成物であって、現在地を保つ living doc ではない)。
+docs/20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]_*
+docs/assets/20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]_*

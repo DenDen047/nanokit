@@ -9,8 +9,7 @@ description: >
 
 # Codex Review: 公式プラグインへの誘導シム
 
-コードレビュー機能は公式プラグイン **codex@openai-codex** に統合された
-(経緯: `<nanokit>/docs/2026-07-13_codex-plugin-integration.html`)。
+コードレビュー機能は公式プラグイン **codex@openai-codex** に統合された。
 本 skill は「GPT にレビューして」等の自然文トリガーの受け皿として残してある。
 
 ## 使い分け

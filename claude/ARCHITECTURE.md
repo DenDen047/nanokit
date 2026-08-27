@@ -2,7 +2,7 @@
 
 このディレクトリ (`claude/`) は、単なる設定の置き場ではなく **「Claude Code を自分専用にパーソナライズし、複数アカウント・複数プロジェクトを横断して働かせる」ための1つのシステム**になっている。本書はその全体像を1枚で把握するための地図。
 
-> 個々の運用手順・トラブルシュートは重複させない。詳細は [`CLAUDE.md`](./CLAUDE.md) の各 runbook と、設計の背景は [`../docs/2026-06-29_claude-code-multiproject-cleanup.html`](../docs/2026-06-29_claude-code-multiproject-cleanup.html) を参照。
+> 個々の運用手順・トラブルシュートは重複させない。詳細は [`CLAUDE.md`](./CLAUDE.md) の各 runbook を参照。
 
 ## 何を実現しているか — 3本柱
 
@@ -231,5 +231,4 @@ claude/
 - **マルチアカウント／クライアント振り分けのマスター**: [`claude-settings`](https://github.com/DenDen047/claude-settings)（private）— 各クライアントの `templates/`・`deploy.sh`・direnv `.envrc`・`CLAUDE_CONFIG_DIR` 隔離。nanokit と対になる片割れ。
 - **運用 runbook（権威ある詳細）**: [`CLAUDE.md`](./CLAUDE.md)（シンボリックリンク構造 / 環境管理ポリシー / MCP 運用の原則）と [`../specs/mcp-operations.md`](../specs/mcp-operations.md)（Zotero・Scrapling・Workspace MCP の起動・認証・トラブルシュート）。
 - **Skills vs Commands vs Sub-agents の概念整理**: [`README.md`](./README.md)。
-- **設計の背景・意思決定の記録**: [`../docs/2026-06-29_claude-code-multiproject-cleanup.html`](../docs/2026-06-29_claude-code-multiproject-cleanup.html)。
 - **リポジトリ全体（pixi / dotter / シェル）**: [`../README.md`](../README.md)。

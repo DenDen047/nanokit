@@ -175,6 +175,10 @@
   th, td {
     border: 1px solid var(--border); padding: 7px 11px;
     text-align: left; vertical-align: top; line-height: 1.6;
+    /* body の overflow-wrap:anywhere をセルには効かせない。狭い幅で
+       "Microsoft" のような英字が1文字ずつ縦に折れるのを防ぎ、溢れる幅は
+       .tw の横スクロールで受ける。 */
+    overflow-wrap: normal;
   }
   th { background: var(--surface); font-weight: 700; white-space: nowrap; }
 

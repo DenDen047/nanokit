@@ -40,7 +40,10 @@ NumPy 形式。要約 1 行 + 該当する `Parameters` / `Returns` / `Raises` �
 
 ## 型と命名
 
-- 公開する関数・メソッドの引数と戻り値に型ヒントを付ける。外部から入る値は境界で `BaseModel` に通す。
+- 関数・メソッドの引数には型ヒントを付ける。Pyrefly は引数の型を推論しないので、注釈が唯一の情報源になる。
+- 戻り値は公開する関数・メソッドに付ける。内部の短い関数は Pyrefly の推論に任せてよい。
+- `Any` で埋めない。型が決まらない場所は `object` で受けて、使う前に絞り込む。
+- 外部から入る値は境界で `BaseModel` に通す。
 - 型情報を名前に埋めない (`name_str` ではなく型ヒントで表す)。
 - bool は真偽が読み取れる形にする (`is_student`, `has_card`, `can_login`)。
 - 対になる語は正しい対義語で揃える (`start`/`stop`, `up`/`down`, `first`/`last`)。
@@ -80,12 +83,16 @@ typecheck = "pyrefly check"
 test = "pytest -q"
 
 [tool.ruff.lint]
-extend-select = ["D"]
+extend-select = ["D", "ANN"]
+ignore = ["ANN202"]  # 内部関数の戻り値は Pyrefly の推論に任せる
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ANN"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
 ```
 
-`pyrefly init` は既存の mypy / pyright 設定を移行する。
+型チェックの設定は `pyrefly init` で作る。設定ファイルが 1 つも無いと Pyrefly は `basic` preset で動き、無注釈関数の本文を解析しない (pyrefly 1.2.0 で確認)。既存の mypy / pyright 設定があれば移行される。
 
 出典: サプー (ライブラリ10選 / 残念なクラス設計5選 / 命名規則 / リファクタリングの基本)、各ツールの公式ドキュメント。

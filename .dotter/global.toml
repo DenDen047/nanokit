@@ -34,6 +34,8 @@ wezterm = { target = "$HOME/.config/wezterm", type = "symbolic", recurse = false
 "tools/agent-reach/rdt" = "$HOME/.pixi/bin/rdt"
 # OpenCLI だけは npm 専売なので同じ env には入らず、npx 固定のラッパを配る。
 "tools/agent-reach/opencli" = "$HOME/.pixi/bin/opencli"
+# Coast (作業ログ) の CLI ラッパ。実体は .app 同梱バイナリで pixi global に入らない。
+"tools/coast/coast" = "$HOME/.pixi/bin/coast"
 "claude/agents" = { target = "$HOME/.claude/agents", type = "symbolic", recurse = false }
 "claude/output-styles" = { target = "$HOME/.claude/output-styles", type = "symbolic", recurse = false }
 "claude/ccstatusline/settings.json" = "$HOME/.config/ccstatusline/settings.json"

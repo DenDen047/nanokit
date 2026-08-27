@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Coast (Coast Local, Attention Inc) の CLI ラッパ。
+# 本体は App Store 外の .app 同梱バイナリなので pixi global には入らない。
+# CLI はアプリ本体が常駐していないと応答しないため、その場合だけ理由を出して落とす。
+set -euo pipefail
+
+BIN="/Applications/Coast Local.app/Contents/Resources/bin/coast"
+SOCK="$HOME/Library/Application Support/inc.attention.rem/cli.sock"
+
+if [[ ! -x "$BIN" ]]; then
+  echo "coast: Coast Local.app が /Applications に見つかりません" >&2
+  exit 127
+fi
+
+if [[ ! -S "$SOCK" ]]; then
+  echo "coast: Coast Local が起動していません (open -a 'Coast Local' で常駐させてください)" >&2
+  exit 69
+fi
+
+exec "$BIN" "$@"

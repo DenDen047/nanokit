@@ -76,11 +76,44 @@ MCP ツールスキーマには `paragraph` と `bulleted_list_item` しか明�
 
 → **その場更新は諦めて append で回す**。自分が同一セッションで作ったブロックなら delete → 再作成。人間作成ブロック（例: Task テンプレートの**空 callout 💡**）は削除もできないので、**残したまま直後に同内容の兄弟ブロックを `after` 指定で追加**する。詳細と正確なエラー文面は [troubleshooting.md](reference/troubleshooting.md)。
 
+## ページ全体を書き直すなら markdown API
+
+ブロック単位の append/delete で組み直すより、`API-retrieve-page-markdown` で読んで `API-update-page-markdown` で書く方が速く、`update-a-block` の本文更新不可 (上) も回避できる。ただし**引き換えに失うもの**があるので、使う前に3点を確認する。
+
+- **`type: "replace_content"` は markdown で表現できないブロックを消す。** embed (Google マップ等)・bookmark カード・**ファイル添付**は復元されない。消したくなければ先に URL を退避し、書き直したあとに `patch-block-children` で貼り直す。
+- **`type: "update_content"` の find-and-replace は、Notion 側のシリアライズでエスケープが入った箇所に当たらない。** 半角コロンを含む `16:00` のような文字列が `16\:00` として保持されると、**エスケープ有りでも無しでも `No matches found`** になる。コロン・不等号・角括弧を含む行は最初から狙わず、コロンを避けた別の一意な文字列をアンカーにする。それも無理なら**そのブロックだけ REST で直す** (`PATCH /v1/blocks/<block_id>`、table_row なら `{"table_row": {"cells": [...]}}`)。
+- **テーブルセル内に改行は入らない。** `<br>` も U+2028 も無言で消えて前後が連結する (`**Daisy Dream**ソイ332020年頃` のように潰れる)。セル内は `／` や `・` の見える区切りを使う。**callout の中でだけ `<br>` が通る。**
+
+そのほか、**素のドメイン名は自動でリンク化される** (`singlemanforum.com` → `[singlemanforum.com](http://singlemanforum.com)`)。害はないが差分に出る。
+
+## ファイル添付は MCP ではなく REST の File Upload API
+
+MCP 経由でローカルファイルを添付する口は無い。`NOTION_TOKEN` を直に使って3ステップで通す (単発アップロードは 20MB まで、HTML・画像・PDF いずれも可)。
+
+```bash
+# 1. アップロード枠を作る → id と upload_url が返る (有効期限1時間)
+curl -s -X POST https://api.notion.com/v1/file_uploads \
+  -H "Authorization: Bearer $NOTION_TOKEN" -H "Notion-Version: 2022-06-28" \
+  -H "Content-Type: application/json" \
+  -d '{"filename":"report.html","content_type":"text/html"}'
+
+# 2. multipart で送る (フィールド名は file 固定)
+curl -s -X POST "$UPLOAD_URL" \
+  -H "Authorization: Bearer $NOTION_TOKEN" -H "Notion-Version: 2022-06-28" \
+  -F "file=@report.html;type=text/html"     # → status: uploaded
+
+# 3. file ブロックとしてページに足す
+#    {"type":"file","file":{"type":"file_upload","file_upload":{"id":"<id>"},"caption":[...]}}
+```
+
+差し替えるときは**古い file ブロックを消してから**貼る。`update-a-block` では中身を差し替えられない。
+
 ## よくあるエラー
 
 - **`body.children should be an array`** — MCP シリアライズの断続的失敗。同じ payload でリトライすれば通る。
 - **`update-a-block` で `body.type should be not present` / `body.callout should be defined`** — 既存ブロックの本文は更新不可（決定論的、リトライ不可）。兄弟ブロックを追加して回避。
 - **`delete-a-block` Permission denied** — harness ポリシー。append-only 戦略で回避。
+- **`update-page-markdown` の `No matches found`** — 対象行にコロン等のエスケープが入っている。エスケープ有無どちらでも当たらないので、別のアンカーに変えるか REST で直す。
 - **並列 `patch-block-children` の順序乱れ** — 同一ページに並列 append すると順序が保証されない。
 
 詳細と対処は [troubleshooting.md](reference/troubleshooting.md)。

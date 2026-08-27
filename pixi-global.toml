@@ -283,6 +283,12 @@ channels = ["conda-forge"]
 dependencies = { ollama = "*" }
 exposed = { ollama = "ollama" }
 
+# 履歴の書き換え (公開リポジトリから追跡済みファイルを消す等) に使う。
+[envs.git-filter-repo]
+channels = ["conda-forge"]
+dependencies = { git-filter-repo = "*" }
+exposed = { git-filter-repo = "git-filter-repo" }
+
 # The JarvisLabs CLI (`jl`) is deliberately NOT a pixi-global env: it ships only on
 # PyPI, and pixi global takes conda packages only (prefix-dev/pixi#2261 is still open).
 # It lives in the pixi project at tools/jarvislabs/ and reaches PATH through the

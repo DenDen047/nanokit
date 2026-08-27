@@ -4,7 +4,9 @@ channels = ["conda-forge"]
 platforms = ["linux-64", "linux-aarch64", "osx-arm64"]
 
 [dependencies]
-python = ">=3.10"
+python = ">=3.11"  # ledger.py が tomllib を使う (3.11 で標準ライブラリ入り)
+# 費用台帳 (./ledger.py) の単体テスト用。CLI 本体の実行には不要。
+pytest = ">=8"
 
 [pypi-dependencies]
 # Upstream: https://github.com/jarvislabsai/jarvislabs (MIT) — docs: https://docs.jarvislabs.ai/cli/
@@ -16,3 +18,5 @@ jarvislabs = ">=0.2.16"
 
 [tasks]
 version = "jl --version"
+# 費用台帳のテスト。ネットワークにも実際の台帳ファイルにも触れない。
+test = "pytest test_ledger.py -q"

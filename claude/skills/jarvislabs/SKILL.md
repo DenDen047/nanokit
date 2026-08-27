@@ -405,8 +405,55 @@ Agent rule:
 - If it has an `error` key, treat it as a CLI failure
 - Otherwise inspect command-specific fields (`exit_code`, `state`, `run_exit_code`)
 
+## Cost Attribution (local rule — not part of the upstream skill)
+
+> This section is maintained in `~/nanokit/claude/skills/jarvislabs/SKILL.md`.
+> **`jl setup` reinstalls the upstream skill and will overwrite this file** — re-add this
+> section (and the `Host 217.18.55.*` anti-pattern below) after running it.
+
+This account runs work for several clients at once, and **JarvisLabs has no billing
+history API and no instance labels/tags**. The only server-side free-text field is
+`--name`, and an instance's accumulated `cost` is readable only while it is Running or
+Paused — **destroying it loses the number permanently**. Attribution is therefore
+reconstructed locally by `jl-ledger` (`~/nanokit/tools/jarvislabs/ledger.py`).
+
+**Always name instances and runs `<client>-<purpose>-<YYYYMMDD>`.**
+
+```bash
+jl create --gpu L4 --name acme-render-20260815 --yes --json
+jl run train.py --gpu A100 --name acme-multi-stage-20260901 --json
+```
+
+- First token = client. Known clients and aliases live in
+  `~/.config/jl-ledger/clients.toml` — outside the repository, because nanokit is public
+  (`~/nanokit/tools/jarvislabs/clients.example.toml` is only the format sample and the
+  fallback). Ask before inventing a new client.
+- `purpose` may contain hyphens; the first 8-digit token is read as the date.
+- Names are capped at 40 characters (letters, digits, spaces, hyphens, underscores).
+- **Never leave the default name.** `Name me` and `jl-run` land in `unattributed`.
+
+**Before `jl destroy`, take a snapshot** so the final cost is captured. A launchd timer
+runs `jl-ledger snapshot` every 15 minutes, but a short-lived instance can be created
+and destroyed inside one interval and never be recorded at all.
+
+```bash
+jl-ledger snapshot            # capture current cost/runtime (the only networked command)
+jl destroy <id> --yes --json
+```
+
+Reporting is offline and safe to run any time:
+
+```bash
+jl-ledger report                     # client x month, USD
+jl-ledger report --month 2026-08 --by purpose
+jl-ledger list                       # raw rows, newest first
+jl-ledger annotate <machine_id> --client acme --purpose sweep
+```
+
 ## Anti-Patterns
 
+- Do not create an instance without `--name` in the `<client>-<purpose>-<YYYYMMDD>` form — the cost becomes unattributable and can only be fixed by hand with `jl-ledger annotate`.
+- Do not `jl destroy` without running `jl-ledger snapshot` first — the accumulated cost is gone the moment the instance is destroyed.
 - Avoid `jl run logs --follow` for agent polling — it blocks. Use bounded `--tail N` polling instead (humans can use `--follow` interactively). `--json` is incompatible with `--follow`.
 - `jl deploy logs` defaults to `--follow` (blocks) and rejects `--json` — pass `--no-follow` for a one-shot read.
 - Always use `--json` when starting runs — it returns immediately. Without `--json`, the CLI streams logs and blocks.

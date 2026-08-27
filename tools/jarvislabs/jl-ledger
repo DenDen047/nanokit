@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# JarvisLabs の案件別費用台帳 (`jl-ledger`) ラッパ — 実体は同ディレクトリの ledger.py。
+# `jl` と同じ pixi env を使う (SDK が要るのは snapshot だけ)。
+# dotter が ~/.pixi/bin/jl-ledger に配る (PATH 済み)。
+set -euo pipefail
+
+# このスクリプトの実体があるディレクトリを解決する。dotter の symlink 経由で
+# 呼ばれるため辿る必要があり、古い macOS の BSD readlink には -f が無い。
+src="${BASH_SOURCE[0]}"
+while [ -L "$src" ]; do
+    dir="$(cd -P "$(dirname "$src")" && pwd)"
+    src="$(readlink "$src")"
+    [[ "$src" != /* ]] && src="$dir/$src"
+done
+here="$(cd -P "$(dirname "$src")" && pwd)"
+
+# `pixi run` は初回に pixi.lock から env を作るので、新しいホストでも準備は不要。
+# 認証はこのリポジトリの外 (`jl setup` が書く ~/.config/jl/config.toml、
+# または JL_API_KEY 環境変数) をそのまま使う。台帳自体もリポジトリ外に置く。
+exec pixi run --manifest-path "$here/pixi.toml" python "$here/ledger.py" "$@"

@@ -1,0 +1,18 @@
+# JarvisLabs 費用台帳の既知クライアント一覧 (ledger.py が読む) の雛形。
+#
+# nanokit は公開リポジトリなので、実名の一覧はここではなく
+# `~/.config/jl-ledger/clients.toml` に置く (`XDG_CONFIG_HOME` を尊重する。
+# `JL_LEDGER_CLIENTS` でも差し替えられる)。このファイルはそれが無いときの
+# フォールバックで、書式の見本を兼ねる。
+#
+# キーが正規名で、値はインスタンス名の先頭トークンとして書きうるエイリアス。
+# 命名規約は `<client>-<purpose>-<YYYYMMDD>` で、区切りが "-" のため
+# エイリアスにハイフンは使えない (使っても一致しない)。照合は大小文字を無視する。
+#
+# ここに無い client 名で作られたインスタンスは "unattributed" に落ちるが、
+# 集計から消えることはない。後から `jl-ledger annotate` で直せる。
+
+[clients]
+acme = ["acmecorp", "ac"]
+globex = ["gbx"]
+initech = ["initechlabs"]

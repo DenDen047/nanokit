@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  JarvisLabs 費用台帳の定期取り込み (15 分間隔)。導入手順は ./README.md を参照。
+  このファイルは雛形で、load するのは人間の手。~/Library/LaunchAgents/ へ
+  symlink してから launchctl bootstrap する。
+
+  中身を全部 `bash -c` の 1 行に寄せてあるのは 3 つの理由から。launchd の
+  子プロセスに TCC の許可を継承させる形を保つこと (~/Documents 配下の
+  スクリプトが EPERM で落ちる既知の問題への備え。jl-ledger 自体は ~/nanokit
+  配下なので該当しないが、形は揃えておく)。launchd が展開しない $HOME を
+  bash に展開させて、この雛形にユーザー名を焼き込まずに済ませること
+  (ProgramArguments も EnvironmentVariables も StandardOutPath も、launchd は
+  変数を展開しない)。そして launchd の最小 PATH には pixi が居らず、
+  jl-ledger が `pixi run` を叩けないので、~/.pixi/bin を先に足すこと。
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>local.jl-ledger-snapshot</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-c</string>
+    <string>export PATH="$HOME/.pixi/bin:$PATH"; mkdir -p "$HOME/.local/state/jl-ledger"; "$HOME/nanokit/tools/jarvislabs/jl-ledger" snapshot &gt;&gt; "$HOME/.local/state/jl-ledger/snapshot.log" 2&gt;&amp;1</string>
+  </array>
+  <key>StartInterval</key>
+  <integer>900</integer>
+  <key>RunAtLoad</key>
+  <true/>
+</dict>
+</plist>

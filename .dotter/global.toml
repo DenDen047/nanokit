@@ -28,6 +28,8 @@ wezterm = { target = "$HOME/.config/wezterm", type = "symbolic", recurse = false
 "claude/scripts/agent-config-sync-reconnect.sh" = "$HOME/.claude/scripts/agent-config-sync-reconnect.sh"
 "claude/scripts/mmdc" = "$HOME/.pixi/bin/mmdc"
 "tools/jarvislabs/jl" = "$HOME/.pixi/bin/jl"
+# 同じ env を使う案件別費用台帳。実体は tools/jarvislabs/ledger.py。
+"tools/jarvislabs/jl-ledger" = "$HOME/.pixi/bin/jl-ledger"
 # Agent Reach env が出す 3 コマンド。実体はどれも tools/agent-reach/run-in-env。
 "tools/agent-reach/agent-reach" = "$HOME/.pixi/bin/agent-reach"
 "tools/agent-reach/twitter" = "$HOME/.pixi/bin/twitter"

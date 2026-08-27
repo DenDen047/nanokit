@@ -132,19 +132,28 @@ TL;DR は **本文確定後に最後に書く**。結論を 1-2 文で、`<stron
 ## 図表 (可視化を最優先する)
 
 レポート内では **情報をできるだけ可視化** する (文章で長々書くより図表で scan させる)。
-2 種類のツールを使い分ける。
+用途ごとにツールを使い分ける。
 
 | 種類 | ツール | 用途 | 詳細 |
 |---|---|---|---|
-| 構造図 (ノード・矢印・配置) | D2 (TALA layout 基本) | データフロー、アーキ図、依存図 | [`reference/d2-diagrams.md`](reference/d2-diagrams.md) |
+| 図 (既定) | editorial-diagrams | アーキ図、データフロー、四象限、レーダー、ガント、Sankey、特性要因図、Wardley map 等 39 図法 | `editorial-diagrams` skill |
+| 構造図 (ノードが多い / 何度も改訂する) | D2 | 自動レイアウトに任せたい大きめの依存図・構成図 | [`reference/d2-diagrams.md`](reference/d2-diagrams.md) |
 | 定量グラフ (読んで終わり) | matplotlib (SVG 出力) | line / bar / heatmap / scatter | [`reference/charts-and-plots.md`](reference/charts-and-plots.md) |
 | 定量グラフ (読み手が操作する) | Plotly (HTML に埋め込み) | 値の読み取り、拡大、時間送りが要る図 | `writing-python` skill |
 
-共通運用: D2 / matplotlib の出力は `docs/assets/*.svg` に置き、HTML から `<img>` + クリック原寸表示で参照。
-インライン SVG ではなく外部ファイル。
+共通運用: どの経路でも出力は `docs/assets/*.svg` に置き、HTML から `<img>` + クリック原寸表示で参照。
+インライン SVG ではなく外部ファイル。editorial-diagrams は単一 HTML を吐くので、`<svg>` ノードだけを
+取り出して `docs/assets/` に保存する。このとき **`font-family` を system stack に書き換える** こと
+(`<img>` で読む SVG は外部リソースを取りに行けず、元の Geist / Instrument Serif は解決されない。
+本スキルの Google Fonts 禁止とも整合する)。
 
 要点:
-- **D2 は `--layout=tala -t 200` を基本** に使う (個人/OSS 無料、商用は要ライセンス)
+- **図はまず `editorial-diagrams` skill で描く** — 39 の図法を持ち、幾何が図法側で決まっているぶん精度が出る。
+  作図はサブエージェントに委譲され、メインの文脈を汚さない
+- **D2 は自動レイアウトが効く逃げ道** として残す。ノード数が多くて手置き座標が破綻する構造図や、
+  レビューのたびに描き直す下書きはこちら
+- **D2 は `--layout=elk -t 200`** を使う (`tala` はこの環境に未インストール。指定すると
+  `D2_LAYOUT "tala" is not bundled` で失敗する。TALA は商用有償なので入れる場合は要ライセンス)
 - **direction: down** を基本にして aspect 比 < 2:1 を保つ
 - **凡例は HTML figcaption 側に書く** (D2 内 legend は viewBox を壊す)
 - **D2 ノードは saturated fill + 白テキスト + bold + ≥16px** で light/dark 両対応 (pastel fill + 暗色テキストは dark mode browser で読めなくなる、`reference/d2-diagrams.md` 参照)
@@ -157,7 +166,7 @@ TL;DR は **本文確定後に最後に書く**。結論を 1-2 文で、`<stron
 2. **スターターをコピー** — 汎用なら `scripts/template.html`、議論ログなら `scripts/review-log-template.html`
 3. **TOC を骨格として配置** — 本文 section を先に列挙
 4. **本文を書く** — 共通骨格 (TL;DR / 本文 / 参考文献) + type 固有セクション
-5. **可視化で情報を整理** — 構造は D2、定量は matplotlib SVG を `docs/assets/` に生成
+5. **可視化で情報を整理** — 図は editorial-diagrams (ノードが多い構造図は D2)、定量は matplotlib SVG を `docs/assets/` に生成
 6. **数式は KaTeX で、コードは `language-XXX` class 付きで** — `reference/math-and-code.md` 参照
 7. **TL;DR を最後に書く** — 結論先出しで上に貼る
 8. **検証 (closing gate — スキップ不可):**
@@ -206,6 +215,6 @@ TL;DR は **本文確定後に最後に書く**。結論を 1-2 文で、`<stron
 | [`scripts/diagram-template.d2`](scripts/diagram-template.d2) | D2 ボイラープレート (theme 200 + 4 classes) |
 | [`scripts/setup-libs.sh`](scripts/setup-libs.sh) | KaTeX/Prism を `docs/assets/lib/` にローカル化する 1-shot スクリプト (air-gap 配布用) |
 | [`patterns/review-log.md`](patterns/review-log.md) | 議論ログ (外部レビュー取り込み) レポートの作り方 |
-| [`reference/d2-diagrams.md`](reference/d2-diagrams.md) | D2 詳細 (TALA, レイアウト, HTML 埋込) |
+| [`reference/d2-diagrams.md`](reference/d2-diagrams.md) | D2 詳細 (layout engine, HTML 埋込) |
 | [`reference/charts-and-plots.md`](reference/charts-and-plots.md) | matplotlib SVG での定量データ可視化 |
 | [`reference/math-and-code.md`](reference/math-and-code.md) | KaTeX (数式) + Prism (コードハイライト) の組込方法 |

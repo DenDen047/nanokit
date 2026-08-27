@@ -33,7 +33,7 @@ description: 概念・仕組み・設計を「素人 ⇄ 上級者」の吹き�
 - **1 ターン = 1 論点。** 話題が変わるなら素人の問いを挟む。
 - **節は問いで区切る。** `<h2>` は「6. 母集団を混ぜてはいけない」のように答えを含む見出しにし、`.lead` に節の要旨を 1 文。
 - **節の着地は `.key` で。** 確定 = `.key.done` (緑)、要点 = `.key` (橙)、未決・リスク = `.key.gap` (赤)。`.tag` に短いラベル。
-- 表は吹き出しの中に `.tw` で包んで入れてよい。図 (D2 / matplotlib SVG) と数式は section 直下に置き、作り方は `html-report-writing` の `reference/` に従う。
+- 表は吹き出しの中に `.tw` で包んで入れてよい。図 (editorial-diagrams / matplotlib SVG) と数式は section 直下に置き、作り方は `html-report-writing` の §図表 に従う。
 - 敬体で統一。段落内で改行しない (1 段落 = 1 行)。
 
 ## 手順

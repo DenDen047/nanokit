@@ -178,6 +178,17 @@
   }
   th { background: var(--surface); font-weight: 700; white-space: nowrap; }
 
+  /* 図は section 直下に置く。横に潰すと読めなくなるので最低幅を与え、
+     溢れるぶんは .chart-scroll の横スクロールで受ける。 */
+  figure.chart { margin: 16px 0; }
+  figure.chart .chart-scroll { overflow-x: auto; }
+  figure.chart svg, figure.chart img {
+    display: block; width: 100%; min-width: 560px; height: auto;
+  }
+  figure.chart figcaption {
+    margin-top: 8px; color: var(--muted); font-size: 0.85rem; line-height: 1.7;
+  }
+
   ol.steps, ul.plain { margin: 10px 0; padding-left: 1.35em; }
   ol.steps li, ul.plain li { margin: 0 0 6px; }
 

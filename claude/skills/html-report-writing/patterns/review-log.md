@@ -203,7 +203,7 @@ HTML 議論ログとして検討して。
 - docs/YYYY-MM-DD_<topic>.html に出力
 - scripts/review-log-template.html をスターターに使う
 - 接合点を表で見せる、応用案は pill で優先度明示
-- 全体のデータフローを docs/assets/<topic>.d2 + .svg で描く (TALA layout)
+- 全体のデータフローを docs/assets/<topic>.d2 + .svg で描く (elk layout)
 - 初稿を Codex に投入する想定で、改訂しやすい構造で書く
 
 検討観点:

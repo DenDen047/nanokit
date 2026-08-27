@@ -24,32 +24,29 @@ SVG として `docs/assets/` 配下に出力し、HTML から外部参照する�
 
 ## インストールとレンダリング
 
-D2 本体 + TALA layout engine の両方を入れる。**本スキルは TALA を基本 layout として使う** (dagre より配置が美しい)。
+D2 本体は `pixi global` で入る。同梱 layout engine は **dagre** と **elk** の 2 つ。
 
 ```bash
 pixi global install d2                              # D2 本体 (0.7.1 以上)
-curl -fsSL https://d2lang.com/install.sh | sh -s -- --tala  # TALA layout engine
+d2 layout                                           # 使える layout engine を確認
 ```
 
 レンダリング:
 
 ```bash
-d2 --layout=tala -t 200 input.d2 output.svg         # ✓ 基本
+d2 --layout=elk -t 200 input.d2 output.svg          # ✓ 基本
 # 短縮形:
-d2 -l tala -t 200 input.d2 output.svg
+d2 -l elk -t 200 input.d2 output.svg
 ```
 
-**TALA ライセンス:** 個人・OSS 用途は無料 (要登録、`TALA_LICENSE_KEY` 環境変数)。
-商用利用は有料 ($60+/月)。詳細: https://terrastruct.com/tala
+**elk を基本にする理由:** 同梱の 2 つのうち、階層構造の整列と交差の少なさで dagre より安定する。
+dagre は横広がりの単純なフローでは軽くて速いので、浅いグラフならこちらでもよい。
 
-**TALA が使えない環境 (商用・air-gap でキー無し)** はデフォルトの dagre にフォールバック:
-
-```bash
-d2 -t 200 input.d2 output.svg                       # dagre (default)
-```
-
-dagre でも見栄えは「許容範囲」だが、ノード配置の重なりや過剰な交差が出やすい。
-重要な公開資料 / クライアント向けは TALA で出すこと。
+**TALA は使わない。** 見た目は最も良いが、この環境に未インストールで、`--layout=tala` を指定すると
+`D2_LAYOUT "tala" is not bundled and could not be found in your $PATH` で失敗する。
+入れるには `curl | sh` 経由になり pixi-only 方針に反するうえ、個人・OSS 以外は有償 ($60+/月、
+[terrastruct.com/tala](https://terrastruct.com/tala))。クライアント向けの仕事は商用利用に当たるため、
+配置の美しさが要るなら TALA を買うより `editorial-diagrams` skill で描くほうが筋がよい。
 
 **theme 200 を推奨する理由:** HTML 側も `prefers-color-scheme: dark` 対応で設計しているため、
 SVG とのコントラスト破綻が起きにくい。ライトテーマで読まれる場合も 200 は背景が `slate-900` で、
@@ -157,7 +154,7 @@ D2 の `legend.near: top-right` は viewBox が無駄に拡大 + inner/outer vie
     </span>
   </div>
   ソース: <code>docs/assets/foo.d2</code>
-  (再生成 = <code>d2 --layout=tala -t 200 foo.d2 foo.svg</code>)
+  (再生成 = <code>d2 --layout=elk -t 200 foo.d2 foo.svg</code>)
 </figcaption>
 ```
 

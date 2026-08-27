@@ -102,7 +102,7 @@ Markdown ライクに書くなら HTML 上で:
 ```html
 <pre><code class="language-bash">
 pixi global install d2
-d2 --layout=tala -t 200 input.d2 output.svg
+d2 --layout=elk -t 200 input.d2 output.svg
 </code></pre>
 ```
 

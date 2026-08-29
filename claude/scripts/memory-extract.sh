@@ -185,8 +185,12 @@ if rest:
             ins -= 1
         a.insert(ins, line)
     arc.write_text('\n'.join(a).rstrip('\n') + '\n')
-pend.write_text('\n'.join(header).rstrip('\n') + '\n')
-print(f"REVIEWED: kept={len(kept)} archived={len(rest)}")
+# A detached extractor may have appended to the queue while this ran; keep
+# any entry line that was not in the snapshot we reviewed.
+cur = pend.read_text().splitlines() if pend.exists() else []
+late = [l for l in cur if l.startswith('- [') and l not in entries]
+pend.write_text('\n'.join(header).rstrip('\n') + '\n' + ('\n'.join(late) + '\n' if late else ''))
+print(f"REVIEWED: kept={len(kept)} archived={len(rest)}" + (f" late={len(late)}" if late else ""))
 PY
   rc=$?
   summary="$(cat "$out")"; rm -f "$out"
@@ -436,10 +440,11 @@ review queue. NEVER write to $DEST/MEMORY.md or $DEST/ARCHIVE.md: the index is
 curated by a person, and entries reach it only through the weekly review.
 
 Rules:
-  - Read $DEST/MEMORY.md, $DEST/ARCHIVE.md and $DEST/PENDING.md FIRST; skip
-    anything already recorded in any of them. If you have a real refinement to
-    an existing fact, update that file instead of duplicating, and leave its
-    existing pointer line where it is.
+  - Read $DEST/MEMORY.md and $DEST/PENDING.md FIRST, and grep $DEST/ARCHIVE.md
+    and the file names in $DEST/ for each candidate topic (the archive is large;
+    do not read it whole). Skip anything already recorded in any of them. If
+    you have a real refinement to an existing fact, update that file instead
+    of duplicating, and leave its existing pointer line where it is.
   - NEVER store secrets or credentials (passwords, API keys, tokens, private
     keys, OTP or 2FA codes). This is the ONE hard exclusion — everything else,
     including sensitive personal topics, is in scope when the user volunteers it.

@@ -11,7 +11,8 @@
 # Observability (it is invisible in the chat, so everything is logged):
 #   fire ledger : ~/.claude/debug/memory-extract.log         (one line per SessionEnd)
 #   per-run log : ~/.claude/debug/memory-extract/<ts>_<sid>.log  (the claude -p output)
-#   saved files : ~/.config/claude-memory/personal/*.md  (+ a pointer line in PENDING.md)
+#   saved files : ~/.config/claude-memory/personal/*.md  (+ a staged pointer line,
+#                 merged into PENDING.md by this script after the model exits)
 #
 # Manual checks:
 #   bash memory-extract.sh --now <transcript.jsonl>     # run synchronously, watch it
@@ -21,6 +22,7 @@
 #   bash memory-extract.sh --prune-if-over              # prune only when over budget
 #   bash memory-extract.sh --pending                    # numbered review queue (PENDING.md)
 #   bash memory-extract.sh --review-apply 1,4|none      # promote those numbers to MEMORY.md, archive the rest
+#   bash memory-extract.sh --run <t> <session> <reason> # what the detached hook child runs (lock, extract, guard, merge, prune)
 #   MEMEX_DEST=/tmp/memtest bash memory-extract.sh --now <t>   # write to a temp dir
 #
 # Index budget: extraction only ever APPENDS, so MEMORY.md grew unbounded (491
@@ -29,9 +31,13 @@
 # block below explains why that has to be reimplemented here.
 #
 # Promotion gate: MEMORY.md is @imported into every session, so nothing the
-# extractor writes may land there on its own. New pointer lines go to
-# PENDING.md (not loaded); a person moves them with --review-apply (the
-# /memory-review skill drives it). Nothing is promoted by default.
+# extractor writes may land there on its own. The model appends pointer lines
+# to a per-run staging file; this script merges them into PENDING.md (not
+# loaded); a person moves them out with --review-apply (the /memory-review
+# skill drives it). Nothing is promoted by default. Every writer of the three
+# curated files (MEMORY.md, ARCHIVE.md, PENDING.md) holds one mkdir lock, and
+# each model pass is bracketed by a snapshot: a curated file it was not allowed
+# to touch is restored and the incident is logged and notified.
 #
 # Recursion guard: the spawned `claude -p` is itself a session that fires this
 # same hook; it carries MEMEX_CHILD=1 so the hook early-exits for it.
@@ -64,6 +70,8 @@ DEST="${MEMEX_DEST:-$HOME/.config/claude-memory/personal}"
 INDEX="$DEST/MEMORY.md"
 ARCHIVE="$DEST/ARCHIVE.md"
 PENDING="$DEST/PENDING.md"
+STAGING="${MEMEX_STAGING:-$DEST/.staging}"   # per-run extractor output + pre-pass snapshots
+LOCK="$DEST/.lock"                            # mkdir lock shared by every writer of the curated files
 
 # --- index budget -------------------------------------------------------------
 # Claude Code's NATIVE auto memory loads only the first 200 lines OR 25 KB of
@@ -107,10 +115,13 @@ if [ -n "${MEMEX_CHILD:-}" ]; then
   exit 0
 fi
 
-# --- promotion gate: PENDING.md review queue ----------------------------------
-# The extractor appends pointer lines here instead of to MEMORY.md. A person
-# moves them out with --review-apply; the moves are deterministic (this code),
-# never a model edit.
+# --- promotion gate: staging -> PENDING.md review queue ----------------------
+# The extractor never writes to MEMORY.md, ARCHIVE.md or PENDING.md. It appends
+# pointer lines to a per-run staging file; deterministic code merges that into
+# the queue, and a person moves queue lines out with --review-apply. Every
+# writer of the curated files runs under one mkdir lock, and each model pass is
+# bracketed by a snapshot so a curated file it was not allowed to touch is put
+# back and reported (silent on success, loud on failure).
 PENDING_HEADER='# Pending memory entries (review queue — NOT loaded)
 
 Written by the SessionEnd extractor. Nothing here reaches MEMORY.md until a person
@@ -119,6 +130,80 @@ Same pointer format as MEMORY.md, one line per memory.
 '
 ensure_pending() {
   [ -f "$PENDING" ] || printf '%s\n' "$PENDING_HEADER" > "$PENDING"
+}
+
+# mkdir is atomic on every filesystem macOS mounts and bash 3.2 has no flock.
+# A lock whose recorded owner pid is dead is stale and is taken over.
+lock_acquire() {   # $1 = seconds to wait before giving up
+  local max="${1:-30}" waited=0 opid
+  mkdir -p "$DEST"
+  until mkdir "$LOCK" 2>/dev/null; do
+    opid="$(cat "$LOCK/pid" 2>/dev/null || true)"
+    if [ -n "$opid" ] && ! kill -0 "$opid" 2>/dev/null; then rm -rf "$LOCK"; continue; fi
+    [ "$waited" -ge "$max" ] && return 1
+    sleep 1; waited=$((waited + 1))
+  done
+  echo $$ > "$LOCK/pid"
+  trap 'lock_release' EXIT
+  return 0
+}
+lock_release() {
+  if [ -d "$LOCK" ] && [ "$(cat "$LOCK/pid" 2>/dev/null)" = "$$" ]; then rm -rf "$LOCK"; fi
+  return 0
+}
+
+# Snapshot the curated files before a model pass; put back whichever the pass
+# was not allowed to change.
+snap_take() {
+  SNAP="$STAGING/${session:-manual-$$}.snap"
+  rm -rf "$SNAP"; mkdir -p "$SNAP"
+  local f; for f in "$INDEX" "$ARCHIVE" "$PENDING"; do [ -f "$f" ] && cp "$f" "$SNAP/"; done
+  return 0
+}
+snap_restore() {   # $@ = curated files the pass just run was not allowed to touch
+  local f b changed=""
+  for f in "$@"; do
+    b="$(basename "$f")"
+    if [ -f "$SNAP/$b" ] && ! cmp -s "$f" "$SNAP/$b"; then cp "$SNAP/$b" "$f"; changed="$changed $b"; fi
+  done
+  if [ -n "$changed" ]; then
+    ledger "WARN session=${session:-manual} restored$changed (a model pass wrote outside the gate)"
+    echo "=== WARN restored$changed: a model pass wrote to a curated file; that edit was discarded ==="
+    osascript -e "display notification \"restored$changed, see ~/.claude/debug/memory-extract.log\" with title \"memory-extract gate\"" 2>/dev/null || true
+  fi
+  return 0
+}
+snap_drop() { [ -n "${SNAP:-}" ] && rm -rf "$SNAP"; return 0; }
+
+# Move every staged pointer line into the queue, skipping exact lines already
+# in the queue, the index or the archive. All staging files are merged, so one
+# left behind by a killed run is picked up by the next. Caller holds the lock.
+merge_staging() {
+  local sf n=0 line
+  ensure_pending
+  for sf in "$STAGING"/*.md; do
+    [ -f "$sf" ] || continue
+    while IFS= read -r line || [ -n "$line" ]; do
+      case "$line" in "- ["*)
+        if ! grep -qxF -- "$line" "$PENDING" "$INDEX" "$ARCHIVE" 2>/dev/null; then
+          printf '%s\n' "$line" >> "$PENDING"; n=$((n + 1))
+        fi ;;
+      esac
+    done < "$sf"
+    rm -f "$sf"
+  done
+  ledger "MERGED session=${session:-manual} queued=$n"
+  echo "=== merged $n line(s) into PENDING.md ==="
+}
+
+# The prune pass may rewrite MEMORY.md and ARCHIVE.md but never the queue.
+prune_guarded() {
+  local rc
+  snap_take
+  run_prune; rc=$?
+  snap_restore "$PENDING"
+  snap_drop
+  return "$rc"
 }
 
 pending_list() {
@@ -134,19 +219,31 @@ pending_list() {
 review_apply() {
   # $1 = comma-separated numbers as printed by --pending, or "none".
   # Kept lines are appended to MEMORY.md; the rest go to ARCHIVE.md under the
-  # "## <metadata.type>" heading of the memory they point at. The queue is then
-  # reduced to its header and, when $DEST is inside a git repo, committed.
-  # The python runs as a simple command with its own stdout file, not inside
-  # $(...): see the PRUNE_PROMPT note on heredocs inside command substitution.
-  ensure_pending
+  # "## <metadata.type>" heading of the memory they point at. Each file is
+  # written whole to a temp file and renamed into place, destinations skip
+  # lines they already hold, and the queue is written last, so a run cut short
+  # can simply be repeated. The python runs as a simple command with its own
+  # stdout file, not inside $(...): see the PRUNE_PROMPT note on heredocs.
   local keep="${1:-}" out summary rc
   if [ -z "$keep" ]; then echo "usage: --review-apply <n,n,...|none>" >&2; return 2; fi
+  if ! lock_acquire 30; then
+    echo "memory files are locked (an extraction or prune is running); retry in a minute" >&2
+    return 3
+  fi
+  ensure_pending
   out="$(mktemp)"
   python3 - "$DEST" "$keep" > "$out" 2>&1 <<'PY'
-import re, sys, pathlib
+import os, re, sys, pathlib, tempfile
 dest, keep = pathlib.Path(sys.argv[1]), sys.argv[2].strip()
 pend, idx, arc = dest/'PENDING.md', dest/'MEMORY.md', dest/'ARCHIVE.md'
-lines = pend.read_text().splitlines()
+def read_lines(p, default):
+    return p.read_text().splitlines() if p.exists() else list(default)
+def write_atomic(p, lines):
+    fd, tmp = tempfile.mkstemp(dir=str(dest), prefix='.' + p.name + '.')
+    with os.fdopen(fd, 'w') as f:
+        f.write('\n'.join(lines).rstrip('\n') + '\n')
+    os.replace(tmp, p)
+lines = read_lines(pend, [])
 entries = [l for l in lines if l.startswith('- [')]
 header = [l for l in lines if not l.startswith('- [')]
 if keep.lower() == 'none':
@@ -169,11 +266,15 @@ def mtype(line):
         if mm:
             return mm.group(1)
     return 'user'
-if kept:
-    idx.write_text(idx.read_text().rstrip('\n') + '\n' + '\n'.join(kept) + '\n')
-if rest:
-    a = arc.read_text().splitlines() if arc.exists() else ['# Personal memory archive (opt-in overflow of MEMORY.md — NOT auto-loaded)']
-    for line in rest:
+idx_lines = read_lines(idx, [])
+new_idx = [e for e in kept if e not in idx_lines]
+if new_idx:
+    write_atomic(idx, idx_lines + new_idx)
+arc_lines = read_lines(arc, ['# Personal memory archive (opt-in overflow of MEMORY.md — NOT auto-loaded)'])
+new_arc = [e for e in rest if e not in arc_lines]
+if new_arc:
+    a = list(arc_lines)
+    for line in new_arc:
         typ = mtype(line)
         hi = next((i for i, l in enumerate(a) if l.startswith('## ' + typ)), None)
         if hi is None:
@@ -184,17 +285,13 @@ if rest:
         while ins > hi + 1 and a[ins - 1].strip() == '':
             ins -= 1
         a.insert(ins, line)
-    arc.write_text('\n'.join(a).rstrip('\n') + '\n')
-# A detached extractor may have appended to the queue while this ran; keep
-# any entry line that was not in the snapshot we reviewed.
-cur = pend.read_text().splitlines() if pend.exists() else []
-late = [l for l in cur if l.startswith('- [') and l not in entries]
-pend.write_text('\n'.join(header).rstrip('\n') + '\n' + ('\n'.join(late) + '\n' if late else ''))
-print(f"REVIEWED: kept={len(kept)} archived={len(rest)}" + (f" late={len(late)}" if late else ""))
+    write_atomic(arc, a)
+write_atomic(pend, header)
+print(f"REVIEWED: kept={len(kept)} archived={len(rest)}")
 PY
   rc=$?
   summary="$(cat "$out")"; rm -f "$out"
-  if [ "$rc" -ne 0 ]; then echo "$summary" >&2; return "$rc"; fi
+  if [ "$rc" -ne 0 ]; then echo "$summary" >&2; lock_release; return "$rc"; fi
   echo "$summary"
   if git -C "$DEST" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     git -C "$DEST" add -A >/dev/null 2>&1
@@ -202,6 +299,7 @@ PY
   fi
   ledger "REVIEW $summary $(budget_report)"
   echo "budget:  $(budget_report)"
+  lock_release
 }
 
 # --- index budget: deterministic measurement ---------------------------------
@@ -236,6 +334,7 @@ You are maintaining the size of a personal memory INDEX for Claude Code.
   index   : $INDEX      (loaded into EVERY session via a CLAUDE.md @import)
   archive : $ARCHIVE    (NOT imported; read on demand only)
   pending : $PENDING    (review queue; not yours to touch)
+  staging : $STAGING    (this script owns it; not yours to touch)
   memories: $DEST/*.md  (one durable fact per file)
   scratch : $PRUNE_WORK (yours; wiped before and after this run)
 
@@ -337,6 +436,7 @@ case "${1:-}" in
   --prune-if-over) mode="prune-if-over"; shift ;;
   --pending)       mode="pending"; shift ;;
   --review-apply)  mode="review-apply"; shift ;;
+  --run)           mode="run"; shift ;;
 esac
 
 # --- budget / prune modes need no transcript: dispatch and exit ---------------
@@ -352,9 +452,11 @@ case "$mode" in
     if over_budget; then exit 1; else exit 0; fi
     ;;
   prune-now)
+    lock_acquire 60 || { echo "memory files are locked; retry later" >&2; exit 3; }
     ledger "PRUNE-NOW requested $(budget_report)"
     runlog="$RUNDIR/$(date +%Y%m%d_%H%M%S)_prune.log"
-    run_prune 2>&1 | tee "$runlog"
+    prune_guarded 2>&1 | tee "$runlog"
+    lock_release
     exit 0
     ;;
   pending)
@@ -366,20 +468,22 @@ case "$mode" in
     exit $?
     ;;
   prune-if-over)
+    lock_acquire 60 || { ledger "PRUNE-IF-OVER skip (lock busy)"; exit 0; }
     if over_budget; then
       ledger "PRUNE-IF-OVER firing $(budget_report)"
-      run_prune 2>&1
+      prune_guarded 2>&1
     else
       ledger "PRUNE-IF-OVER skip $(budget_report)"
     fi
+    lock_release
     exit 0
     ;;
 esac
 
 # --- resolve transcript_path / session_id / reason ---
 transcript=""; session=""; reason=""
-if [ "$mode" = "now" ] && [ -n "${1:-}" ]; then
-  transcript="$1"; session="manual-$(date +%s)"; reason="manual"
+if { [ "$mode" = "now" ] || [ "$mode" = "run" ]; } && [ -n "${1:-}" ]; then
+  transcript="$1"; session="${2:-manual-$(date +%s)}"; reason="${3:-manual}"
 else
   payload="$(cat 2>/dev/null || true)"
   if [ -n "$payload" ] && command -v jq >/dev/null 2>&1; then
@@ -409,6 +513,7 @@ if [ "${lines:-0}" -lt "$MIN_LINES" ]; then
 fi
 
 runlog="$RUNDIR/$(date +%Y%m%d_%H%M%S)_${session}.log"
+STAGE_FILE="$STAGING/$session.md"   # where the extractor leaves its pointer lines
 
 PROMPT="$(cat <<EOF
 You are a silent background memory extractor for Claude Code, building a RICH,
@@ -435,8 +540,9 @@ one-fact file under $DEST/ — kebab-case slug, frontmatter with name,
 description, and metadata.type (one of: user, feedback, reference; "user" is
 broad and covers identity, interests, tastes, values, and thinking style) —
 following the conventions already used in that directory, and append one
-pointer line of the form "- [Title](file.md) — hook" to $DEST/PENDING.md, the
-review queue. NEVER write to $DEST/MEMORY.md or $DEST/ARCHIVE.md: the index is
+pointer line of the form "- [Title](file.md) — hook" to $STAGE_FILE (create it
+if absent). That file is merged into the review queue by the caller. NEVER
+write to $DEST/MEMORY.md, $DEST/ARCHIVE.md or $DEST/PENDING.md: the index is
 curated by a person, and entries reach it only through the weekly review.
 
 Rules:
@@ -482,50 +588,55 @@ extract() {
   echo "=== memory-extract exit $rc $(ts) ==="
 }
 
+run_pipeline() {
+  # One lock for the whole run: the extractor's minutes-long pass, the merge
+  # and the prune. A review arriving meanwhile waits or is told to retry, and
+  # a second SessionEnd run waits here before it spawns anything.
+  if ! lock_acquire 1800; then
+    ledger "SKIP session=$session (memory lock busy for 30 min)"
+    echo "=== memory lock busy for 30 min, giving up ==="
+    return 1
+  fi
+  ensure_pending
+  mkdir -p "$STAGING"
+  snap_take
+  extract
+  snap_restore "$INDEX" "$ARCHIVE"
+  merge_staging
+  snap_drop
+  if over_budget; then
+    ledger "BUDGET $(budget_report) -> prune"
+    prune_guarded
+  else
+    ledger "BUDGET $(budget_report) (no prune)"
+  fi
+  lock_release
+}
+
 case "$mode" in
   dry)
     ledger "DRYRUN session=$session reason=$reason ($lines lines) model=$MODEL dest=$DEST -> $runlog"
     echo "[dry-run] transcript=$transcript ($lines lines)"
     echo "[dry-run] would spawn: MEMEX_CHILD=1 claude -p <prompt> --model $MODEL --effort $EFFORT --permission-mode acceptEdits"
     echo "[dry-run] runlog would be: $runlog"
+    echo "[dry-run] staging file: $STAGE_FILE"
     echo "[dry-run] index budget: $(budget_report) target=${TARGET_LINES}L/${TARGET_BYTES}B"
     ;;
   now)
     ledger "NOW session=$session reason=$reason ($lines lines) -> $runlog (foreground)"
-    ensure_pending
-    extract 2>&1 | tee "$runlog"
-    if over_budget; then
-      run_prune 2>&1 | tee -a "$runlog"
-    else
-      ledger "BUDGET $(budget_report) (no prune)"
-    fi
+    run_pipeline 2>&1 | tee "$runlog"
+    ;;
+  run)
+    # The detached hook child; stdout and stderr already go to the run log.
+    run_pipeline
     ;;
   hook)
     ledger "FIRED session=$session reason=$reason ($lines lines) $(budget_report) -> spawned log=$runlog"
-    # detached + nohup so it outlives the hook and the Claude session.
-    # Positional args to the inner shell: 1=transcript 2=session 3=reason
-    # 4=model 5=prompt 6=effort 7=timeout_s 8=self  (avoids any function/quote
-    # serialization). A sleep+kill watchdog bounds the child: without it a
-    # wedged claude -p ran forever (audit finding H2).
-    # After extraction the child re-enters this script as --prune-if-over. The
-    # inner shell is a separate bash -c, so the budget helpers are out of scope
-    # and re-exec is the cheapest way to reuse them. That pass is itself gated
-    # and bounded, and is a no-op while the index is under budget.
-    ensure_pending
-    nohup bash -c '
-      echo "=== memory-extract start $(date "+%F %T") session=$2 reason=$3 ==="
-      echo "=== transcript=$1 model=$4 effort=$6 timeout=${7}s ==="
-      set -m
-      MEMEX_CHILD=1 claude -p "$5" --model "$4" --effort "$6" --permission-mode acceptEdits --strict-mcp-config --allowedTools "Read,Write,Edit,Glob,Grep" </dev/null &
-      cpid=$!
-      ( sleep "$7" && kill -- -"$cpid" 2>/dev/null \
-          && echo "=== memory-extract KILLED after ${7}s timeout $(date "+%F %T") ===" ) &
-      wpid=$!; disown "$wpid" 2>/dev/null || true
-      wait "$cpid" 2>/dev/null; rc=$?
-      kill -- -"$wpid" 2>/dev/null
-      echo "=== memory-extract exit $rc $(date "+%F %T") ==="
-      bash "$8" --prune-if-over
-    ' _ "$transcript" "$session" "$reason" "$MODEL" "$PROMPT" "$EFFORT" "$TIMEOUT_S" "$SELF" >> "$runlog" 2>&1 &
+    # detached + nohup so it outlives the hook and the Claude session. The
+    # child re-enters this script as --run so the lock, snapshot, merge and
+    # prune helpers are in scope; extract() bounds claude -p with a sleep+kill
+    # watchdog (without it a wedged claude -p ran forever, audit finding H2).
+    nohup bash "$SELF" --run "$transcript" "$session" "$reason" >> "$runlog" 2>&1 &
     disown 2>/dev/null || true
     ;;
 esac

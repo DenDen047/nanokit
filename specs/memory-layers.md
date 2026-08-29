@@ -14,7 +14,14 @@ Claude Code のパーソナライゼーション用メモリは、置き場ご�
 
 ## 抽出 (SessionEnd)
 
-`~/.claude/settings.json` の SessionEnd hook が `~/.claude/scripts/memory-extract.sh` (実体 `claude/scripts/memory-extract.sh`) を呼ぶ。切り離した headless `claude -p` がトランスクリプトを読み、新しい事実を本体ファイルに書き、ポインタ行を `PENDING.md` に積む。`MEMORY.md` には書かない。重複判定は `MEMORY.md`、`ARCHIVE.md`、`PENDING.md` の 3 つを読んで行う。
+`~/.claude/settings.json` の SessionEnd hook が `~/.claude/scripts/memory-extract.sh` (実体 `claude/scripts/memory-extract.sh`) を呼び、切り離した子プロセス (`--run`) が次を順に行う。
+
+1. `personal/.lock` を `mkdir` で取る (最長 30 分待つ)。索引・退避・キューに書く処理は全てこのロックの下で走る
+2. `MEMORY.md` / `ARCHIVE.md` / `PENDING.md` のスナップショットを `personal/.staging/<session>.snap/` に取る
+3. headless `claude -p` がトランスクリプトを読み、新しい事実を本体ファイルに書き、ポインタ行を `personal/.staging/<session>.md` に積む。重複判定は `MEMORY.md` と `PENDING.md` を読み、`ARCHIVE.md` は grep する
+4. スナップショットと比べ、`MEMORY.md` か `ARCHIVE.md` が変わっていれば元に戻し、台帳に WARN を書いて通知センターに出す (モデルが門を迂回した場合の機械的な差し戻し)
+5. staging の行を `PENDING.md` へ追記する (キュー・索引・退避に同じ行があれば捨てる)。前回途中で死んだ run の staging も同時に拾う
+6. 索引が予算を超えていれば剪定を走らせる。剪定の前後でも `PENDING.md` のスナップショットを取り、触られていたら戻す
 
 - 発火台帳 `~/.claude/debug/memory-extract.log`
 - 実行ログ `~/.claude/debug/memory-extract/<ts>_<sid>.log`
@@ -24,7 +31,7 @@ Claude Code のパーソナライゼーション用メモリは、置き場ご�
 
 ## 週次レビュー (昇格ゲート)
 
-`/memory-review` skill (`claude/skills/memory-review`) が `PENDING.md` を番号付きで提示し、選ばれた行を `MEMORY.md` へ、それ以外を `ARCHIVE.md` へ移す。既定は「載せない」。抽出は毎セッション走るので、確認の頻度を落としても取りこぼしは起きない。
+`/memory-review` skill (`claude/skills/memory-review`) が `PENDING.md` を番号付きで提示し、選ばれた行を `MEMORY.md` へ、それ以外を `ARCHIVE.md` へ移す (`--review-apply`)。既定は「載せない」。抽出は毎セッション走るので、確認の頻度を落としても取りこぼしは起きない。移動は同じロックの下で、各ファイルを一時ファイルに書いて rename し、移動先に既にある行は飛ばし、キューを最後に書く。途中で止まっても、もう一度実行すれば収束する。抽出が走っている間は 30 秒待って「後で再実行」と返す。
 
 索引が予算を超えると剪定 (`--prune-if-over`) が走り、ポインタ行を短縮・統合・`ARCHIVE.md` へ降格する。本体ファイルは消さない。
 

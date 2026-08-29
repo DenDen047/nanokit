@@ -21,7 +21,7 @@ Claude Code のパーソナライゼーション用メモリは、置き場ご�
 3. headless `claude -p` がトランスクリプトを読み、新しい事実を本体ファイルに書き、ポインタ行を `personal/.staging/<session>.md` に積む。重複判定は `MEMORY.md` と `PENDING.md` を読み、`ARCHIVE.md` は grep する
 4. モデルが `PENDING.md` に直接書いた行があれば staging へ退避したうえで、スナップショットと比べて `MEMORY.md` / `ARCHIVE.md` / `PENDING.md` が変わっていれば元に戻し (事前に無かったファイルを作っていれば消す)、台帳に WARN を書いて通知センターに出す (モデルが門を迂回した場合の機械的な差し戻し)。スナップショットが取れなければ抽出自体を行わない
 5. staging の行を `PENDING.md` へ追記する (キュー・索引・退避のうち存在するファイルに同じ行があれば捨てる)。追記に失敗したら staging を残して止まる。前回途中で死んだ run の staging も同時に拾う
-6. 統合が済んだ状態を個人メモリの git にコミットする。索引が予算を超えていれば剪定を走らせる。剪定の前にもコミットし、剪定が失敗・タイムアウトしたら curated 3 ファイルをスナップショットから、追跡ファイルを `git checkout` で戻す。成功時も `PENDING.md` が触られていたら戻す
+6. 統合が済んだ状態を個人メモリの git にコミットする。索引が予算を超えていれば剪定を走らせる。剪定の前にもコミットしてその commit id をチェックポイントにし、コミットできなければ (git でない、git が失敗) 剪定しない。剪定が失敗・タイムアウトしたら curated 3 ファイルをスナップショットから、追跡ファイルをチェックポイントから戻し、どちらかが戻せなければ ROLLBACK INCOMPLETE として commit id とスナップショットの場所を台帳に残す。成功時も `PENDING.md` が触られていたら戻す
 
 - 発火台帳 `~/.claude/debug/memory-extract.log`
 - 実行ログ `~/.claude/debug/memory-extract/<ts>_<sid>.log`

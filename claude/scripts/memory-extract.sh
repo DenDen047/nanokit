@@ -185,11 +185,13 @@ lock_release() {
 
 # Commit the memory repo (when it is one). Gives every model pass a rollback
 # point and makes the weekly review readable as git history.
-memory_commit() {   # $1 = message
-  git -C "$DEST" rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 0
-  git -C "$DEST" add -A >/dev/null 2>&1
-  git -C "$DEST" commit -qm "$1" >/dev/null 2>&1 || true
-  return 0
+memory_commit() {   # $1 = message. Prints the checkpoint commit id. rc 2 = not a git repo, 1 = git failed.
+  git -C "$DEST" rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 2
+  git -C "$DEST" add -A >/dev/null 2>&1 || return 1
+  if ! git -C "$DEST" diff --cached --quiet 2>/dev/null; then
+    git -C "$DEST" commit -qm "$1" >/dev/null 2>&1 || return 1
+  fi
+  git -C "$DEST" rev-parse HEAD 2>/dev/null || return 1
 }
 
 # Snapshot the curated files before a model pass; put back whichever the pass
@@ -306,7 +308,7 @@ add_index() {
     echo "already in index"; lock_release; return 0
   fi
   printf '%s\n' "$line" >> "$INDEX" || { lock_release; return 1; }
-  memory_commit "add-index $(date +%F): $slug"
+  memory_commit "add-index $(date +%F): $slug" >/dev/null || echo "warning: memory git commit failed (rc=$?)" >&2
   ledger "ADD-INDEX $slug $(budget_report)"
   echo "added to index: $line"
   lock_release
@@ -314,19 +316,32 @@ add_index() {
 
 # The prune pass may rewrite MEMORY.md and ARCHIVE.md but never the queue.
 prune_guarded() {
-  local rc
+  local rc oid c_rc ok
   snap_take || { ledger "ERROR snapshot failed before prune; prune skipped"; echo "=== ERROR snapshot failed; prune skipped ==="; return 1; }
-  memory_commit "pre-prune $(date '+%F %T')"
+  # The prune may merge or delete memory files, which the snapshot does not
+  # cover, so it only runs with a git checkpoint to roll back to.
+  oid="$(memory_commit "pre-prune $(date '+%F %T')")"; c_rc=$?
+  if [ "$c_rc" -ne 0 ] || [ -z "$oid" ]; then
+    ledger "ERROR session=${session:-manual} no git checkpoint for prune (rc=$c_rc); prune skipped"
+    echo "=== ERROR no git checkpoint (rc=$c_rc); prune skipped ==="
+    snap_drop; return 1
+  fi
   run_prune; rc=$?
   if [ "$rc" -ne 0 ]; then
     # A prune that was killed or failed may have moved half the lines and
     # merged or deleted memory files. Put everything back: the three curated
-    # files from the snapshot, every tracked file from the commit just made.
-    snap_restore "$INDEX" "$ARCHIVE" "$PENDING" || true
-    git -C "$DEST" rev-parse --is-inside-work-tree >/dev/null 2>&1 && git -C "$DEST" checkout -q -- . 2>/dev/null
-    ledger "ERROR session=${session:-manual} prune rc=$rc; rolled back, snapshot kept at $SNAP"
-    echo "=== ERROR prune rc=$rc; rolled back to the pre-prune state, snapshot kept at $SNAP ==="
-    osascript -e "display notification \"prune failed and was rolled back\" with title \"memory-extract gate\"" 2>/dev/null || true
+    # files from the snapshot, every tracked file from the checkpoint commit.
+    ok=1
+    snap_restore "$INDEX" "$ARCHIVE" "$PENDING" || ok=0
+    git -C "$DEST" checkout -q "$oid" -- . 2>/dev/null || ok=0
+    if [ "$ok" -eq 1 ]; then
+      ledger "ERROR session=${session:-manual} prune rc=$rc; rolled back to $oid, snapshot kept at $SNAP"
+      echo "=== ERROR prune rc=$rc; rolled back to $oid, snapshot kept at $SNAP ==="
+    else
+      ledger "ERROR session=${session:-manual} prune rc=$rc; ROLLBACK INCOMPLETE, checkpoint $oid, snapshot kept at $SNAP"
+      echo "=== ERROR prune rc=$rc; ROLLBACK INCOMPLETE — restore by hand from checkpoint $oid and $SNAP ==="
+    fi
+    osascript -e "display notification \"prune failed; see ~/.claude/debug/memory-extract.log\" with title \"memory-extract gate\"" 2>/dev/null || true
     return "$rc"
   fi
   if snap_restore "$PENDING"; then
@@ -427,7 +442,7 @@ PY
   summary="$(cat "$out")"; rm -f "$out"
   if [ "$rc" -ne 0 ]; then echo "$summary" >&2; lock_release; return "$rc"; fi
   echo "$summary"
-  memory_commit "review $(date +%F): $summary"
+  memory_commit "review $(date +%F): $summary" >/dev/null || echo "warning: memory git commit failed (rc=$?)" >&2
   ledger "REVIEW $summary $(budget_report)"
   echo "budget:  $(budget_report)"
   lock_release
@@ -748,11 +763,12 @@ run_pipeline() {
   # Keep the queue as the model left it inside the snapshot, so a failed
   # salvage can be recovered by hand; if even that copy fails, leave the
   # queue alone rather than restore over the only copy.
-  if [ -f "$PENDING" ] && cp "$PENDING" "$SNAP/PENDING.post.md" 2>/dev/null; then
+  if [ ! -f "$PENDING" ]; then
+    snap_restore "$INDEX" "$ARCHIVE" "$PENDING"; r_rc=$?    # deleted by the model: the queue comes back from the snapshot
+  elif cp "$PENDING" "$SNAP/PENDING.post.md" 2>/dev/null; then
     snap_restore "$INDEX" "$ARCHIVE" "$PENDING"; r_rc=$?
   else
-    snap_restore "$INDEX" "$ARCHIVE"; r_rc=$?
-    [ -f "$PENDING" ] && r_rc=1
+    snap_restore "$INDEX" "$ARCHIVE"; r_rc=1                # present but uncopyable: never restore over the only copy
   fi
   if [ "$s_rc" -ne 0 ] || [ "$r_rc" -ne 0 ]; then
     ledger "ERROR session=$session salvage=$s_rc restore=$r_rc; snapshot kept at $SNAP"
@@ -762,7 +778,7 @@ run_pipeline() {
   fi
   if ! merge_staging; then snap_drop; lock_release; return 1; fi
   snap_drop
-  memory_commit "extract $(date '+%F %T') session=$session"
+  memory_commit "extract $(date '+%F %T') session=$session" >/dev/null || ledger "WARN session=$session memory commit failed (rc=$?)"
   if over_budget; then
     ledger "BUDGET $(budget_report) -> prune"
     prune_guarded

@@ -76,4 +76,4 @@ Max プランなので画像認識を惜しまない。**UI・図・ブラウザ
 
 ## MCP 運用
 
-zotero / scrapling / workspace-mcp は Claude Code と Codex が 1 プロセスを共有する常駐 HTTP サーバで、SessionStart hook が冪等に起動する。workspace-* の user スコープ登録は個人アカウントにだけ効き、HDT (`CLAUDE_CONFIG_DIR=~/.claude-hdt`) には波及しない。ポート表・登録先・起動・トラブルシュート・認証は `~/nanokit/specs/mcp-operations.md`。
+zotero / scrapling / workspace-mcp は Claude Code と Codex が 1 プロセスを共有する常駐 HTTP サーバで、SessionStart hook が冪等に起動する。**bind は `127.0.0.1` のみで認証なし（ローカル専用）。外部インターフェースへ公開する変更はしない。**workspace-* の user スコープ登録は個人アカウントにだけ効き、HDT (`CLAUDE_CONFIG_DIR=~/.claude-hdt`) には波及しない。ポート表・登録先・起動・トラブルシュート・認証は `~/nanokit/specs/mcp-operations.md`。

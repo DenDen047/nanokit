@@ -11,7 +11,7 @@
 # Observability (it is invisible in the chat, so everything is logged):
 #   fire ledger : ~/.claude/debug/memory-extract.log         (one line per SessionEnd)
 #   per-run log : ~/.claude/debug/memory-extract/<ts>_<sid>.log  (the claude -p output)
-#   saved files : ~/.config/claude-memory/personal/*.md  (+ MEMORY.md)
+#   saved files : ~/.config/claude-memory/personal/*.md  (+ a pointer line in PENDING.md)
 #
 # Manual checks:
 #   bash memory-extract.sh --now <transcript.jsonl>     # run synchronously, watch it
@@ -19,12 +19,19 @@
 #   bash memory-extract.sh --budget                     # index size vs budget, no model
 #   bash memory-extract.sh --prune-now                  # foreground prune, ignores the gate
 #   bash memory-extract.sh --prune-if-over              # prune only when over budget
+#   bash memory-extract.sh --pending                    # numbered review queue (PENDING.md)
+#   bash memory-extract.sh --review-apply 1,4|none      # promote those numbers to MEMORY.md, archive the rest
 #   MEMEX_DEST=/tmp/memtest bash memory-extract.sh --now <t>   # write to a temp dir
 #
 # Index budget: extraction only ever APPENDS, so MEMORY.md grew unbounded (491
 # lines / 126 KB by 2026-08). Extraction is now followed by a deterministic
 # budget check and, when it is over, a bounded prune pass. The MAX_/TARGET_
 # block below explains why that has to be reimplemented here.
+#
+# Promotion gate: MEMORY.md is @imported into every session, so nothing the
+# extractor writes may land there on its own. New pointer lines go to
+# PENDING.md (not loaded); a person moves them with --review-apply (the
+# /memory-review skill drives it). Nothing is promoted by default.
 #
 # Recursion guard: the spawned `claude -p` is itself a session that fires this
 # same hook; it carries MEMEX_CHILD=1 so the hook early-exits for it.
@@ -56,6 +63,7 @@ TIMEOUT_S="${MEMEX_TIMEOUT_S:-900}"
 DEST="${MEMEX_DEST:-$HOME/.config/claude-memory/personal}"
 INDEX="$DEST/MEMORY.md"
 ARCHIVE="$DEST/ARCHIVE.md"
+PENDING="$DEST/PENDING.md"
 
 # --- index budget -------------------------------------------------------------
 # Claude Code's NATIVE auto memory loads only the first 200 lines OR 25 KB of
@@ -99,6 +107,99 @@ if [ -n "${MEMEX_CHILD:-}" ]; then
   exit 0
 fi
 
+# --- promotion gate: PENDING.md review queue ----------------------------------
+# The extractor appends pointer lines here instead of to MEMORY.md. A person
+# moves them out with --review-apply; the moves are deterministic (this code),
+# never a model edit.
+PENDING_HEADER='# Pending memory entries (review queue — NOT loaded)
+
+Written by the SessionEnd extractor. Nothing here reaches MEMORY.md until a person
+picks it in the weekly review (`/memory-review`, or `--pending` then `--review-apply`).
+Same pointer format as MEMORY.md, one line per memory.
+'
+ensure_pending() {
+  [ -f "$PENDING" ] || printf '%s\n' "$PENDING_HEADER" > "$PENDING"
+}
+
+pending_list() {
+  ensure_pending
+  local n=0 line
+  while IFS= read -r line; do
+    case "$line" in "- ["*) n=$((n+1)); printf '%3d  %s\n' "$n" "$line" ;; esac
+  done < "$PENDING"
+  [ "$n" -eq 0 ] && echo "(empty)"
+  return 0
+}
+
+review_apply() {
+  # $1 = comma-separated numbers as printed by --pending, or "none".
+  # Kept lines are appended to MEMORY.md; the rest go to ARCHIVE.md under the
+  # "## <metadata.type>" heading of the memory they point at. The queue is then
+  # reduced to its header and, when $DEST is inside a git repo, committed.
+  # The python runs as a simple command with its own stdout file, not inside
+  # $(...): see the PRUNE_PROMPT note on heredocs inside command substitution.
+  ensure_pending
+  local keep="${1:-}" out summary rc
+  if [ -z "$keep" ]; then echo "usage: --review-apply <n,n,...|none>" >&2; return 2; fi
+  out="$(mktemp)"
+  python3 - "$DEST" "$keep" > "$out" 2>&1 <<'PY'
+import re, sys, pathlib
+dest, keep = pathlib.Path(sys.argv[1]), sys.argv[2].strip()
+pend, idx, arc = dest/'PENDING.md', dest/'MEMORY.md', dest/'ARCHIVE.md'
+lines = pend.read_text().splitlines()
+entries = [l for l in lines if l.startswith('- [')]
+header = [l for l in lines if not l.startswith('- [')]
+if keep.lower() == 'none':
+    keep_ids = set()
+else:
+    try:
+        keep_ids = {int(x) for x in keep.split(',') if x.strip()}
+    except ValueError:
+        sys.exit(f"bad number list: {keep!r}")
+bad = sorted(k for k in keep_ids if k < 1 or k > len(entries))
+if bad:
+    sys.exit(f"no such pending entry: {bad} (queue has {len(entries)})")
+kept = [e for i, e in enumerate(entries, 1) if i in keep_ids]
+rest = [e for i, e in enumerate(entries, 1) if i not in keep_ids]
+def mtype(line):
+    m = re.search(r'\]\(([^)]+\.md)\)', line)
+    f = dest / m.group(1) if m else None
+    if f and f.exists():
+        mm = re.search(r'^\s*type:\s*(\w+)', f.read_text(), re.M)
+        if mm:
+            return mm.group(1)
+    return 'user'
+if kept:
+    idx.write_text(idx.read_text().rstrip('\n') + '\n' + '\n'.join(kept) + '\n')
+if rest:
+    a = arc.read_text().splitlines() if arc.exists() else ['# Personal memory archive (opt-in overflow of MEMORY.md — NOT auto-loaded)']
+    for line in rest:
+        typ = mtype(line)
+        hi = next((i for i, l in enumerate(a) if l.startswith('## ' + typ)), None)
+        if hi is None:
+            a += ['', f'## {typ}', line]
+            continue
+        end = next((i for i in range(hi + 1, len(a)) if a[i].startswith('## ')), len(a))
+        ins = end
+        while ins > hi + 1 and a[ins - 1].strip() == '':
+            ins -= 1
+        a.insert(ins, line)
+    arc.write_text('\n'.join(a).rstrip('\n') + '\n')
+pend.write_text('\n'.join(header).rstrip('\n') + '\n')
+print(f"REVIEWED: kept={len(kept)} archived={len(rest)}")
+PY
+  rc=$?
+  summary="$(cat "$out")"; rm -f "$out"
+  if [ "$rc" -ne 0 ]; then echo "$summary" >&2; return "$rc"; fi
+  echo "$summary"
+  if git -C "$DEST" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    git -C "$DEST" add -A >/dev/null 2>&1
+    git -C "$DEST" commit -qm "review $(date +%F): $summary" >/dev/null 2>&1 || true
+  fi
+  ledger "REVIEW $summary $(budget_report)"
+  echo "budget:  $(budget_report)"
+}
+
 # --- index budget: deterministic measurement ---------------------------------
 index_lines() { if [ -f "$INDEX" ]; then wc -l < "$INDEX" | tr -d ' '; else echo 0; fi; }
 index_bytes() { if [ -f "$INDEX" ]; then wc -c < "$INDEX" | tr -d ' '; else echo 0; fi; }
@@ -130,6 +231,7 @@ You are maintaining the size of a personal memory INDEX for Claude Code.
 
   index   : $INDEX      (loaded into EVERY session via a CLAUDE.md @import)
   archive : $ARCHIVE    (NOT imported; read on demand only)
+  pending : $PENDING    (review queue; not yours to touch)
   memories: $DEST/*.md  (one durable fact per file)
   scratch : $PRUNE_WORK (yours; wiped before and after this run)
 
@@ -152,8 +254,9 @@ Hard prohibitions:
   - NEVER rewrite, soften or reinterpret the BODY of a memory file. The bodies
     are the user's own record; you are maintaining the index, nothing else.
   - NEVER edit any CLAUDE.md.
-  - NEVER create anything in $DEST other than MEMORY.md and ARCHIVE.md. Helper
-    scripts and intermediate output go in $PRUNE_WORK.
+  - NEVER create anything in $DEST other than MEMORY.md and ARCHIVE.md, and
+    NEVER touch PENDING.md. Helper scripts and intermediate output go in
+    $PRUNE_WORK.
 
 What stays in $INDEX (it is the always-loaded layer, so it holds INSTRUCTIONS):
   - the metadata.type: feedback memories that apply whatever you are working on
@@ -228,6 +331,8 @@ case "${1:-}" in
   --budget)        mode="budget"; shift ;;
   --prune-now)     mode="prune-now"; shift ;;
   --prune-if-over) mode="prune-if-over"; shift ;;
+  --pending)       mode="pending"; shift ;;
+  --review-apply)  mode="review-apply"; shift ;;
 esac
 
 # --- budget / prune modes need no transcript: dispatch and exit ---------------
@@ -247,6 +352,14 @@ case "$mode" in
     runlog="$RUNDIR/$(date +%Y%m%d_%H%M%S)_prune.log"
     run_prune 2>&1 | tee "$runlog"
     exit 0
+    ;;
+  pending)
+    pending_list
+    exit 0
+    ;;
+  review-apply)
+    review_apply "${1:-}"
+    exit $?
     ;;
   prune-if-over)
     if over_budget; then
@@ -313,16 +426,20 @@ work habits. Look for, among others:
   - people, collaborators and team structure they work within
   - corrections or guidance on how the assistant should behave
 
-For each genuinely NEW fact (not already in $DEST/MEMORY.md), create a one-fact
-file under $DEST/ — kebab-case slug, frontmatter with name, description, and
-metadata.type (one of: user, feedback, reference; "user" is broad and covers
-identity, interests, tastes, values, and thinking style) — following the
-conventions already used in that directory, and add one pointer line to
-$DEST/MEMORY.md.
+For each genuinely NEW fact (not already recorded anywhere in $DEST), create a
+one-fact file under $DEST/ — kebab-case slug, frontmatter with name,
+description, and metadata.type (one of: user, feedback, reference; "user" is
+broad and covers identity, interests, tastes, values, and thinking style) —
+following the conventions already used in that directory, and append one
+pointer line of the form "- [Title](file.md) — hook" to $DEST/PENDING.md, the
+review queue. NEVER write to $DEST/MEMORY.md or $DEST/ARCHIVE.md: the index is
+curated by a person, and entries reach it only through the weekly review.
 
 Rules:
-  - Read $DEST/MEMORY.md FIRST; skip anything already recorded. If you have a
-    real refinement to an existing fact, update that file instead of duplicating.
+  - Read $DEST/MEMORY.md, $DEST/ARCHIVE.md and $DEST/PENDING.md FIRST; skip
+    anything already recorded in any of them. If you have a real refinement to
+    an existing fact, update that file instead of duplicating, and leave its
+    existing pointer line where it is.
   - NEVER store secrets or credentials (passwords, API keys, tokens, private
     keys, OTP or 2FA codes). This is the ONE hard exclusion — everything else,
     including sensitive personal topics, is in scope when the user volunteers it.
@@ -370,6 +487,7 @@ case "$mode" in
     ;;
   now)
     ledger "NOW session=$session reason=$reason ($lines lines) -> $runlog (foreground)"
+    ensure_pending
     extract 2>&1 | tee "$runlog"
     if over_budget; then
       run_prune 2>&1 | tee -a "$runlog"
@@ -388,6 +506,7 @@ case "$mode" in
     # inner shell is a separate bash -c, so the budget helpers are out of scope
     # and re-exec is the cheapest way to reuse them. That pass is itself gated
     # and bounded, and is a no-op while the index is under budget.
+    ensure_pending
     nohup bash -c '
       echo "=== memory-extract start $(date "+%F %T") session=$2 reason=$3 ==="
       echo "=== transcript=$1 model=$4 effort=$6 timeout=${7}s ==="

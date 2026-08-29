@@ -32,14 +32,7 @@ Max プランなので画像認識を惜しまない。**UI・図・ブラウザ
 
 ## メモリ・パーソナライゼーション
 
-ユーザーの好み・背景・作業スタイルを集め、全プロジェクトの回答に反映する。**捕捉は自動かつ無音**で行い、会話中にメモリファイルを書いたり「保存しました」と実況したりしない (明示的に「覚えて」と言われた時だけ手動で書く)。
-
-3 層:
-- **グローバル個人メモリ** `~/.config/claude-memory/personal/` — 全プロジェクト共通の恒久的な事実。**`SessionEnd` hook (`memory-extract.sh`) が裏で headless `claude -p` を起動し、トランスクリプトから抽出して保存**する (会話には出ない)。下の `@import` で全プロジェクトに読み込まれる。
-- **プロジェクト固有メモリ** 各プロジェクトの `memory/` (ネイティブ auto-memory が無音で追記)。
-- **確定した好みの CLAUDE.md への昇格**は人手で。
-
-実行確認は `~/.claude/debug/memory-extract.log` (発火台帳) と `~/.claude/debug/memory-extract/` (実行ログ)。手動実行は `bash ~/.claude/scripts/memory-extract.sh --now <transcript>`。
+ユーザーの好み・背景・作業スタイルは SessionEnd hook が無音で捕捉し、全プロジェクトの回答に反映する。会話中にメモリファイルを書いたり「保存しました」と実況したりしない。明示的に「覚えて」と言われた時だけ手動で書き、そのときは索引 `MEMORY.md` にも 1 行足してよい。自動捕捉分は索引に直接載せず、人が週次レビューで選んだものだけを載せる。層・置き場・確認手順は `~/nanokit/specs/memory-layers.md`。
 
 @~/.config/claude-memory/personal/MEMORY.md
 
@@ -81,9 +74,6 @@ Max プランなので画像認識を惜しまない。**UI・図・ブラウザ
 - **review gate (`/codex:setup --enable-review-gate`) は使わない** — Stop フックの自動ループが usage を急速消費するため。明示ループは `/lgtm-loop`。
 - 自然文「GPT にレビューして」の受け皿は `codex-review` skill (誘導シム)。プラグインコマンドは `disable-model-invocation` で Claude からは起動できず、必要時は companion script を直接叩く。
 
-## MCP 運用 (常駐 HTTP シングルトン)
+## MCP 運用
 
-zotero / scrapling / workspace-mcp は Claude Code と Codex が **1 プロセスを共有**する常駐 HTTP サーバとして立てる (stdio だと Playwright/Chromium 等を二重起動する)。bind は `127.0.0.1` のみ・認証なし (ローカル専用)。起動は `settings.json` の SessionStart hook + `ECC_MCP_RECONNECT_*` が冪等に担当する (healthy なら no-op)。
-
-- **アカウント境界**: workspace-* の user スコープ登録は個人アカウントのセッションにのみ効き、HDT の Claude アカウント (`CLAUDE_CONFIG_DIR=~/.claude-hdt`) には波及しない。クライアント別の振り分け・認証境界は claude-settings が担う。
-- **ポート表・登録先・起動・トラブルシュート・認証・モード切替・制約の詳細は [`specs/mcp-operations.md`](../specs/mcp-operations.md) (実パス `~/nanokit/specs/mcp-operations.md`) を参照。**
+zotero / scrapling / workspace-mcp は Claude Code と Codex が 1 プロセスを共有する常駐 HTTP サーバで、SessionStart hook が冪等に起動する。workspace-* の user スコープ登録は個人アカウントにだけ効き、HDT (`CLAUDE_CONFIG_DIR=~/.claude-hdt`) には波及しない。ポート表・登録先・起動・トラブルシュート・認証は `~/nanokit/specs/mcp-operations.md`。

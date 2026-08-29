@@ -136,30 +136,41 @@ ensure_pending() {
 # mkdir is atomic on every filesystem macOS mounts and bash 3.2 has no flock.
 # A lock whose recorded owner pid is dead is stale; one whose pid was never
 # written (owner died between mkdir and echo) is stale after 60 s. Takeover
-# goes through mv, which is atomic: of several waiters that saw the same dead
-# owner only one rename succeeds, so no waiter can delete a lock a new owner
-# has just created.
+# is serialised through a second mkdir mutex and the lock is judged again
+# under it, so a waiter that saw a dead owner a moment ago cannot move a lock
+# a new owner has just created; the move itself is an atomic mv.
 lock_acquire() {   # $1 = seconds to wait before giving up
-  local max="${1:-30}" waited=0 opid stale age
+  local max="${1:-30}" waited=0
   mkdir -p "$DEST"
   until mkdir "$LOCK" 2>/dev/null; do
-    stale=""
-    opid="$(cat "$LOCK/pid" 2>/dev/null || true)"
-    if [ -n "$opid" ]; then
-      kill -0 "$opid" 2>/dev/null || stale=1
-    else
-      age=$(( $(date +%s) - $(/usr/bin/stat -f %m "$LOCK" 2>/dev/null || date +%s) ))
-      [ "$age" -gt 60 ] && stale=1
-    fi
-    if [ -n "$stale" ]; then
-      if mv "$LOCK" "$LOCK.stale.$$" 2>/dev/null; then rm -rf "$LOCK.stale.$$"; fi
-      continue
-    fi
+    if lock_is_stale "$LOCK"; then lock_reclaim; continue; fi
     [ "$waited" -ge "$max" ] && return 1
     sleep 1; waited=$((waited + 1))
   done
   echo $$ > "$LOCK/pid"
   trap 'lock_release' EXIT
+  return 0
+}
+lock_is_stale() {   # $1 = lock dir. Dead owner pid, or no pid recorded for 60 s.
+  local opid age
+  [ -d "$1" ] || return 1
+  opid="$(cat "$1/pid" 2>/dev/null || true)"
+  if [ -n "$opid" ]; then
+    if kill -0 "$opid" 2>/dev/null; then return 1; else return 0; fi
+  fi
+  age="$(python3 -c 'import os,sys,time; print(int(time.time()-os.stat(sys.argv[1]).st_mtime))' "$1" 2>/dev/null || echo 0)"
+  [ "$age" -gt 60 ]
+}
+lock_reclaim() {
+  local mutex="$LOCK.reclaim"
+  if ! mkdir "$mutex" 2>/dev/null; then
+    lock_is_stale "$mutex" && rm -rf "$mutex"   # holder died inside; nobody stays here longer than ms
+    return 0
+  fi
+  if lock_is_stale "$LOCK"; then
+    mv "$LOCK" "$LOCK.stale.$$" 2>/dev/null && rm -rf "$LOCK.stale.$$"
+  fi
+  rmdir "$mutex" 2>/dev/null
   return 0
 }
 lock_release() {
@@ -180,13 +191,18 @@ snap_take() {
   return 0
 }
 snap_restore() {   # $@ = curated files the pass just run was not allowed to touch
-  local f b changed=""
+  # Returns non-zero if any restore failed; the caller then keeps the snapshot.
+  local f b changed="" rc=0 tmp
   for f in "$@"; do
     b="$(basename "$f")"
     if [ -f "$SNAP/$b.absent" ]; then
-      if [ -e "$f" ]; then rm -f "$f"; changed="$changed $b(created)"; fi
+      if [ -e "$f" ]; then
+        if rm -f "$f"; then changed="$changed $b(created)"; else rc=1; changed="$changed $b(FAILED)"; fi
+      fi
     elif [ -f "$SNAP/$b" ] && ! cmp -s "$f" "$SNAP/$b"; then
-      cp "$SNAP/$b" "$f"; changed="$changed $b"
+      tmp="$DEST/.$b.restore.$$"
+      if cp "$SNAP/$b" "$tmp" 2>/dev/null && mv "$tmp" "$f" 2>/dev/null; then changed="$changed $b"
+      else rm -f "$tmp"; rc=1; changed="$changed $b(FAILED)"; fi
     fi
   done
   if [ -n "$changed" ]; then
@@ -194,7 +210,7 @@ snap_restore() {   # $@ = curated files the pass just run was not allowed to tou
     echo "=== WARN restored$changed: a model pass wrote to a curated file; that edit was discarded ==="
     osascript -e "display notification \"restored$changed, see ~/.claude/debug/memory-extract.log\" with title \"memory-extract gate\"" 2>/dev/null || true
   fi
-  return 0
+  return "$rc"
 }
 snap_drop() { [ -n "${SNAP:-}" ] && rm -rf "$SNAP"; return 0; }
 
@@ -202,10 +218,19 @@ snap_drop() { [ -n "${SNAP:-}" ] && rm -rf "$SNAP"; return 0; }
 # in the queue, the index or the archive. All staging files are merged, so one
 # left behind by a killed run is picked up by the next. Caller holds the lock.
 merge_staging() {
-  local sf n=0 line ok present f
+  local sf work n=0 line ok present f
   ensure_pending
   for sf in "$STAGING"/*.md; do
     [ -f "$sf" ] || continue
+    # Work from a copy: if the staging file cannot be read in full it is kept
+    # untouched, and the original is deleted only after every line went in.
+    work="$sf.work"
+    if ! cp "$sf" "$work" 2>/dev/null; then
+      rm -f "$work"
+      ledger "ERROR session=${session:-manual} cannot read staging $sf; kept"
+      echo "=== ERROR could not read staging file $sf; kept ==="
+      return 1
+    fi
     ok=1
     while IFS= read -r line || [ -n "$line" ]; do
       case "$line" in "- ["*)
@@ -220,10 +245,11 @@ merge_staging() {
           n=$((n + 1))
         fi ;;
       esac
-    done < "$sf"
+    done < "$work" || ok=0
     if [ "$ok" -eq 1 ]; then
-      rm -f "$sf"
+      rm -f "$sf" "$work"
     else
+      rm -f "$work"
       ledger "ERROR session=${session:-manual} append to PENDING.md failed; staging kept: $sf"
       echo "=== ERROR could not append to PENDING.md; staging kept at $sf ==="
       return 1
@@ -236,8 +262,16 @@ merge_staging() {
 # The extractor is told to stage, never to touch the queue. If it appended to
 # PENDING.md anyway, keep those lines by staging them before the restore.
 salvage_queue_writes() {
+  # Returns non-zero on a read or write error; the caller then keeps the snapshot.
   [ -f "$PENDING" ] && [ -f "$SNAP/PENDING.md" ] || return 0
-  grep -vxF -f "$SNAP/PENDING.md" "$PENDING" 2>/dev/null | grep '^- \[' >> "$STAGE_FILE" || true
+  local tmp rc
+  tmp="$(mktemp)" || return 1
+  grep -vxF -f "$SNAP/PENDING.md" "$PENDING" > "$tmp" 2>/dev/null; rc=$?
+  if [ "$rc" -ge 2 ]; then rm -f "$tmp"; return 1; fi
+  if grep -q '^- \[' "$tmp" 2>/dev/null; then
+    grep '^- \[' "$tmp" >> "$STAGE_FILE" || { rm -f "$tmp"; return 1; }
+  fi
+  rm -f "$tmp"
   return 0
 }
 
@@ -270,8 +304,14 @@ prune_guarded() {
   local rc
   snap_take || { ledger "ERROR snapshot failed before prune; prune skipped"; echo "=== ERROR snapshot failed; prune skipped ==="; return 1; }
   run_prune; rc=$?
-  snap_restore "$PENDING"
-  snap_drop
+  if snap_restore "$PENDING"; then
+    snap_drop
+  else
+    ledger "ERROR session=${session:-manual} restore after prune failed; snapshot kept at $SNAP"
+    echo "=== ERROR restore after prune failed; snapshot kept at $SNAP ==="
+    osascript -e "display notification \"restore failed, snapshot kept\" with title \"memory-extract gate\"" 2>/dev/null || true
+    return 1
+  fi
   return "$rc"
 }
 
@@ -681,8 +721,15 @@ run_pipeline() {
     lock_release; return 1
   fi
   extract
-  salvage_queue_writes
-  snap_restore "$INDEX" "$ARCHIVE" "$PENDING"
+  local s_rc r_rc
+  salvage_queue_writes; s_rc=$?
+  snap_restore "$INDEX" "$ARCHIVE" "$PENDING"; r_rc=$?
+  if [ "$s_rc" -ne 0 ] || [ "$r_rc" -ne 0 ]; then
+    ledger "ERROR session=$session salvage=$s_rc restore=$r_rc; snapshot kept at $SNAP"
+    echo "=== ERROR salvage=$s_rc restore=$r_rc; snapshot kept at $SNAP ==="
+    osascript -e "display notification \"salvage or restore failed, snapshot kept\" with title \"memory-extract gate\"" 2>/dev/null || true
+    lock_release; return 1
+  fi
   if ! merge_staging; then snap_drop; lock_release; return 1; fi
   snap_drop
   if over_budget; then

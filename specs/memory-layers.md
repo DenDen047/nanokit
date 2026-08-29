@@ -6,7 +6,7 @@ Claude Code のパーソナライゼーション用メモリは、置き場ご�
 
 | 層 | 置き場 | ロード | 書く人 |
 |---|---|---|---|
-| グローバル索引 | `~/.config/claude-memory/personal/MEMORY.md` | 全プロジェクト・毎セッション (`~/.claude/CLAUDE.md` の `@import`) | 人 (週次レビューで昇格。「覚えて」と明示された時はその場で 1 行) |
+| グローバル索引 | `~/.config/claude-memory/personal/MEMORY.md` | 全プロジェクト・毎セッション (`~/.claude/CLAUDE.md` の `@import`) | 人 (週次レビューで昇格。「覚えて」と明示された時は `--add-index` でその場で 1 行) |
 | グローバル本体 | 同ディレクトリの `*.md`。1 ファイル 1 事実、frontmatter は `name` / `description` / `metadata.type` (user / feedback / reference) | 索引・保留・退避のポインタから辿ったときだけ | SessionEnd の抽出 |
 | 保留 | 同ディレクトリの `PENDING.md` | ロードされない | SessionEnd の抽出 |
 | 退避 | 同ディレクトリの `ARCHIVE.md` | ロードされない。必要なとき grep | 剪定と週次レビュー |
@@ -16,11 +16,11 @@ Claude Code のパーソナライゼーション用メモリは、置き場ご�
 
 `~/.claude/settings.json` の SessionEnd hook が `~/.claude/scripts/memory-extract.sh` (実体 `claude/scripts/memory-extract.sh`) を呼び、切り離した子プロセス (`--run`) が次を順に行う。
 
-1. `personal/.lock` を `mkdir` で取る (最長 30 分待つ)。索引・退避・キューに書く処理は全てこのロックの下で走る
+1. `personal/.lock` を `mkdir` で取る (最長 30 分待つ)。索引・退避・キューに書く処理 (`--review-apply`、`--add-index`、剪定) は全てこのロックの下で走る。持ち主が死んだロックは `mv` で原子的に奪う
 2. `MEMORY.md` / `ARCHIVE.md` / `PENDING.md` のスナップショットを `personal/.staging/<session>.snap/` に取る
 3. headless `claude -p` がトランスクリプトを読み、新しい事実を本体ファイルに書き、ポインタ行を `personal/.staging/<session>.md` に積む。重複判定は `MEMORY.md` と `PENDING.md` を読み、`ARCHIVE.md` は grep する
-4. スナップショットと比べ、`MEMORY.md` か `ARCHIVE.md` が変わっていれば元に戻し、台帳に WARN を書いて通知センターに出す (モデルが門を迂回した場合の機械的な差し戻し)
-5. staging の行を `PENDING.md` へ追記する (キュー・索引・退避に同じ行があれば捨てる)。前回途中で死んだ run の staging も同時に拾う
+4. モデルが `PENDING.md` に直接書いた行があれば staging へ退避したうえで、スナップショットと比べて `MEMORY.md` / `ARCHIVE.md` / `PENDING.md` が変わっていれば元に戻し (事前に無かったファイルを作っていれば消す)、台帳に WARN を書いて通知センターに出す (モデルが門を迂回した場合の機械的な差し戻し)。スナップショットが取れなければ抽出自体を行わない
+5. staging の行を `PENDING.md` へ追記する (キュー・索引・退避のうち存在するファイルに同じ行があれば捨てる)。追記に失敗したら staging を残して止まる。前回途中で死んだ run の staging も同時に拾う
 6. 索引が予算を超えていれば剪定を走らせる。剪定の前後でも `PENDING.md` のスナップショットを取り、触られていたら戻す
 
 - 発火台帳 `~/.claude/debug/memory-extract.log`

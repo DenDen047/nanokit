@@ -22,6 +22,7 @@
 #   bash memory-extract.sh --prune-if-over              # prune only when over budget
 #   bash memory-extract.sh --pending                    # numbered review queue (PENDING.md)
 #   bash memory-extract.sh --review-apply 1,4|none      # promote those numbers to MEMORY.md, archive the rest
+#   bash memory-extract.sh --add-index '- [T](f.md) — h'  # explicit 覚えて: index line under the same lock
 #   bash memory-extract.sh --run <t> <session> <reason> # what the detached hook child runs (lock, extract, guard, merge, prune)
 #   MEMEX_DEST=/tmp/memtest bash memory-extract.sh --now <t>   # write to a temp dir
 #
@@ -133,13 +134,27 @@ ensure_pending() {
 }
 
 # mkdir is atomic on every filesystem macOS mounts and bash 3.2 has no flock.
-# A lock whose recorded owner pid is dead is stale and is taken over.
+# A lock whose recorded owner pid is dead is stale; one whose pid was never
+# written (owner died between mkdir and echo) is stale after 60 s. Takeover
+# goes through mv, which is atomic: of several waiters that saw the same dead
+# owner only one rename succeeds, so no waiter can delete a lock a new owner
+# has just created.
 lock_acquire() {   # $1 = seconds to wait before giving up
-  local max="${1:-30}" waited=0 opid
+  local max="${1:-30}" waited=0 opid stale age
   mkdir -p "$DEST"
   until mkdir "$LOCK" 2>/dev/null; do
+    stale=""
     opid="$(cat "$LOCK/pid" 2>/dev/null || true)"
-    if [ -n "$opid" ] && ! kill -0 "$opid" 2>/dev/null; then rm -rf "$LOCK"; continue; fi
+    if [ -n "$opid" ]; then
+      kill -0 "$opid" 2>/dev/null || stale=1
+    else
+      age=$(( $(date +%s) - $(/usr/bin/stat -f %m "$LOCK" 2>/dev/null || date +%s) ))
+      [ "$age" -gt 60 ] && stale=1
+    fi
+    if [ -n "$stale" ]; then
+      if mv "$LOCK" "$LOCK.stale.$$" 2>/dev/null; then rm -rf "$LOCK.stale.$$"; fi
+      continue
+    fi
     [ "$waited" -ge "$max" ] && return 1
     sleep 1; waited=$((waited + 1))
   done
@@ -156,15 +171,23 @@ lock_release() {
 # was not allowed to change.
 snap_take() {
   SNAP="$STAGING/${session:-manual-$$}.snap"
-  rm -rf "$SNAP"; mkdir -p "$SNAP"
-  local f; for f in "$INDEX" "$ARCHIVE" "$PENDING"; do [ -f "$f" ] && cp "$f" "$SNAP/"; done
+  rm -rf "$SNAP"; mkdir -p "$SNAP" || return 1
+  local f b
+  for f in "$INDEX" "$ARCHIVE" "$PENDING"; do
+    b="$(basename "$f")"
+    if [ -f "$f" ]; then cp "$f" "$SNAP/$b" || return 1; else : > "$SNAP/$b.absent" || return 1; fi
+  done
   return 0
 }
 snap_restore() {   # $@ = curated files the pass just run was not allowed to touch
   local f b changed=""
   for f in "$@"; do
     b="$(basename "$f")"
-    if [ -f "$SNAP/$b" ] && ! cmp -s "$f" "$SNAP/$b"; then cp "$SNAP/$b" "$f"; changed="$changed $b"; fi
+    if [ -f "$SNAP/$b.absent" ]; then
+      if [ -e "$f" ]; then rm -f "$f"; changed="$changed $b(created)"; fi
+    elif [ -f "$SNAP/$b" ] && ! cmp -s "$f" "$SNAP/$b"; then
+      cp "$SNAP/$b" "$f"; changed="$changed $b"
+    fi
   done
   if [ -n "$changed" ]; then
     ledger "WARN session=${session:-manual} restored$changed (a model pass wrote outside the gate)"
@@ -179,27 +202,73 @@ snap_drop() { [ -n "${SNAP:-}" ] && rm -rf "$SNAP"; return 0; }
 # in the queue, the index or the archive. All staging files are merged, so one
 # left behind by a killed run is picked up by the next. Caller holds the lock.
 merge_staging() {
-  local sf n=0 line
+  local sf n=0 line ok present f
   ensure_pending
   for sf in "$STAGING"/*.md; do
     [ -f "$sf" ] || continue
+    ok=1
     while IFS= read -r line || [ -n "$line" ]; do
       case "$line" in "- ["*)
-        if ! grep -qxF -- "$line" "$PENDING" "$INDEX" "$ARCHIVE" 2>/dev/null; then
-          printf '%s\n' "$line" >> "$PENDING"; n=$((n + 1))
+        # Only files that exist are consulted; a grep read error counts as
+        # "not present" so the worst case is a duplicate, never a lost line.
+        present=0
+        for f in "$PENDING" "$INDEX" "$ARCHIVE"; do
+          if [ -f "$f" ] && grep -qxF -- "$line" "$f" 2>/dev/null; then present=1; break; fi
+        done
+        if [ "$present" -eq 0 ]; then
+          printf '%s\n' "$line" >> "$PENDING" || { ok=0; break; }
+          n=$((n + 1))
         fi ;;
       esac
     done < "$sf"
-    rm -f "$sf"
+    if [ "$ok" -eq 1 ]; then
+      rm -f "$sf"
+    else
+      ledger "ERROR session=${session:-manual} append to PENDING.md failed; staging kept: $sf"
+      echo "=== ERROR could not append to PENDING.md; staging kept at $sf ==="
+      return 1
+    fi
   done
   ledger "MERGED session=${session:-manual} queued=$n"
   echo "=== merged $n line(s) into PENDING.md ==="
 }
 
+# The extractor is told to stage, never to touch the queue. If it appended to
+# PENDING.md anyway, keep those lines by staging them before the restore.
+salvage_queue_writes() {
+  [ -f "$PENDING" ] && [ -f "$SNAP/PENDING.md" ] || return 0
+  grep -vxF -f "$SNAP/PENDING.md" "$PENDING" 2>/dev/null | grep '^- \[' >> "$STAGE_FILE" || true
+  return 0
+}
+
+# Explicit "remember this" from a session: the memory file is written by the
+# agent, the index line goes through here so it takes the same lock as every
+# other writer instead of editing MEMORY.md underneath a running extraction.
+add_index() {
+  local line="${1:-}" slug
+  case "$line" in "- ["*) ;; *) echo "usage: --add-index '- [Title](file.md) — hook'" >&2; return 2 ;; esac
+  slug="$(printf '%s' "$line" | sed -n 's/.*](\([^)]*\.md\)).*/\1/p')"
+  if [ -z "$slug" ] || [ ! -f "$DEST/$slug" ]; then
+    echo "memory file not found under $DEST: ${slug:-?} (write the memory file first)" >&2; return 1
+  fi
+  lock_acquire 30 || { echo "memory files are locked (an extraction or prune is running); retry in a minute" >&2; return 3; }
+  if [ -f "$INDEX" ] && grep -qxF -- "$line" "$INDEX"; then
+    echo "already in index"; lock_release; return 0
+  fi
+  printf '%s\n' "$line" >> "$INDEX" || { lock_release; return 1; }
+  if git -C "$DEST" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    git -C "$DEST" add -A >/dev/null 2>&1
+    git -C "$DEST" commit -qm "add-index $(date +%F): $slug" >/dev/null 2>&1 || true
+  fi
+  ledger "ADD-INDEX $slug $(budget_report)"
+  echo "added to index: $line"
+  lock_release
+}
+
 # The prune pass may rewrite MEMORY.md and ARCHIVE.md but never the queue.
 prune_guarded() {
   local rc
-  snap_take
+  snap_take || { ledger "ERROR snapshot failed before prune; prune skipped"; echo "=== ERROR snapshot failed; prune skipped ==="; return 1; }
   run_prune; rc=$?
   snap_restore "$PENDING"
   snap_drop
@@ -437,6 +506,7 @@ case "${1:-}" in
   --pending)       mode="pending"; shift ;;
   --review-apply)  mode="review-apply"; shift ;;
   --run)           mode="run"; shift ;;
+  --add-index)     mode="add-index"; shift ;;
 esac
 
 # --- budget / prune modes need no transcript: dispatch and exit ---------------
@@ -453,6 +523,7 @@ case "$mode" in
     ;;
   prune-now)
     lock_acquire 60 || { echo "memory files are locked; retry later" >&2; exit 3; }
+    ensure_pending
     ledger "PRUNE-NOW requested $(budget_report)"
     runlog="$RUNDIR/$(date +%Y%m%d_%H%M%S)_prune.log"
     prune_guarded 2>&1 | tee "$runlog"
@@ -467,8 +538,13 @@ case "$mode" in
     review_apply "${1:-}"
     exit $?
     ;;
+  add-index)
+    add_index "${1:-}"
+    exit $?
+    ;;
   prune-if-over)
     lock_acquire 60 || { ledger "PRUNE-IF-OVER skip (lock busy)"; exit 0; }
+    ensure_pending
     if over_budget; then
       ledger "PRUNE-IF-OVER firing $(budget_report)"
       prune_guarded 2>&1
@@ -599,10 +675,15 @@ run_pipeline() {
   fi
   ensure_pending
   mkdir -p "$STAGING"
-  snap_take
+  if ! snap_take; then
+    ledger "ERROR session=$session snapshot failed; extraction skipped"
+    echo "=== ERROR snapshot failed; extraction skipped ==="
+    lock_release; return 1
+  fi
   extract
-  snap_restore "$INDEX" "$ARCHIVE"
-  merge_staging
+  salvage_queue_writes
+  snap_restore "$INDEX" "$ARCHIVE" "$PENDING"
+  if ! merge_staging; then snap_drop; lock_release; return 1; fi
   snap_drop
   if over_budget; then
     ledger "BUDGET $(budget_report) -> prune"

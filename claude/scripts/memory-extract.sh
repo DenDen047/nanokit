@@ -72,7 +72,7 @@ INDEX="$DEST/MEMORY.md"
 ARCHIVE="$DEST/ARCHIVE.md"
 PENDING="$DEST/PENDING.md"
 STAGING="${MEMEX_STAGING:-$DEST/.staging}"   # per-run extractor output + pre-pass snapshots
-LOCK="$DEST/.lock"                            # mkdir lock shared by every writer of the curated files
+LOCK="$DEST/.lock"                            # flock file shared by every writer of the curated files
 
 # --- index budget -------------------------------------------------------------
 # Claude Code's NATIVE auto memory loads only the first 200 lines OR 25 KB of
@@ -133,48 +133,62 @@ ensure_pending() {
   [ -f "$PENDING" ] || printf '%s\n' "$PENDING_HEADER" > "$PENDING"
 }
 
-# mkdir is atomic on every filesystem macOS mounts and bash 3.2 has no flock.
-# A lock whose recorded owner pid is dead is stale; one whose pid was never
-# written (owner died between mkdir and echo) is stale after 60 s. Takeover
-# is serialised through a second mkdir mutex and the lock is judged again
-# under it, so a waiter that saw a dead owner a moment ago cannot move a lock
-# a new owner has just created; the move itself is an atomic mv.
+# The lock is a kernel flock, not a mkdir directory: a python helper takes
+# LOCK_EX on $LOCK and holds it for exactly as long as its stdin (our fd 9)
+# stays open. When this shell exits or dies, the kernel drops the lock, so
+# there is no stale-lock detection and nothing to reclaim. bash 3.2 has no
+# flock(1) and macOS ships none, hence the helper. Children inherit fd 9, so
+# a claude -p that outlives a killed shell keeps the lock until it exits.
+LOCK_HELPER='
+import fcntl, os, sys, time
+path, max_wait = sys.argv[1], float(sys.argv[2])
+fd = os.open(path, os.O_RDWR | os.O_CREAT, 0o644)
+deadline = time.time() + max_wait
+while True:
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        break
+    except OSError:
+        if time.time() >= deadline:
+            sys.stdout.write("BUSY\n"); sys.stdout.flush(); sys.exit(1)
+        time.sleep(1)
+sys.stdout.write("OK\n"); sys.stdout.flush()
+sys.stdin.buffer.read()   # blocks until the shell closes fd 9; the kernel then releases the lock
+'
+LOCK_HELPER_PID=""
 lock_acquire() {   # $1 = seconds to wait before giving up
-  local max="${1:-30}" waited=0
+  local max="${1:-30}" fifo out reply polls=0
   mkdir -p "$DEST"
-  until mkdir "$LOCK" 2>/dev/null; do
-    if lock_is_stale "$LOCK"; then lock_reclaim; continue; fi
-    [ "$waited" -ge "$max" ] && return 1
-    sleep 1; waited=$((waited + 1))
+  fifo="$(mktemp -u)" && mkfifo "$fifo" || return 1
+  out="$(mktemp)" || { rm -f "$fifo"; return 1; }
+  python3 -c "$LOCK_HELPER" "$LOCK" "$max" < "$fifo" > "$out" 2>/dev/null &
+  LOCK_HELPER_PID=$!
+  exec 9> "$fifo"          # rendezvous: unblocks the helper's open of the read end
+  rm -f "$fifo"
+  until [ -s "$out" ]; do
+    sleep 0.2; polls=$((polls + 1))
+    [ "$polls" -gt $(( (max + 5) * 5 )) ] && break
   done
-  echo $$ > "$LOCK/pid"
+  reply="$(cat "$out" 2>/dev/null)"; rm -f "$out"
+  if [ "$reply" != "OK" ]; then
+    exec 9>&-; wait "$LOCK_HELPER_PID" 2>/dev/null; LOCK_HELPER_PID=""
+    return 1
+  fi
   trap 'lock_release' EXIT
   return 0
 }
-lock_is_stale() {   # $1 = lock dir. Dead owner pid, or no pid recorded for 60 s.
-  local opid age
-  [ -d "$1" ] || return 1
-  opid="$(cat "$1/pid" 2>/dev/null || true)"
-  if [ -n "$opid" ]; then
-    if kill -0 "$opid" 2>/dev/null; then return 1; else return 0; fi
-  fi
-  age="$(python3 -c 'import os,sys,time; print(int(time.time()-os.stat(sys.argv[1]).st_mtime))' "$1" 2>/dev/null || echo 0)"
-  [ "$age" -gt 60 ]
-}
-lock_reclaim() {
-  local mutex="$LOCK.reclaim"
-  if ! mkdir "$mutex" 2>/dev/null; then
-    lock_is_stale "$mutex" && rm -rf "$mutex"   # holder died inside; nobody stays here longer than ms
-    return 0
-  fi
-  if lock_is_stale "$LOCK"; then
-    mv "$LOCK" "$LOCK.stale.$$" 2>/dev/null && rm -rf "$LOCK.stale.$$"
-  fi
-  rmdir "$mutex" 2>/dev/null
+lock_release() {
+  exec 9>&- 2>/dev/null
+  if [ -n "${LOCK_HELPER_PID:-}" ]; then wait "$LOCK_HELPER_PID" 2>/dev/null; LOCK_HELPER_PID=""; fi
   return 0
 }
-lock_release() {
-  if [ -d "$LOCK" ] && [ "$(cat "$LOCK/pid" 2>/dev/null)" = "$$" ]; then rm -rf "$LOCK"; fi
+
+# Commit the memory repo (when it is one). Gives every model pass a rollback
+# point and makes the weekly review readable as git history.
+memory_commit() {   # $1 = message
+  git -C "$DEST" rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 0
+  git -C "$DEST" add -A >/dev/null 2>&1
+  git -C "$DEST" commit -qm "$1" >/dev/null 2>&1 || true
   return 0
 }
 
@@ -268,7 +282,9 @@ salvage_queue_writes() {
   tmp="$(mktemp)" || return 1
   grep -vxF -f "$SNAP/PENDING.md" "$PENDING" > "$tmp" 2>/dev/null; rc=$?
   if [ "$rc" -ge 2 ]; then rm -f "$tmp"; return 1; fi
-  if grep -q '^- \[' "$tmp" 2>/dev/null; then
+  grep -q '^- \[' "$tmp" 2>/dev/null; rc=$?
+  if [ "$rc" -ge 2 ]; then rm -f "$tmp"; return 1; fi
+  if [ "$rc" -eq 0 ]; then
     grep '^- \[' "$tmp" >> "$STAGE_FILE" || { rm -f "$tmp"; return 1; }
   fi
   rm -f "$tmp"
@@ -290,10 +306,7 @@ add_index() {
     echo "already in index"; lock_release; return 0
   fi
   printf '%s\n' "$line" >> "$INDEX" || { lock_release; return 1; }
-  if git -C "$DEST" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    git -C "$DEST" add -A >/dev/null 2>&1
-    git -C "$DEST" commit -qm "add-index $(date +%F): $slug" >/dev/null 2>&1 || true
-  fi
+  memory_commit "add-index $(date +%F): $slug"
   ledger "ADD-INDEX $slug $(budget_report)"
   echo "added to index: $line"
   lock_release
@@ -303,7 +316,19 @@ add_index() {
 prune_guarded() {
   local rc
   snap_take || { ledger "ERROR snapshot failed before prune; prune skipped"; echo "=== ERROR snapshot failed; prune skipped ==="; return 1; }
+  memory_commit "pre-prune $(date '+%F %T')"
   run_prune; rc=$?
+  if [ "$rc" -ne 0 ]; then
+    # A prune that was killed or failed may have moved half the lines and
+    # merged or deleted memory files. Put everything back: the three curated
+    # files from the snapshot, every tracked file from the commit just made.
+    snap_restore "$INDEX" "$ARCHIVE" "$PENDING" || true
+    git -C "$DEST" rev-parse --is-inside-work-tree >/dev/null 2>&1 && git -C "$DEST" checkout -q -- . 2>/dev/null
+    ledger "ERROR session=${session:-manual} prune rc=$rc; rolled back, snapshot kept at $SNAP"
+    echo "=== ERROR prune rc=$rc; rolled back to the pre-prune state, snapshot kept at $SNAP ==="
+    osascript -e "display notification \"prune failed and was rolled back\" with title \"memory-extract gate\"" 2>/dev/null || true
+    return "$rc"
+  fi
   if snap_restore "$PENDING"; then
     snap_drop
   else
@@ -312,7 +337,7 @@ prune_guarded() {
     osascript -e "display notification \"restore failed, snapshot kept\" with title \"memory-extract gate\"" 2>/dev/null || true
     return 1
   fi
-  return "$rc"
+  return 0
 }
 
 pending_list() {
@@ -402,10 +427,7 @@ PY
   summary="$(cat "$out")"; rm -f "$out"
   if [ "$rc" -ne 0 ]; then echo "$summary" >&2; lock_release; return "$rc"; fi
   echo "$summary"
-  if git -C "$DEST" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    git -C "$DEST" add -A >/dev/null 2>&1
-    git -C "$DEST" commit -qm "review $(date +%F): $summary" >/dev/null 2>&1 || true
-  fi
+  memory_commit "review $(date +%F): $summary"
   ledger "REVIEW $summary $(budget_report)"
   echo "budget:  $(budget_report)"
   lock_release
@@ -723,7 +745,15 @@ run_pipeline() {
   extract
   local s_rc r_rc
   salvage_queue_writes; s_rc=$?
-  snap_restore "$INDEX" "$ARCHIVE" "$PENDING"; r_rc=$?
+  # Keep the queue as the model left it inside the snapshot, so a failed
+  # salvage can be recovered by hand; if even that copy fails, leave the
+  # queue alone rather than restore over the only copy.
+  if [ -f "$PENDING" ] && cp "$PENDING" "$SNAP/PENDING.post.md" 2>/dev/null; then
+    snap_restore "$INDEX" "$ARCHIVE" "$PENDING"; r_rc=$?
+  else
+    snap_restore "$INDEX" "$ARCHIVE"; r_rc=$?
+    [ -f "$PENDING" ] && r_rc=1
+  fi
   if [ "$s_rc" -ne 0 ] || [ "$r_rc" -ne 0 ]; then
     ledger "ERROR session=$session salvage=$s_rc restore=$r_rc; snapshot kept at $SNAP"
     echo "=== ERROR salvage=$s_rc restore=$r_rc; snapshot kept at $SNAP ==="
@@ -732,6 +762,7 @@ run_pipeline() {
   fi
   if ! merge_staging; then snap_drop; lock_release; return 1; fi
   snap_drop
+  memory_commit "extract $(date '+%F %T') session=$session"
   if over_budget; then
     ledger "BUDGET $(budget_report) -> prune"
     prune_guarded

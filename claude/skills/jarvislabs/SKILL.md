@@ -409,7 +409,8 @@ Agent rule:
 
 > This section is maintained in `~/nanokit/claude/skills/jarvislabs/SKILL.md`.
 > **`jl setup` reinstalls the upstream skill and will overwrite this file** — re-add this
-> section (and the `Host 217.18.55.*` anti-pattern below) after running it.
+> section, the "Waiting on long jobs" section below, and the `Host 217.18.55.*` and
+> idle-wait anti-patterns after running it.
 
 This account runs work for several clients at once, and **JarvisLabs has no billing
 history API and no instance labels/tags**. The only server-side free-text field is
@@ -450,6 +451,14 @@ jl-ledger list                       # raw rows, newest first
 jl-ledger annotate <machine_id> --client acme --purpose sweep
 ```
 
+## Waiting on long jobs (local rule — not part of the upstream skill)
+
+**A background agent must not end its turn while its instance is Running and a job is still pending.** A subagent or teammate that launches a remote job, arms a `run_in_background` wait or a `Monitor`, and then yields can stay idle indefinitely: the completion notice does not reliably wake it. On 2026-09-18 two teammates did exactly this, both jobs finished within minutes, and the two instances then sat idle for about 10 hours until the lead intervened.
+
+- Wait **inside the turn**: poll with bounded checks (`jl run logs <run_id> --tail 20`, or an `ssh`/`jl exec` status probe) every 60–600 s until the job reaches a terminal state, then continue.
+- If you must yield, **pause the instance first** (or make sure the job pauses it on exit) and tell the lead exactly what to resume.
+- A lead that delegates GPU work should run its own periodic check: pause any of its instances that are Running with no CPU/GPU activity on two consecutive checks, and message idle agents that still own pending work.
+
 ## Anti-Patterns
 
 - Do not create an instance without `--name` in the `<client>-<purpose>-<YYYYMMDD>` form — the cost becomes unattributable and can only be fixed by hand with `jl-ledger annotate`.
@@ -465,6 +474,7 @@ jl-ledger annotate <machine_id> --client acme --purpose sweep
 - Do not trust `jl run list` without `--refresh` — state shows as `"saved"` (stale). Use `--refresh` or `--status` for live state.
 - Do not assume `machine_id` is stable after `jl resume` — it may return a new ID. Always use the returned ID.
 - Do not forget to pause/destroy instances after experiments — they cost money.
+- Do not end a background agent's turn to wait on a remote job while the instance is Running — the wake-up may never come. Poll in-turn, or pause first (see "Waiting on long jobs").
 - Do not append a per-IP `Host <IP>` block to `~/.ssh/config` for a new instance — the `Host 217.18.55.*` wildcard already covers the range, and per-IP blocks accumulate as dead config.
 
 ## Command Discovery

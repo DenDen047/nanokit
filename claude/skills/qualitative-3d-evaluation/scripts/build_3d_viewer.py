@@ -15,6 +15,14 @@ from urllib.parse import quote
 
 
 MODEL_ID = re.compile(r"[A-Za-z][A-Za-z0-9_-]*\Z")
+# Exporters disagree on materials: a GLB without one falls back to glTF's fully
+# metallic default, and generators bake a constant roughness their training
+# data never measured. "matte" shows every model's base colour under one
+# diffuse material so colour, not export convention, is what differs.
+MATERIAL_CAPTIONS = {
+    "matte": "材質は全モデル共通のマット表示（金属度0・粗さ1）",
+    "as_exported": "材質は各GLBの書き出し値のまま",
+}
 MODEL_VIEWER_URL = (
     "https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/"
     "model-viewer.min.js"
@@ -73,6 +81,9 @@ def build(manifest_path: Path, output_path: Path) -> dict[str, Any]:
     initial_yaw = finite_number(
         viewer.get("initial_yaw_degrees", 0), "viewer.initial_yaw_degrees"
     )
+    material = viewer.get("material", "matte")
+    if material not in MATERIAL_CAPTIONS:
+        raise ValueError(f"viewer.material must be one of {sorted(MATERIAL_CAPTIONS)}")
 
     models = data.get("models")
     if not isinstance(models, list) or not models:
@@ -139,6 +150,8 @@ def build(manifest_path: Path, output_path: Path) -> dict[str, Any]:
         polar=f"{polar:g}",
         configs_json=configs_json,
         model_viewer_url=MODEL_VIEWER_URL,
+        material_json=json.dumps(material),
+        material_caption=MATERIAL_CAPTIONS[material],
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(page, encoding="utf-8")
@@ -224,6 +237,7 @@ PAGE_TEMPLATE = Template(
       color: var(--green);
       font-variant-numeric: tabular-nums;
     }
+    .material { color: var(--muted); font-size: 12px; }
     main { padding: 18px clamp(12px, 2.2vw, 34px) 28px; }
     .models {
       display: grid;
@@ -309,6 +323,7 @@ PAGE_TEMPLATE = Template(
     <input id="angle" type="range" min="-180" max="180"
       value="$initial_yaw" step="1">
     <output id="angle-value" for="angle">$initial_yaw°</output>
+    <span class="material">$material_caption</span>
   </div>
   <main>
     <div class="models">
@@ -320,9 +335,23 @@ $articles
     const modelConfigs = $configs_json;
     const polar = $polar;
     const viewers = modelConfigs.map(({ id }) => document.querySelector(`#$${id}`));
+    const material = $material_json;
+    const LINEAR = 9729;
+    const unifyMaterial = (viewer) => {
+      if (material !== 'matte') return;
+      for (const { pbrMetallicRoughness: pbr } of viewer.model?.materials ?? []) {
+        pbr.metallicRoughnessTexture.setTexture(null);
+        pbr.setMetallicFactor(0);
+        pbr.setRoughnessFactor(1);
+        // Baked atlases carry no padding between charts, so mipmaps blend
+        // neighbouring charts into speckles that are not in the texture.
+        pbr.baseColorTexture.texture?.sampler.setMinFilter(LINEAR);
+      }
+    };
     modelConfigs.forEach(({ id }, index) => {
       const status = document.querySelector(`#$${id}-status`);
       const ready = () => {
+        unifyMaterial(viewers[index]);
         status.textContent = '表示準備完了';
         status.dataset.state = 'ready';
       };

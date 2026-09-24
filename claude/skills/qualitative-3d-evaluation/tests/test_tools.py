@@ -123,6 +123,28 @@ class ViewerBuilderTests(unittest.TestCase):
             self.assertIn("<model-viewer id=\"candidate\"", page)
             self.assertIn('camera-orbit="15deg 75deg auto"', page)
             self.assertIn('id="angle"', page)
+            self.assertIn('const material = "matte";', page)
+            self.assertIn("金属度0・粗さ1", page)
+
+            manifest["viewer"]["material"] = "as_exported"
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            subprocess.run(
+                [sys.executable, str(VIEWER_TOOL), str(manifest_path),
+                 "--output", str(output_path)],
+                check=True, capture_output=True,
+            )
+            self.assertIn('const material = "as_exported";',
+                          output_path.read_text(encoding="utf-8"))
+
+            manifest["viewer"]["material"] = "glossy"
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            rejected = subprocess.run(
+                [sys.executable, str(VIEWER_TOOL), str(manifest_path),
+                 "--output", str(output_path)],
+                capture_output=True, text=True, check=False,
+            )
+            self.assertNotEqual(rejected.returncode, 0)
+            self.assertIn("viewer.material", rejected.stderr)
 
 
 if __name__ == "__main__":

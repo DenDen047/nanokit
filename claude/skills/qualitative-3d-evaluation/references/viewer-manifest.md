@@ -64,5 +64,13 @@ Create one JSON object next to the case artifacts:
   not a fabricated value.
 - Use `yaw_offset_degrees` only to align the visible front in the viewer. Record
   it separately from evaluation alignment in provenance.
+- `viewer.material` defaults to `"matte"`: every model is shown with metallic 0,
+  roughness 1 and no mipmaps on its base colour, so exporter conventions (a GLB
+  without a material renders fully metallic; a generator's constant roughness;
+  unpadded texture atlases bleeding into speckles) do not pass for model
+  differences. Use `"as_exported"` only when the materials themselves are under
+  comparison.
+- Vertex colours (`COLOR_0`) are linear in glTF. Convert sRGB scan colours to
+  linear before export, or the Ground Truth renders washed out.
 - Keep the note explicit about input budgets, seeds, preprocessing, coordinate
   systems, and protocol differences.

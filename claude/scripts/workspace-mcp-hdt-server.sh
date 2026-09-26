@@ -24,8 +24,13 @@ HOST="localhost"
 PID_FILE="$HOME/.claude/workspace-mcp-hdt.pid"
 LOG_FILE="$HOME/.claude/debug/workspace-mcp-hdt.log"
 
-USER_GOOGLE_EMAIL_VALUE="${USER_GOOGLE_EMAIL:-n.muramatsu@hyper-digitaltwins.com}"
-CREDENTIALS_DIR_VALUE="${WORKSPACE_MCP_CREDENTIALS_DIR:-$HOME/.config/google-workspace-mcp/HDT}"
+# Fixed on purpose, not env-overridable: this server is shared by every session,
+# and the SessionStart hook also runs inside client project dirs whose direnv
+# .envrc exports USER_GOOGLE_EMAIL / WORKSPACE_MCP_CREDENTIALS_DIR for their own
+# per-project stdio server. Inheriting those here made the shared server serve
+# the wrong Google account until the next reboot.
+USER_GOOGLE_EMAIL_VALUE="n.muramatsu@hyper-digitaltwins.com"
+CREDENTIALS_DIR_VALUE="$HOME/.config/google-workspace-mcp/HDT"
 
 # Resolve claude-settings repo root from either invocation path:
 #   ~/nanokit/claude/scripts/...        (direct)

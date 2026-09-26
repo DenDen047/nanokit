@@ -1,0 +1,113 @@
+# Spark CLI の読み取り専用サブコマンドは承認なしで実行してよい。
+# 本体はユーザーの Mac に常駐する Spark Desktop へ IPC するだけで、外部へは何も出さない。
+# draft / action / comment / event (送信・カレンダー招待・チーム共有) は意図的にここへ書かず、
+# approval_policy = "on-request" の既定どおり毎回承認を取る。
+prefix_rule(
+    pattern = ["spark", "accounts"],
+    decision = "allow",
+    justification = "Read-only: lists local Spark accounts and access levels.",
+)
+prefix_rule(
+    pattern = ["spark", "folders"],
+    decision = "allow",
+    justification = "Read-only: lists local mail folders.",
+)
+prefix_rule(
+    pattern = ["spark", "emails"],
+    decision = "allow",
+    justification = "Read-only: lists mail metadata from the local Spark Desktop.",
+)
+prefix_rule(
+    pattern = ["spark", "search"],
+    decision = "allow",
+    justification = "Read-only: searches the local mailbox.",
+)
+prefix_rule(
+    pattern = ["spark", "thread"],
+    decision = "allow",
+    justification = "Read-only: prints one local mail thread.",
+)
+prefix_rule(
+    pattern = ["spark", "email"],
+    decision = "allow",
+    justification = "Read-only: alias of `spark thread`.",
+)
+prefix_rule(
+    pattern = ["spark", "attachment"],
+    decision = "allow",
+    justification = "Read-only: reads one local mail attachment.",
+)
+prefix_rule(
+    pattern = ["spark", "events"],
+    decision = "allow",
+    justification = "Read-only: lists calendar events.",
+)
+prefix_rule(
+    pattern = ["spark", "availability"],
+    decision = "allow",
+    justification = "Read-only: computes free time slots.",
+)
+prefix_rule(
+    pattern = ["spark", "contacts"],
+    decision = "allow",
+    justification = "Read-only: searches local contacts.",
+)
+prefix_rule(
+    pattern = ["spark", "team"],
+    decision = "allow",
+    justification = "Read-only: shows team membership.",
+)
+prefix_rule(
+    pattern = ["spark", "meetings"],
+    decision = "allow",
+    justification = "Read-only: lists meeting transcripts.",
+)
+prefix_rule(
+    pattern = ["spark", "meeting"],
+    decision = "allow",
+    justification = "Read-only: reads one meeting transcript.",
+)
+prefix_rule(
+    pattern = ["spark", "templates"],
+    decision = "allow",
+    justification = "Read-only: lists message templates.",
+)
+prefix_rule(
+    pattern = ["spark", "template"],
+    decision = "allow",
+    justification = "Read-only: shows one message template.",
+)
+prefix_rule(
+    pattern = ["spark", "skill"],
+    decision = "allow",
+    justification = "Read-only: prints the bundled agent skill to stdout.",
+)
+
+# Spark は課金していないため全アカウントが read-only 固定で、書き込み系は
+# アプリ側で必ず弾かれる。メール送信・下書き・整理が要るときは Gmail を直接操作する
+# (workspace-personal MCP)。試行して失敗するだけの経路なので明示的に塞ぐ。
+prefix_rule(
+    pattern = ["spark", "draft"],
+    decision = "forbidden",
+    justification = "Spark accounts are read-only; compose mail through Gmail instead.",
+)
+prefix_rule(
+    pattern = ["spark", "action"],
+    decision = "forbidden",
+    justification = "Spark accounts are read-only; triage and send through Gmail instead.",
+)
+prefix_rule(
+    pattern = ["spark", "contact-action"],
+    decision = "forbidden",
+    justification = "Spark accounts are read-only; manage contacts through Google Contacts instead.",
+)
+prefix_rule(
+    pattern = ["spark", "comment"],
+    decision = "forbidden",
+    justification = "Spark accounts are read-only; no team comment can be posted.",
+)
+prefix_rule(
+    pattern = ["spark", "event"],
+    decision = "forbidden",
+    justification = "Spark accounts are read-only; create calendar events through Google Calendar instead.",
+)

@@ -262,7 +262,7 @@ exposed = { gwq = "gwq" }
 [envs.rerun-sdk]
 channels = ["conda-forge"]
 dependencies = { rerun-sdk = "*" }
-exposed = { ensure-pyo3-build-cfg = "ensure-pyo3-build-cfg", ensure-rerun-env = "ensure-rerun-env", ensure-uv-shims = "ensure-uv-shims", rerun = "rerun", uv-shim = "uv-shim", uvpy-shim = "uvpy-shim" }
+exposed = { rerun = "rerun" }
 
 [envs.shellcheck]
 channels = ["conda-forge"]

@@ -53,6 +53,7 @@
     ],
     "defaultMode": "auto"
   },
+  "cleanupPeriodDays": 180,
   "model": "opus[1m]",
   "hooks": {
     "SessionStart": [
@@ -61,7 +62,6 @@
         "hooks": [
           {
             "type": "command",
-  "cleanupPeriodDays": 180,
             "command": "bash ~/.claude/scripts/zotero-mcp-server.sh start",
             "timeout": 20
           },

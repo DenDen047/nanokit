@@ -106,6 +106,8 @@ curl -s -X POST "$UPLOAD_URL" \
 #    {"type":"file","file":{"type":"file_upload","file_upload":{"id":"<id>"},"caption":[...]}}
 ```
 
+**20MB を超えるものは multi-part で送る。** 1 で `{"mode":"multi_part","number_of_parts":N,"filename":...,"content_type":...}` を渡し、2 を部分ごとに `-F "part_number=<1..N>"` を付けて同じ `upload_url` へ送り、最後に `POST /v1/file_uploads/<id>/complete` で `status: uploaded` を確かめる。部分は最後を除き 5〜20MB (10MB 区切りで 122MB の tar.gz まで通ることを確認済み)。`.tar.gz` は `application/gzip` で通る (`application/x-gzip` は 400)。動画は `{"type":"video","video":{"type":"file_upload",...}}`、GIF は image ブロックで自動再生される。
+
 差し替えるときは**古い file ブロックを消してから**貼る。`update-a-block` では中身を差し替えられない。
 
 ## よくあるエラー

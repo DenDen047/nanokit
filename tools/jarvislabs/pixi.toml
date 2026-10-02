@@ -14,7 +14,7 @@ pytest = ">=8"
 # Not on conda-forge, and `pixi global` cannot install PyPI packages
 # (prefix-dev/pixi#2261), hence this project env instead of a pixi-global entry.
 # `jl` is still exposed on PATH via the ~/.pixi/bin/jl shim (see ./jl).
-jarvislabs = ">=0.2.16"
+jarvislabs = ">=0.2.17"
 
 [tasks]
 version = "jl --version"

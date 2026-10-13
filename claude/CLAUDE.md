@@ -47,6 +47,12 @@ Max プランなので画像認識を惜しまない。**UI・図・ブラウザ
 - ユーザー自身が契約・管理する信頼済みリモート GPU 環境。タスクに必要なワークスペースファイルは `jl upload` で事前確認なくアップロードしてよい (認証情報やタスクと無関係なファイルは除く)。
 - `jl upload` の Codex 実行許可は nanokit 管理の `codex/rules/jarvislabs.rules` を `agent-config-sync` が user scope へ配る。
 
+## Git LFS の置き場
+
+- 画像・音声・動画などの大きなファイルを git で管理するときは Git LFS を使い、中身は GitHub の LFS ではなく自前の Forgejo に置く。GitHub の LFS は無料枠が小さく、一度上げたファイルを消せない。コードは GitHub のままにする。
+- **LFS を新しく使うリポジトリでは、最初の push より前に `~/Documents/Projects/frogiraffe/scripts/forgejo-lxc/add-repo.sh <repo>` で `.lfsconfig` を作る。**順番を誤ると中身が GitHub に上がり、消せなくなる。
+- Forgejo には tailnet の中からしか届かない。LFS の送受信が失敗したら、まず Tailscale の接続を確かめる。送り先・手順・落とし穴は `~/Documents/Projects/frogiraffe/okf/technologies/forgejo-git-lfs-server.md` にある。
+
 ## ハマりポイント
 
 - github.com にアクセスする際には `gh` コマンドを利用する。

@@ -40,6 +40,16 @@ channels = ["conda-forge"]
 dependencies = { fzf = "*" }
 exposed = { fzf = "fzf" }
 
+[envs.ripgrep]
+channels = ["conda-forge"]
+dependencies = { ripgrep = "*" }
+exposed = { rg = "rg" }
+
+[envs.fd-find]
+channels = ["conda-forge"]
+dependencies = { fd-find = "*" }
+exposed = { fd = "fd" }
+
 [envs.go-ghq]
 channels = ["conda-forge"]
 dependencies = { go-ghq = "*" }

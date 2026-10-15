@@ -39,6 +39,7 @@ Individual skill mappings do not belong in `.dotter/global.toml`; `agent-config-
 `~/.claude/settings.json` is a file **Claude Code itself owns and writes**. Every UI change (`/model`, `/vim`, output style, plugin enable) and key normalization rewrites it via atomic replace, which destroys a symlink (it becomes a regular file). So it is not under dotter: `agent-config-sync` (`settings_change()` in `codex/sync-config.py`) merges **nanokit's declared keys into live as the authority**, the same model as Codex `config.toml`.
 
 - Top-level keys declared by the source win. **Live-only app-authored keys (`hasCompletedOnboarding`, `skillOverrides`, …) are preserved** — no data loss.
+- `hooks` is the one managed key with an exception: entries another app installs and owns (Orca's agent-status hooks, matched by `EXTERNAL_HOOK_MARKERS`) are kept after nanokit's own entries. Orca re-adds them only at app start, so dropping them would blind it until a restart.
 - The `SessionStart` hook self-heals this every session, so a diverged live file needs **no manual repair**.
 - Implication: changing a managed key inside the app reverts at the next sync. To make a change permanent, **edit nanokit's `settings.json`** (single source).
 

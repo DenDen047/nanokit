@@ -20,6 +20,10 @@ SKILLS_SOURCE = NANOKIT_ROOT / "claude" / "skills"
 SETTINGS_SOURCE = NANOKIT_ROOT / "claude" / "settings.json"
 KEY_RE = re.compile(r"^([A-Za-z0-9_-]+)\s*=")
 SECTION_RE = re.compile(r"^\s*\[")
+# Hook commands that another app installs into the live settings.json and owns.
+# Orca (stablyai/orca) re-adds its agent-status hooks only at app start, so
+# dropping them here leaves Orca blind to Claude's state until it restarts.
+EXTERNAL_HOOK_MARKERS = ("agent-hooks/claude-hook.sh",)
 
 
 class SyncConflict(RuntimeError):
@@ -81,6 +85,34 @@ def config_change() -> tuple[Path, str, str]:
     return live, old_text, new_text
 
 
+def is_external_hook(entry: object) -> bool:
+    if not isinstance(entry, dict) or not isinstance(entry.get("hooks"), list):
+        return False
+    commands = [h.get("command") for h in entry["hooks"] if isinstance(h, dict)]
+    return any(
+        isinstance(command, str) and marker in command
+        for command in commands
+        for marker in EXTERNAL_HOOK_MARKERS
+    )
+
+
+def with_external_hooks(source_hooks: dict, live_hooks: object) -> dict:
+    """Return nanokit's hooks plus the live entries an external app owns.
+
+    Each external entry keeps its event and goes after nanokit's entries, where
+    its owner appends it, so the owner and this sync agree byte for byte and
+    neither rewrites the file again.
+    """
+    hooks = {event: list(entries) for event, entries in source_hooks.items()}
+    if not isinstance(live_hooks, dict):
+        return hooks
+    for event, entries in live_hooks.items():
+        for entry in entries if isinstance(entries, list) else []:
+            if is_external_hook(entry):
+                hooks.setdefault(event, []).append(entry)
+    return hooks
+
+
 def settings_change() -> tuple[Path, str, str] | None:
     """Reflect nanokit's settings.json into ~/.claude/settings.json.
 
@@ -91,6 +123,8 @@ def settings_change() -> tuple[Path, str, str] | None:
     and any top-level key present only in the live file (app-added runtime state)
     is preserved. Consequence: in-app changes to a managed key reset to nanokit's
     value on the next sync; to make one stick, edit nanokit's settings.json.
+    Hook entries another app owns (EXTERNAL_HOOK_MARKERS) survive alongside
+    nanokit's hooks.
     """
     if not SETTINGS_SOURCE.exists():
         return None
@@ -112,6 +146,8 @@ def settings_change() -> tuple[Path, str, str] | None:
     for key, value in live_obj.items():
         if key not in merged:  # preserve app-only top-level keys
             merged[key] = value
+    if isinstance(source_obj.get("hooks"), dict):
+        merged["hooks"] = with_external_hooks(source_obj["hooks"], live_obj.get("hooks"))
 
     new_text = json.dumps(merged, indent=2, ensure_ascii=False) + "\n"
     # Empty old_text when the path is still a symlink guarantees old != new, so

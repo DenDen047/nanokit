@@ -43,7 +43,7 @@
 # Recursion guard: the spawned `claude -p` is itself a session that fires this
 # same hook; it carries MEMEX_CHILD=1 so the hook early-exits for it.
 #
-# Tunables (env): MEMEX_MODEL (default claude-opus-4-8), MEMEX_EFFORT (default
+# Tunables (env): MEMEX_MODEL (default claude-opus-5-5), MEMEX_EFFORT (default
 #                 xhigh), MEMEX_MIN_LINES (default 12), MEMEX_DEST,
 #                 MEMEX_TIMEOUT_S (default 900), MEMEX_MAX_LINES (200),
 #                 MEMEX_MAX_BYTES (25600), MEMEX_TARGET_LINES (175),
@@ -55,7 +55,7 @@ set -uo pipefail
 DEBUG_DIR="$HOME/.claude/debug"
 LEDGER="$DEBUG_DIR/memory-extract.log"
 RUNDIR="$DEBUG_DIR/memory-extract"
-MODEL="${MEMEX_MODEL:-claude-opus-4-8}"
+MODEL="${MEMEX_MODEL:-claude-opus-5-5}"
 EFFORT="${MEMEX_EFFORT:-xhigh}"
 MIN_LINES="${MEMEX_MIN_LINES:-12}"
 # Wall-clock kill switch for the detached child. A normal extraction finishes

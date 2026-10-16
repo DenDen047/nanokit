@@ -22,6 +22,9 @@
 #     (pulsetime を超える単発セッションは分割されるが、その長さの連続作業は稀。)
 #   - イベントの data は {project, repo, host} のみ。git リポジトリ内ではサブディレクトリを
 #     移動しても project/repo が不変なので、リポジトリ滞在が途切れず1イベントに連結される。
+#   - git worktree (Orca が作る ../.worktrees/<repo>/<name> や ~/orca/workspaces/...) の中では、
+#     .git を共有する本体のリポジトリを repo/project にする。ワークツリー名で記録すると
+#     後段の案件別集計がどの案件か判別できなくなるため。
 
 # ---- 設定 (ここだけ触ればよい) ----
 : ${AW_TERM_SERVER:=http://localhost:5600}   # ローカル aw-server の baseURL
@@ -54,8 +57,13 @@ _aw_term_esc() {
 
 _aw_term_heartbeat() {
   emulate -L zsh
-  local cwd="$PWD" repo reponame project ts data
-  repo="$(git rev-parse --show-toplevel 2>/dev/null)"
+  local cwd="$PWD" repo project ts data
+  local -a info
+  # 1 回の git 呼び出しで作業ツリーの root と、ワークツリー間で共有する .git の場所を取る
+  info=("${(@f)$(git rev-parse --show-toplevel --path-format=absolute --git-common-dir 2>/dev/null)}")
+  repo="${info[1]}"
+  # ワークツリーなら本体のリポジトリへ寄せる (submodule は共有先が .git/modules/... なので寄せない)
+  [[ -n "$repo" && "${info[2]}" == */.git ]] && repo="${info[2]:h}"
   if [[ -n "$repo" ]]; then
     project="${repo:t}"          # git リポジトリ名 = 案件キー
   else

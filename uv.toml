@@ -1,1 +1,3 @@
 exclude-newer = "7 days"
+# CA 証明書の束は失効対応が遅れるほうが危ない (2026-10 の eMudhra 鍵漏えいで 7 日待ちが修正版を止めた)
+exclude-newer-package = { certifi = false }

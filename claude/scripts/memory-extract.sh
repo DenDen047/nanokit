@@ -52,6 +52,12 @@
 
 set -uo pipefail
 
+# Orca ties Claude hook events to a terminal tab through the ORCA_* variables a
+# hook inherits. Left in place, the spawned `claude -p` reports itself as that
+# tab's agent: Orca notifies "done" and saves the extractor's session as the
+# one to resume after the tab sleeps.
+unset $(compgen -e | grep '^ORCA_')
+
 DEBUG_DIR="$HOME/.claude/debug"
 LEDGER="$DEBUG_DIR/memory-extract.log"
 RUNDIR="$DEBUG_DIR/memory-extract"

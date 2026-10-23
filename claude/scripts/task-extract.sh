@@ -35,6 +35,10 @@
 #           TASKEX_MIN_LINES (20), TASKEX_TIMEOUT_S (600), TASKEX_QUEUE.
 set -uo pipefail
 
+# Drop Orca's tab variables so the spawned claude -p is not taken for the tab's
+# agent (same reason as in memory-extract.sh).
+unset $(compgen -e | grep '^ORCA_')
+
 DEBUG_DIR="$HOME/.claude/debug"
 LEDGER="$DEBUG_DIR/task-extract.log"
 RUNDIR="$DEBUG_DIR/task-extract"

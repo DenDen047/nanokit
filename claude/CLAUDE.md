@@ -67,14 +67,14 @@ Max プランなので画像認識を惜しまない。**UI・図・ブラウザ
   - `plugins/cloud/data-agent-kit/` は submodule で再帰取得しても展開されない。本文は upstream (`gemini-cli-extensions/<name>` 等) を直接読む。
   - Workspace (Gmail/Calendar/Drive) のスキルは無い → `workspace-*` MCP を使う。
 
-## Codex 連携 (公式プラグイン + MCP の二経路)
+## Codex 連携 (公式プラグイン + `codex exec` の二経路)
 
 用途で使い分ける。
 
 | 用途 | 経路 |
 |---|---|
 | コードレビュー `/codex:review` (`--background` 推奨)、観点指定レビュー `/codex:adversarial-review`、タスク委譲 `/codex:rescue`、ジョブ管理 `/codex:status` `/codex:result` | 公式プラグイン `codex@openai-codex` (Codex app server 直結) |
-| 設計壁打ち `/codex-discuss`、lgtm-loop の threadId 継続レビュー、ultrasurvey 検索レッグ | `codex mcp-server` (MCP, user スコープ登録) |
+| 設計壁打ち `/codex-discuss`、lgtm-loop の継続レビュー、ultrasurvey 検索レッグ | Bash から `codex exec` を直接呼ぶ。同じ会話の続きは `codex exec resume <thread_id>` |
 
 - 両経路とも `~/.codex/config.toml` を継承する (モデル・effort・approval_policy の**単一ソース**。呼び出し側で上書きしない)。編集元と反映手順は nanokit の `CLAUDE.md` を参照。
 - **review gate (`/codex:setup --enable-review-gate`) は使わない** — Stop フックの自動ループが usage を急速消費するため。明示ループは `/lgtm-loop`。

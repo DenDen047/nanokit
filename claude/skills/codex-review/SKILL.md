@@ -19,7 +19,7 @@ description: >
 | 普通のレビュー (uncommitted / ブランチ diff) | `/codex:review` (`--background` 推奨、ブランチは `--base <ref>`) |
 | 観点を指定して攻めるレビュー | `/codex:adversarial-review <focus テキスト>` |
 | バックグラウンドジョブの確認 / 結果 / 中止 | `/codex:status` `/codex:result` `/codex:cancel` |
-| lgtm-loop の継続レビュー (threadId) | 本 skill ではなく `mcp__codex__codex` 直叩き (lgtm-loop に内蔵) |
+| lgtm-loop の継続レビュー (同じ会話で続ける) | 本 skill ではなく `codex exec` / `codex exec resume` を直接呼ぶ (lgtm-loop に内蔵) |
 
 ## 自然文で頼まれたときの動き
 
@@ -40,6 +40,5 @@ node "$SCRIPT" review "--base main"  # ブランチレビュー
 
 ## モデル設定
 
-プラグイン / MCP の両経路とも `~/.codex/config.toml` を継承する
-(現状 `model = gpt-5.6-sol` / `model_reasoning_effort = xhigh`)。
+プラグイン / `codex exec` の両経路とも `~/.codex/config.toml` を継承する。
 呼び出し側で model / effort を上書きしない (単一ソース)。

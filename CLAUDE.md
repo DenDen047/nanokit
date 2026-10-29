@@ -52,7 +52,7 @@ Individual skill mappings do not belong in `.dotter/global.toml`; `agent-config-
 
 Codex's portable settings (`model`, `model_reasoning_effort`, `approval_policy`, `web_search`, …) are managed here too. Edit `codex/config.toml`; reflect with `./nanokit agent-config-sync` (`--diff` previews). The live file can't be a symlink because the Codex desktop app writes host-specific state (`[projects.*]` trust levels) back into it, and nanokit is a public repo — so the sync upserts only the managed keys idempotently and preserves other sections. `codex-install` runs it automatically.
 
-On a new host the Codex plugin is declared in `claude/settings.json` via `extraKnownMarketplaces` + `enabledPlugins`. If it doesn't install itself, run `claude plugin install codex@openai-codex`; register the MCP with `./nanokit codex-install`.
+On a new host the Codex plugin is declared in `claude/settings.json` via `extraKnownMarketplaces` + `enabledPlugins`. If it doesn't install itself, run `claude plugin install codex@openai-codex`; install the `codex` CLI that skills call through `codex exec` with `./nanokit codex-install`.
 
 ## Gotchas
 

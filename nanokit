@@ -314,32 +314,9 @@ claude_setup() {
     print_info "  1. Configure local settings: ~/.claude/settings.local.json"
     print_info "  2. (Optional) Install skill sets:"
     print_info "     ./nanokit ecc-install    # Everything Claude Code skills"
-    print_info "     ./nanokit codex-install  # OpenAI Codex CLI + MCP"
+    print_info "     ./nanokit codex-install  # OpenAI Codex CLI"
     echo ""
     print_success "🤖 Claude Code setup completed!"
-}
-
-# Register Codex as an MCP server in Claude Code.
-# Used by codex_install().
-# Returns 0 on success/already-registered, 1 if claude CLI is unavailable.
-codex_mcp_register() {
-    if ! command -v claude &> /dev/null; then
-        print_warning "Claude Code CLI not found — cannot register Codex MCP."
-        print_info "Run './nanokit claude-setup' first, then './nanokit codex-install' again."
-        return 1
-    fi
-
-    if claude mcp list 2>/dev/null | grep -q '^codex\b'; then
-        print_info "Claude MCP 'codex' already registered."
-    else
-        print_step "Registering Codex as an MCP in Claude Code..."
-        if claude mcp add codex -s user -- codex mcp-server 2>&1; then
-            print_success "Codex MCP registered"
-        else
-            print_warning "Failed to auto-register Codex MCP. Run manually:"
-            print_info "  claude mcp add codex -s user -- codex mcp-server"
-        fi
-    fi
 }
 
 
@@ -657,6 +634,17 @@ codex_link_binary() {
     print_success "Linked $bin_dst -> $bin_src"
 }
 
+# Codex CLI 0.154.0 removed `codex mcp-server`, so drop the Claude Code MCP entry that
+# older installs registered for it (copied hosts carry it over in ~/.claude.json).
+codex_mcp_remove_stale() {
+    local cfg="${CLAUDE_CONFIG_DIR:-$HOME}/.claude.json"
+    command -v claude &> /dev/null && [[ -f "$cfg" ]] || return 0
+    if jq -e '.mcpServers.codex | .command == "codex" and .args == ["mcp-server"]' "$cfg" &> /dev/null; then
+        claude mcp remove codex -s user >/dev/null && \
+            print_info "Removed the stale Claude MCP 'codex' (codex mcp-server no longer exists)"
+    fi
+}
+
 codex_install() {
     print_ascii_art
 
@@ -680,10 +668,7 @@ codex_install() {
     else
         print_warning "codex command not found on PATH. Ensure ~/.pixi/bin is on PATH."
     fi
-    echo ""
-
-    # Register Codex as an MCP server in Claude Code (skipped if claude CLI absent)
-    codex_mcp_register
+    codex_mcp_remove_stale
     echo ""
 
     # Apply shared instructions, skills, and portable Codex settings.
@@ -693,7 +678,6 @@ codex_install() {
     print_info "Next steps (interactive, run manually):"
     print_info "  1. codex login        # authenticate Codex"
     print_info "  2. codex setup        # select default model"
-    print_info "  3. Restart Claude Code to load the new MCP server"
     print_success "🧠 Codex CLI setup completed!"
 }
 
@@ -710,9 +694,7 @@ codex_update() {
     if command -v codex &> /dev/null; then
         print_info "Version: $(codex --version 2>/dev/null || echo 'unknown')"
     fi
-    echo ""
-    print_warning "Restart Claude Code completely so the running 'codex mcp-server' picks up the new binary."
-    print_info "  A new chat alone is not enough — the MCP process is spawned once at session launch."
+    codex_mcp_remove_stale
 }
 
 codex_uninstall() {

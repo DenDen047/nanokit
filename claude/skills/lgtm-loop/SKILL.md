@@ -1,7 +1,7 @@
 ---
 name: lgtm-loop
 description: >
-  実装・レビュー (Codex MCP / GPT)・修正の反復ループ。
+  実装・レビュー (Codex / GPT)・修正の反復ループ。
   ユーザーの意図する機能が動くこと (= 機能ゲート pass) と Codex の LGTM を AND で満たすまで回す。
   タスク説明 / plan ファイル / 既存 diff のいずれを起点にしてもよい。
   実装フェーズは Karpathy 4 原則 (think before / simplicity / surgical / goal-driven) に従う。
@@ -19,18 +19,18 @@ description: >
 
 - MAX_ITERATIONS = `10`
 
-モデルと reasoning effort は **`~/.codex/config.toml` の値を継承する** (現状 `model = gpt-5.6-sol` / `model_reasoning_effort = xhigh`)。
-`mcp__codex__codex` / `mcp__codex__codex-reply` 呼び出しで `model` / `config` は **指定しない** こと。
+モデルと reasoning effort は **`~/.codex/config.toml` の値を継承する**。
+`codex exec` に `-m` や `-c model=...` / `-c model_reasoning_effort=...` を **付けない** こと。
 Codex の最高モデルを切り替えたいときは config.toml の 1 箇所だけを更新すればよい (単一ソース)。
 
 ## 前提
 
-- Codex MCP Server が登録済み (`./nanokit codex-install` で自動登録)
-- `mcp__codex__codex` / `mcp__codex__codex-reply` が利用可能
+- `codex` CLI がログイン済み (`./nanokit codex-install` → `codex login`)
+- `jq` が使える
 - `karpathy-guidelines` skill が同居していると望ましい (Step 1b で auto-invoke 想定)。なければ本文 4 原則を inline 参照
 
-> 継続レビューは threadId が必要なため **MCP 経路を使う**。公式プラグイン (`/codex:review`) は
-> threadId を返さないので、1 ショットレビューにのみ使い、本ループでは使わない。
+> 継続レビューは同じ会話に続けて送る必要があるため、**`codex exec` / `codex exec resume <thread_id>` を Bash から呼ぶ**。
+> 公式プラグイン (`/codex:review`) は会話を指定して続けられないので、1 ショットレビューにのみ使い、本ループでは使わない。
 
 ## Step 0: 起点モード判定
 
@@ -94,60 +94,86 @@ fail → 修正してから再実行。
 
 ## Step 3: REVIEW — Codex によるレビュー
 
-### 1 ラウンド目: `mcp__codex__codex` 直叩き (新規 thread)
+### Codex の呼び方
 
-```
-mcp__codex__codex:
-  prompt: |
-    以下のコード変更をレビューしてください。
+リポジトリのルートで、Bash から `codex exec` を呼ぶ。プロンプトは Write で一時ファイル (scratchpad などの `<dir>/prompt.md`) に書き、標準入力で渡す。diff やバッククォートを含んでもシェルの引用で崩れない。
 
-    ## プロジェクト概要
-    [1-2 文でプロジェクトの目的を説明]
+新しい会話を始める (1 行目に thread_id、続けて Codex の回答が出る):
 
-    ## 変更の意図
-    [Step 1a の受け入れ基準の要約]
-
-    ## Diff
-    ```diff
-    [git diff の出力]
-    ```
-
-    ## レビュー観点
-    1. バグ・ロジックエラー (境界条件、off-by-one、null/undefined)
-    2. エッジケースの見落とし
-    3. セキュリティ上の問題 (入力検証、インジェクション、認証)
-    4. パフォーマンス上の懸念
-    5. エラーハンドリングの不足
-    6. API 設計・インターフェースの問題
-
-    各指摘に 重要度 (CRITICAL / HIGH / MEDIUM / LOW)・該当箇所 (ファイル名:行)・
-    問題の説明・修正案 (コード付き) を付けてください。
-    問題がない場合は「LGTM」と明記してください。
+```bash
+rm -f <dir>/reply.md
+codex exec --json -s read-only --skip-git-repo-check -o <dir>/reply.md - < <dir>/prompt.md > <dir>/events.jsonl \
+  && jq -r 'select(.type=="thread.started").thread_id' <dir>/events.jsonl && cat <dir>/reply.md \
+  || { jq -c 'select(.type=="error" or .type=="turn.failed")' <dir>/events.jsonl; false; }
 ```
 
-応答に含まれる **threadId をローカル変数に保持** し、2 ラウンド目以降の `mcp__codex__codex-reply` で再利用する。
+同じ会話に続きを送る:
 
-### 2 ラウンド目以降: `mcp__codex__codex-reply` で継続レビュー
-
+```bash
+rm -f <dir>/reply.md
+codex exec resume <thread_id> --json -c 'sandbox_mode="read-only"' --skip-git-repo-check \
+  -o <dir>/reply.md - < <dir>/prompt.md > <dir>/events.jsonl \
+  && cat <dir>/reply.md || { jq -c 'select(.type=="error" or .type=="turn.failed")' <dir>/events.jsonl; false; }
 ```
-mcp__codex__codex-reply:
-  threadId: <Step 3 ラウンド 1 で得た threadId>
-  prompt: |
-    前ラウンドの指摘について以下のとおり修正しました。
 
-    ## 修正サマリ
-    - [HIGH N]: <対応内容>
-    - [MEDIUM M]: <対応内容>
-    ...
+- `-s read-only` は Codex にリポジトリを読ませるが書き換えさせない設定。`resume` には `-s` が無いので `-c` で同じ指定をする
+- `--skip-git-repo-check` は git 管理外のディレクトリでも動かすため
+- レビューは数分以上かかることがある。Bash の `run_in_background: true` で流し、完了通知が来てから出力を読む
+- 失敗すると、回答の代わりに Codex のエラー (JSON の `error` / `turn.failed`、または起動時のエラー文) が出る
 
-    ## 最新 diff
-    ```diff
-    <git diff の出力>
-    ```
+### 1 ラウンド目: 新しい会話でレビュー
 
-    変更全体を再レビューし、残存する問題があれば指摘してください。
-    すべて解消されていれば「LGTM」と明記してください。
+次の内容を `<dir>/prompt.md` に書き、新しい会話として送る:
+
+````markdown
+以下のコード変更をレビューしてください。
+
+## プロジェクト概要
+[1-2 文でプロジェクトの目的を説明]
+
+## 変更の意図
+[Step 1a の受け入れ基準の要約]
+
+## Diff
+```diff
+[git diff の出力]
 ```
+
+## レビュー観点
+1. バグ・ロジックエラー (境界条件、off-by-one、null/undefined)
+2. エッジケースの見落とし
+3. セキュリティ上の問題 (入力検証、インジェクション、認証)
+4. パフォーマンス上の懸念
+5. エラーハンドリングの不足
+6. API 設計・インターフェースの問題
+
+各指摘に 重要度 (CRITICAL / HIGH / MEDIUM / LOW)・該当箇所 (ファイル名:行)・
+問題の説明・修正案 (コード付き) を付けてください。
+問題がない場合は「LGTM」と明記してください。
+````
+
+出力の 1 行目に出る **thread_id を覚えておき**、2 ラウンド目以降の `codex exec resume` で使う。
+
+### 2 ラウンド目以降: 同じ会話で継続レビュー
+
+次の内容を `<dir>/prompt.md` に書き、1 ラウンド目の thread_id で続きとして送る:
+
+````markdown
+前ラウンドの指摘について以下のとおり修正しました。
+
+## 修正サマリ
+- [HIGH N]: <対応内容>
+- [MEDIUM M]: <対応内容>
+...
+
+## 最新 diff
+```diff
+<git diff の出力>
+```
+
+変更全体を再レビューし、残存する問題があれば指摘してください。
+すべて解消されていれば「LGTM」と明記してください。
+````
 
 plan-driven モードのときは prompt に 1 行追加: 「plans/foo.md からの逸脱があれば併せて指摘してください」。
 
@@ -176,9 +202,9 @@ plan-driven モードのときは prompt に 1 行追加: 「plans/foo.md から
 
 ## ルール
 
-- Codex の指摘を勝手に却下しない (反論はしてよいが threadId 経由で再議論する)
+- Codex の指摘を勝手に却下しない (反論はしてよいが同じ thread_id の会話で再議論する)
 - Claude のレビューと Codex のレビューは混ぜない — Codex の指摘をそのまま提示し対応する
-- threadId は session 内で保持。別セッションへ持ち越さない
+- thread_id は session 内で保持。別セッションへ持ち越さない
 - diff が 500 行を超える場合はファイル単位で分割レビュー
 - 各 FIX 後は GATE 通過を確認してから Codex を再度呼ぶ (失敗ゲートのまま re-review しない)
 - IMPLEMENT 中は Karpathy 4 原則を最優先。speculative な機能追加・無関係 refactor は禁止
@@ -229,5 +255,4 @@ plan-driven モードのときは prompt に 1 行追加: 「plans/foo.md から
 ## 補足: レビュー経路の使い分け
 
 レビュー観点プロンプトは本 skill の Step 3 に内蔵している (旧 codex-review skill から移設)。
-公式プラグイン `/codex:review` は threadId を返さず継続レビューができないため、本ループでは MCP 経路を維持する。
-プラグイン側に thread 継続 API が入ったら、REVIEW ステップの背景実行化を再検討する。
+公式プラグイン `/codex:review` は会話を指定して続けられず継続レビューができないため、本ループでは `codex exec` を直接呼ぶ。

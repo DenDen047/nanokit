@@ -199,7 +199,8 @@ TL;DR は **本文確定後に最後に書く**。結論を 1-2 文で、`<stron
 
 ## 共有方法
 
-- 受信者にファイルを直接渡す (`open foo.html`)。**assets/ ディレクトリも同梱**
+- 依頼者に見せるときは、Orca の中 (`$ORCA_CLI_COMMAND` がある) なら `"$ORCA_CLI_COMMAND" tab create --url "file://$(realpath foo.html)"` で Orca の内蔵ブラウザに開く。`open` は Mac Studio の画面に開くので、MacBook Air から遠隔で使っている依頼者には見えない。Orca の外なら `open foo.html`
+- 受信者にファイルを直接渡す。**assets/ ディレクトリも同梱**
 - Slack には添付ファイル (`.html` + `assets/foo.svg`) として
 - 公開可なら GitHub Pages
 

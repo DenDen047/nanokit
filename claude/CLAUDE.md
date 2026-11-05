@@ -56,6 +56,7 @@ Max プランなので画像認識を惜しまない。**UI・図・ブラウザ
 ## ハマりポイント
 
 - github.com にアクセスする際には `gh` コマンドを利用する。
+- Orca の中 (`$ORCA_CLI_COMMAND` がある) で、人に見せるファイルや URL を `open` で開かない。Mac Studio の画面に出て、MacBook Air から遠隔で使っている本人には見えない。`"$ORCA_CLI_COMMAND" tab create --url "file://<絶対パス>"` (Web ページならその URL) で Orca の内蔵ブラウザに開く。
 
 ## 参照すべき情報源
 

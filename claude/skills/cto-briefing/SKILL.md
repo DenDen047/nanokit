@@ -231,7 +231,8 @@ CTO 向け資料は **「最後まで読まれること」が最重要**。Markd
 
 ## 共有方法
 
-- 受信者に **ファイルを直接渡す** (`open briefing.html` / `xdg-open`)
+- 依頼者に見せるときは、Orca の中 (`$ORCA_CLI_COMMAND` がある) なら `"$ORCA_CLI_COMMAND" tab create --url "file://$(realpath briefing.html)"` で Orca の内蔵ブラウザに開く。`open` は Mac Studio の画面に開くので、MacBook Air から遠隔で使っている依頼者には見えない。Orca の外なら `open briefing.html` / `xdg-open`
+- 受信者に **ファイルを直接渡す**
 - S3 / Cloudflare R2 / 社内 CDN にアップして **URL を渡す**
 - 公開してよい場合は GitHub Pages
 - Slack に貼るときは **添付ファイル** として渡す (本文ペーストは raw HTML が見える)

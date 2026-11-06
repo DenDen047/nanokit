@@ -100,6 +100,8 @@ Orca の中 (`$ORCA_CLI_COMMAND` がある) では、Orca が持っている機�
 | コードレビュー `/codex:review` (`--background` 推奨)、観点指定レビュー `/codex:adversarial-review`、タスク委譲 `/codex:rescue`、ジョブ管理 `/codex:status` `/codex:result` | 公式プラグイン `codex@openai-codex` (Codex app server 直結) |
 | 設計壁打ち `/codex-discuss`、lgtm-loop の継続レビュー、ultrasurvey 検索レッグ | Bash から `codex exec` を直接呼ぶ。同じ会話の続きは `codex exec resume <thread_id>` |
 
+- 点検と相談 (上の表) は、Orca の中でもこの表の経路を使う。Codex を読むだけの制限付きで軽く動かせるため。`orchestration` skill の「Codex にレビューさせて報告させる」もこちらで受ける。
+- 長い実装を Codex に任せるとき、または本人が Codex の作業を見たい・途中で口を出したいときは、Orca の中なら `orchestration` skill で Codex を Orca の作業者として立てる。作業者の Codex は Orca が承認も隔離も外して起動するので、任せる範囲を作業者への指示に明記する。
 - 両経路とも `~/.codex/config.toml` を継承する (モデル・effort・approval_policy の**単一ソース**。呼び出し側で上書きしない)。編集元と反映手順は nanokit の `CLAUDE.md` を参照。
 - **review gate (`/codex:setup --enable-review-gate`) は使わない** — Stop フックの自動ループが usage を急速消費するため。明示ループは `/lgtm-loop`。
 - 自然文「GPT にレビューして」の受け皿は `codex-review` skill (誘導シム)。プラグインコマンドは `disable-model-invocation` で Claude からは起動できず、必要時は companion script を直接叩く。

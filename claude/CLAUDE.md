@@ -66,6 +66,8 @@ Orca の中 (`$ORCA_CLI_COMMAND` がある) では、Orca が持っている機�
 | 過去のエージェントの会話を探す | `search` | 会話ログの jsonl を直接 grep する |
 | エージェントの定期実行を新しく作る | `automations` | launchd の `claude -p`、CronCreate。既にある定期ジョブは移さない |
 
+本人に見せる HTML レポートは、`~/tailnet-share` がある機械 (Mac Studio) では Orca のタブで開くのに加えて、`~/tailnet-share/<日付>-<名前>/` に写し、`https://<tailnet 名>/<日付>-<名前>/<ファイル>` を返信に書く。tailnet 名は `tailscale status --self --json | jq -r '.Self.DNSName | rtrimstr(".")'` で取れる。iPhone の Orca は内蔵ブラウザのページを画像にして送るので重いが、このリンクを押して「Open in system browser」を選べば iPhone が自分で描く。写したものは tailnet のすべての端末から見えるので、本人に見せるもの以外は置かない。
+
 ブラウザは次の順で選ぶ。
 
 1. API や MCP がある (Notion・Slack・Gmail・freee など) なら、ブラウザを使わない。

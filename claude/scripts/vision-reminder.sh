@@ -5,13 +5,16 @@
 #   (b) frontend / UI file edits   — render-screenshot-then-Read self-check
 #   (c) browser navigation         — screenshot-then-Read self-check
 # Wired as PostToolUse hook (matchers: Write|Edit|MultiEdit|Bash and
-# mcp__claude-in-chrome__navigate). See nanokit/claude/settings.json.
+# mcp__claude-in-chrome__navigate|mcp__playwright__browser_navigate).
+# Orca's built-in browser is driven through Bash (`orca tab create|goto`), so
+# the Bash branch covers it. See nanokit/claude/settings.json.
 #
 # Coverage & cooldowns:
 #   Write (image ext png/jpg/jpeg/gif/webp/svg/pdf)   — per-path, 10s
 #   Write|Edit|MultiEdit (frontend ext)               — global,   20s
 #   Bash (plotting interpreter + plotting keyword)     — global,   60s
-#   mcp__claude-in-chrome__navigate                    — global,   45s
+#   Bash (orca tab create / goto / open-url)           — global,   45s
+#   mcp__claude-in-chrome__navigate, playwright nav    — global,   45s
 #
 # Fail-safe: jq absent → exit 0 (never break the tool flow).
 
@@ -81,7 +84,7 @@ is_image_ext() {
 
 raster_checklist='Read it now and visually verify before declaring the task done. Check: (1) axis labels and tick labels are not cut off at figure edges; (2) legend does not overlap data or other plot elements; (3) tick labels do not collide or overlap each other; (4) data points/lines are not occluded by markers or annotations; (5) colors have sufficient contrast and the aspect ratio matches the intended message. If any check fails, regenerate the plot.'
 
-ui_checklist='Render the result (dev server / headless browser / open the file) and take a screenshot, then Read the PNG before declaring the task done. Check: (1) layout is not broken and nothing overflows or is clipped at the viewport edges; (2) elements do not overlap unintentionally; (3) text has sufficient contrast and is legible; (4) spacing and alignment match the intent; (5) it holds at the target viewport widths (and in dark mode if relevant). If any check fails, fix and re-verify.'
+ui_checklist='Render the result (inside Orca: its built-in browser via orca tab create + orca screenshot; elsewhere: a dev server or headless browser) and take a screenshot, then Read the PNG before declaring the task done. Check: (1) layout is not broken and nothing overflows or is clipped at the viewport edges; (2) elements do not overlap unintentionally; (3) text has sufficient contrast and is legible; (4) spacing and alignment match the intent; (5) it holds at the target viewport widths (and in dark mode if relevant). If any check fails, fix and re-verify.'
 
 case "$tool" in
   Write|Edit|MultiEdit)
@@ -124,6 +127,16 @@ case "$tool" in
     cmd=$(printf '%s' "$payload" | jq -r '.tool_input.command // empty')
     [ -z "$cmd" ] && exit 0
 
+    # Orca's built-in browser has no MCP tool of its own; the agent drives it
+    # with the orca CLI. The guard hook's shell-aware parser decides whether the
+    # command really opens or navigates a page (not just mentions one).
+    if printf '%s' "$payload" | python3 "$HOME/.claude/scripts/orca-tab-worktree-guard.py" --detect 2>/dev/null; then
+      cooldown_ok "$state_dir/browser_global" 45 || exit 0
+      msg="You just opened or navigated a page in Orca's built-in browser. If the task is about how a page looks or behaves, run \`orca screenshot --page <browserPageId>\` now and Read the PNG it prints before declaring done. ${ui_checklist}"
+      emit_reminder "$msg"
+      exit 0
+    fi
+
     # Allow-list interpreters that can actually render plots. Without this
     # gate, `git commit -m "...matplotlib..."` or `echo "savefig"` fire the
     # hook because plot keywords appear anywhere in the command string.
@@ -142,7 +155,7 @@ case "$tool" in
     emit_reminder "$msg"
     ;;
 
-  mcp__claude-in-chrome__navigate)
+  mcp__claude-in-chrome__navigate|mcp__playwright__browser_navigate)
     cooldown_ok "$state_dir/browser_global" 45 || exit 0
     msg="You just navigated the browser. If the task is about how a page looks or behaves, take a screenshot now and Read it to visually verify the result before declaring done. ${ui_checklist}"
     emit_reminder "$msg"

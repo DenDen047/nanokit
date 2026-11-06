@@ -106,6 +106,16 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/scripts/orca-tab-worktree-guard.py",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -120,7 +130,7 @@
         ]
       },
       {
-        "matcher": "mcp__claude-in-chrome__navigate",
+        "matcher": "mcp__claude-in-chrome__navigate|mcp__playwright__browser_navigate",
         "hooks": [
           {
             "type": "command",

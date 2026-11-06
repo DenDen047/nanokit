@@ -53,10 +53,31 @@ Max プランなので画像認識を惜しまない。**UI・図・ブラウザ
 - **LFS を新しく使うリポジトリでは、最初の push より前に `~/Documents/Projects/frogiraffe/scripts/forgejo-lxc/add-repo.sh <repo>` で `.lfsconfig` を作る。**順番を誤ると中身が GitHub に上がり、消せなくなる。
 - Forgejo には tailnet の中からしか届かない。LFS の送受信が失敗したら、まず Tailscale の接続を確かめる。送り先・手順・落とし穴は `~/Documents/Projects/frogiraffe/okf/technologies/forgejo-git-lfs-server.md` にある。
 
+## Orca の機能を先に使う
+
+Orca の中 (`$ORCA_CLI_COMMAND` がある) では、Orca が持っている機能をほかの道具より先に使う。CLI は `"$ORCA_CLI_COMMAND"` で呼び、書き方は `orca-cli` skill が読み込む、Orca の版に合った手引きに従う。Orca の外 (launchd の `claude -p`、Hermes、別の機械) ではこの節は当てはまらず、ブラウザは Playwright MCP の Chrome を使う。
+
+| やること | Orca で使うもの | 使わないもの |
+|---|---|---|
+| Web ページを開く・読む・操作する・撮る | 内蔵ブラウザ (`tab create`・`snapshot`・`click`・`screenshot`) | Playwright MCP、Claude in Chrome、Vivaldi |
+| 人に見せるファイルや URL を開く | `tab create --url "file://<絶対パス>"` (Web ページならその URL)、ソースコードなら `file open` | `open`。Mac Studio の画面に出るだけで、MacBook Air から遠隔で使っている本人には見えない |
+| 作業を別のワークツリーに分ける | `worktree create` | 素の `git worktree`、Claude Code の `EnterWorktree` |
+| デスクトップのアプリを操作する | `computer` | Claude や Codex の Computer Use |
+| 過去のエージェントの会話を探す | `search` | 会話ログの jsonl を直接 grep する |
+| エージェントの定期実行を新しく作る | `automations` | launchd の `claude -p`、CronCreate。既にある定期ジョブは移さない |
+
+ブラウザは次の順で選ぶ。
+
+1. API や MCP がある (Notion・Slack・Gmail・freee など) なら、ブラウザを使わない。
+2. Orca の内蔵ブラウザ。タブは必ず `--worktree` でこの会話のワークスペースを指定して開く。省くと、Orca の画面でいま選ばれている別のワークスペースに開いてしまう。フォルダ型のワークスペースでは `orca worktree current` が使えず、同じフォルダにワークスペースが複数あることもあるので、会話の ID から引いて `--worktree "id:<値>"` で渡す。値は `"$ORCA_CLI_COMMAND" worktree ps --json | jq -r --arg s "$ORCA_AGENT_SESSION_ID" '.result.worktrees[] | select(tostring | contains($s)) | .worktreeId'` で取れる。Claude Code では、指定が無いとフック (`orca-tab-worktree-guard.py`) が止めて正しい値を教える。
+3. 内蔵ブラウザで通らないときだけ、Playwright MCP の Chrome (普段の Chrome とは別のプロファイル) を使う。埋め込み型のブラウザを拒むログイン、Chrome の拡張機能が要る作業、同じテストを繰り返し流す作業が当たる。
+4. 本人の普段使いのブラウザ (Vivaldi と、Claude in Chrome がつながる本人の Chrome) は、本人が名指しで頼んだときだけ使う。ログインが全部そろっているので、読んだページに仕込まれた指示に乗っ取られたときの被害が一番大きい。
+
+ログインが要るサイトは、用途ごとに作った Orca のブラウザプロファイル (`tab profile create`) に本人が一度だけログインする。お金が動くサイトは既定のプロファイルに入れない。
+
 ## ハマりポイント
 
 - github.com にアクセスする際には `gh` コマンドを利用する。
-- Orca の中 (`$ORCA_CLI_COMMAND` がある) で、人に見せるファイルや URL を `open` で開かない。Mac Studio の画面に出て、MacBook Air から遠隔で使っている本人には見えない。`"$ORCA_CLI_COMMAND" tab create --url "file://<絶対パス>"` (Web ページならその URL) で Orca の内蔵ブラウザに開く。
 
 ## 参照すべき情報源
 

@@ -32,8 +32,8 @@ description: >
 
    | 対象 | 取得方法 |
    |---|---|
-   | URL | Claude-in-Chrome（`tabs_create_mcp` → `navigate` → `computer` screenshot、無ければヘッドレスブラウザで PNG 出力）。**主要ブレークポイント**（例 375 / 768 / 1280px）でそれぞれ撮る |
-   | ローカル HTML | **Claude-in-Chrome は `file://` を拒否する** (`Can't interact with browser-internal or unparseable URLs`)。ファイルのあるディレクトリで `python3 -m http.server <port>` を起動して `http://127.0.0.1:<port>/<file>` を開き、撮り終えたらサーバを落とす。またはヘッドレスブラウザで PNG 出力 |
+   | URL | Orca の中なら内蔵ブラウザ（`orca tab create --url <url> --worktree <id> --json` → `orca viewport --page <id> --width <w> --height <h> --json` → `orca screenshot --page <id>`、ページ全体は `full-screenshot`）。ページを読み直すと幅の指定が戻るので、遷移のたびに `viewport` を掛け直す。Orca の外では Playwright MCP（`browser_navigate` → `browser_resize` → `browser_take_screenshot`）。**主要ブレークポイント**（例 375 / 768 / 1280px）でそれぞれ撮る |
+   | ローカル HTML | Orca の内蔵ブラウザは `file://<絶対パス>` をそのまま開ける。GLB などを読み込むページは `file://` では読めないので、ファイルのあるディレクトリで `python3 -m http.server <port> --bind 127.0.0.1` を起動して `http://127.0.0.1:<port>/<file>` を開き、撮り終えたらサーバを落とす。Orca の外ではヘッドレスブラウザで PNG 出力 |
    | SVG | `rsvg-convert -o /tmp/vv.png <file.svg>`（無ければヘッドレスブラウザ） |
    | PDF | `pdftoppm -png -r 150 <file.pdf> /tmp/vv` でページ画像化 |
    | PNG/JPG | そのまま |
@@ -58,5 +58,6 @@ description: >
 - **必ず実際に Read して見る。** 「見たことにする」「コードから推測する」は禁止。これがこのコマンドの存在意義。
 - SVG/PDF は Vision が直接読めないので **必ず PNG 化** してから Read する。
 - URL は単一幅で済ませず、レスポンシブ対象なら主要ブレークポイントで撮る。
+- クリックや選択で見た目が変わる箇所は、`orca click` などで実際に操作してから撮る。止まった状態の 1 枚では、操作したときにだけ出る崩れを見逃す。
 - 一時ファイルは `/tmp`（または scratchpad）に置く。成果物ディレクトリを汚さない。
 - アラート/モーダルを誘発する操作は避ける（ブラウザ自動化が固まるため）。

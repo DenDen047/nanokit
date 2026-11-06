@@ -148,8 +148,9 @@ flowchart TB
 |---|---|---|---|---|
 | `SessionStart` | `*` | `zotero` / `workspace-personal` / `workspace-hdt` / `scrapling` の各 `*-server.sh start` | 常駐 MCP を冪等起動 | 不可視（出力無視） |
 | `PreToolUse` | `Edit\|Write\|MultiEdit\|NotebookEdit` | `karpathy-reminder.sh` | コーディング 4 原則を初回注入 | system-reminder |
+| `PreToolUse` | `Bash` | `orca-tab-worktree-guard.py` | Orca のブラウザを `--worktree` なしで開く呼び出しを止め、この会話のワークスペースの指定を教える (省くと画面で選ばれている別のワークスペースに開く) | exit 2 で差し戻し |
 | `PostToolUse` | `Write\|Edit\|MultiEdit\|Bash` | `vision-reminder.sh` | 編集・プロット後にスクショ目視を促す | system-reminder（クールダウン付） |
-| `PostToolUse` | `mcp__claude-in-chrome__navigate` | `vision-reminder.sh` | ブラウザ遷移後にスクショ目視を促す | 同上 |
+| `PostToolUse` | `mcp__claude-in-chrome__navigate\|mcp__playwright__browser_navigate` | `vision-reminder.sh` | ブラウザ遷移後にスクショ目視を促す (Orca の内蔵ブラウザは `Bash` の matcher 側で拾う) | 同上 |
 | `SessionEnd` | `*` | `memory-extract.sh` | 個人メモリへ無音抽出（detached `claude -p`） | **完全に不可視** |
 
 補足:

@@ -31,6 +31,10 @@ opencli twitter article TWEET_ID -f yaml                   # the number at the e
 Without `-f`, OpenCLI 2.x prints JSON wrapped as `{"ok": true, "data": ...}`; a failure is
 `{"ok": false, "error": {"code", "message", "hint"}}` with a nonzero exit status.
 
+The `opencli` wrapper on PATH closes the Chrome window and tabs OpenCLI opened as soon as each
+command finishes, so nothing is left behind. The exception is `opencli browser`, which keeps one
+session across several commands: if you use it, end with `opencli browser close --session <name>`.
+
 `search` also takes raw X operators in the query (`lang:en`, `since:YYYY-MM-DD`,
 `"exact phrase"`, `OR`) and `--top-by-engagement N` to re-rank by engagement.
 

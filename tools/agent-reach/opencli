@@ -6,6 +6,131 @@
 # npm 専売のため隣の pixi env には入らない。claude/scripts/mmdc と同じく
 # バージョン固定の npx で実行する。node は fnm 管理なので cron / launchd からは
 # PATH が通らないが、そもそも Chrome が起動している対話セッション専用なので許容。
-# 更新はこの行のバージョンを上げるだけ。
-set -euo pipefail
-exec npx -y "@jackwener/opencli@2.0.2" "$@"
+# 更新は下の OPENCLI の行の版を上げるだけ (nanokit upgrade もこの行を書き換える)。
+#
+# 使い終わったら、開いたタブとウィンドウを必ず閉じる。
+# opencli 2.x の拡張は、作業用のタブを閉じても使い回し用のウィンドウ (1280×900 で、空のタブが 1 つ)
+# を残す作りで、それを止める設定が無い。そこでこのラッパーが、実行中に新しくできた 1280×900 の
+# ウィンドウを、終わったあとで閉じる。本人がもともと開いていたウィンドウには触らない。
+# 同時に何本か動いているときは、最初の 1 本が始まった時点のウィンドウの一覧を共有し、最後に終わった
+# 1 本がそれを基準に閉じる。daemon にまだセッションが残っているときも、その処理のタブを奪わないよう
+# 閉じずに次の回に任せる。サイトごとにタブを温めておく設定 (persistent) は、
+# OPENCLI_SITE_SESSION=ephemeral を既定にして 1 回ごとに閉じさせる。
+# `opencli browser` は複数のコマンドで 1 つのセッションを使い続けるので、ここでは閉じない。
+# 使い終わったら `opencli browser close --session <名前>` で閉じる。
+set -uo pipefail
+OPENCLI=(npx -y "@jackwener/opencli@2.0.2")
+
+case "${1:-}" in
+  "" | browser | daemon | list | help | -h | --help | -V | --version)
+    exec "${OPENCLI[@]}" "$@" ;;
+esac
+
+export OPENCLI_SITE_SESSION="${OPENCLI_SITE_SESSION:-ephemeral}"
+
+# Chrome のウィンドウを扱う。list は id を 1 行ずつ出し、close は渡した id 以外の 1280×900 の
+# ウィンドウを閉じる。Chrome が起動していなければ何もしない (起動させない)。macOS の「オートメーション」
+# の許可が切れていると返事を待って止まるので、15 秒で打ち切る。
+chrome_windows() {
+  local pid guard rc
+  osascript -l JavaScript - "$@" <<'JS' &
+function run(argv) {
+  const chrome = Application("Google Chrome");
+  if (!chrome.running()) return "";
+  const windows = chrome.windows();
+  if (argv[0] === "list") return windows.map((w) => String(w.id())).join("\n");
+  const keep = new Set(argv.slice(1));
+  let closed = 0;
+  windows.forEach((w) => {
+    const b = w.bounds();
+    if (!keep.has(String(w.id())) && b.width === 1280 && b.height === 900) {
+      w.close();
+      closed += 1;
+    }
+  });
+  return String(closed);
+}
+JS
+  pid=$!
+  ( sleep 15; kill -KILL "$pid" 2>/dev/null ) >/dev/null 2>&1 &
+  guard=$!
+  wait "$pid"
+  rc=$?
+  { kill "$guard"; wait "$guard"; } 2>/dev/null
+  return "$rc"
+}
+
+# 同時に動いている呼び出しの記録。active/<pid> が動いている印で、baseline は最初の 1 本が
+# 始まった時点のウィンドウの一覧。読み書きは mkdir のロックの中で行う。
+STATE="$HOME/.local/state/opencli-wrapper"
+mkdir -p "$STATE/active"
+lock() {
+  local _
+  for _ in $(seq 1 300); do
+    mkdir "$STATE/lock" 2>/dev/null && return 0
+    # 1 分より古いロックは、落ちた呼び出しの跡とみなして外す。
+    [ -n "$(find "$STATE/lock" -maxdepth 0 -mmin +1 2>/dev/null)" ] && rmdir "$STATE/lock" 2>/dev/null
+    sleep 0.1
+  done
+  return 1
+}
+unlock() { rmdir "$STATE/lock" 2>/dev/null; }
+# 自分のほかに動いている呼び出しがあれば真。印の pid が死んでいるか、別のプロセスに使い回されて
+# いれば、その印は消す。
+others_alive() {
+  local f p found=1
+  for f in "$STATE/active"/*; do
+    [ -e "$f" ] || continue
+    p="${f##*/}"
+    [ "$p" = "$$" ] && continue
+    if ps -p "$p" -o command= 2>/dev/null | grep -q opencli; then found=0; else rm -f "$f"; fi
+  done
+  return "$found"
+}
+
+# daemon に動いている処理 (待ちの命令かセッション) が残っていれば真。daemon が答えなければ偽。
+daemon_busy() {
+  curl -s -m 3 -H 'X-OpenCLI: 1' "http://127.0.0.1:${OPENCLI_DAEMON_PORT:-19825}/status" 2>/dev/null \
+    | python3 -c '
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    sys.exit(1)
+sys.exit(0 if d.get("pending") or d.get("sessionLeases") else 1)'
+}
+
+if ! now="$(chrome_windows list 2>/dev/null)"; then
+  echo "opencli wrapper: Chrome のウィンドウを読めなかったので、実行後の片付けはしない (オートメーションの許可を確かめる)" >&2
+  exec "${OPENCLI[@]}" "$@"
+fi
+if ! lock; then
+  echo "opencli wrapper: 片付けの記録のロックを取れなかったので、実行後の片付けはしない" >&2
+  exec "${OPENCLI[@]}" "$@"
+fi
+others_alive || printf '%s\n' "$now" >"$STATE/baseline"
+touch "$STATE/active/$$"
+unlock
+
+"${OPENCLI[@]}" "$@"
+rc=$?
+
+if lock; then
+  rm -f "$STATE/active/$$"
+  if others_alive; then
+    :  # 最後に終わる 1 本が閉じる
+  elif daemon_busy; then
+    echo "opencli wrapper: daemon にまだ処理が残っているので、ウィンドウの片付けは次の回に任せる" >&2
+  else
+    baseline="$(cat "$STATE/baseline" 2>/dev/null || printf '%s' "$now")"
+    # shellcheck disable=SC2086  # baseline は改行区切りの id の並び
+    chrome_windows close $baseline >/dev/null 2>&1 \
+      || echo "opencli wrapper: opencli のウィンドウを閉じられなかった (Chrome に 1280×900 の窓が残っていれば手で閉じる)" >&2
+    rm -f "$STATE/baseline"
+  fi
+  unlock
+else
+  rm -f "$STATE/active/$$"
+  echo "opencli wrapper: 片付けの記録のロックを取れなかったので、ウィンドウを閉じていない" >&2
+fi
+exit "$rc"

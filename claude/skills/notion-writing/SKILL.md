@@ -48,7 +48,7 @@ MCP ツールスキーマには `paragraph` と `bulleted_list_item` しか明�
 
 ### 4. タスクページは Task Description / Result / Notes の 3 パート
 
-ユーザーの Tasks DB で確立しているパターン。冒頭に背景色付き `heading_1` で 3 セクションを立て、Notes 配下に `heading_2` で情報・To Do・Related Links を配置する。To Do は `heading_3` でフェーズ分け → `to_do` ブロック列挙。全体の雛形 JSON は [task-template.md](reference/task-template.md) に置いてある。
+ユーザーの Tasks DB で確立しているパターン。冒頭に背景色付き `heading_1` で 3 セクションを立て、Notes 配下に `heading_2` で情報・To Do・Related Links を配置する。**Result は callout 1 つに結論を 1〜2 文だけ書く。** 何を変えたか・数値・図・動画・次にやることはすべて Notes 側の `heading_2` の下に置く（ユーザーから毎回言われている指示）。To Do は `heading_3` でフェーズ分け → `to_do` ブロック列挙。全体の雛形 JSON は [task-template.md](reference/task-template.md) に置いてある。
 
 ## API 操作の要点
 

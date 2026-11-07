@@ -39,6 +39,8 @@ heading_1 "Notes"            [blue_background]
 
 完了時に埋めるべき情報のプレースホルダを callout で置く。例: 予約確認番号 / Registration ID / 提出ファイルのリンク / コスト / 気付いた異常など。
 
+埋めるときはコンパクトに、最低限の結論（1〜2 文）だけを callout に書く。変更点の説明、数値、図・動画、次にやることのチェックリストは Result に並べず、Notes の `heading_2`（例: 「直したこと」「次にやること」）の下に置く。
+
 ### Notes (blue_background)
 
 セクションを `heading_2` で作り、中身を bullets・to_do・さらなる heading_3 で構成する。

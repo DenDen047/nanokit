@@ -249,7 +249,6 @@ plan-driven モードのときは prompt に 1 行追加: 「plans/foo.md から
 
 - `karpathy-guidelines` : IMPLEMENT 中の行動規範 (4 原則)
 - `/codex:review` (公式プラグイン) : 1 ショットレビュー (loop 不要時)。`--background` でターンを塞がない
-- `codex-discuss`       : 実装前の設計議論
 - `git-commits`         : LGTM 後のコミット粒度整理
 
 ## 補足: レビュー経路の使い分け

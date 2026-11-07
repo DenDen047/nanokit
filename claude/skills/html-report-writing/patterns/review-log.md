@@ -28,7 +28,6 @@
 | 別モデル / 同僚にレビューさせて取り込みたい | **本 pattern** |
 | 選択肢を pill で優先度付けして比較したい | **本 pattern** |
 | 改訂履歴を読者に見せて「思考の透明性」を示したい | **本 pattern** |
-| CTO / 投資家向けに What/Why だけ伝えたい | `cto-briefing` skill (別スキル) |
 
 ## スターター
 
@@ -131,7 +130,7 @@ v2.x (削り込み版)
 
 ### Codex への投入手順 (推奨)
 
-別ターミナルで `codex-review` / `codex-discuss` スキルを使う。本 pattern は結果を取り込む「保管庫」役。
+別ターミナルで `codex-review` スキルを使うか、Bash から `codex exec` を呼ぶ。本 pattern は結果を取り込む「保管庫」役。
 
 ```text
 # Codex 側プロンプト例

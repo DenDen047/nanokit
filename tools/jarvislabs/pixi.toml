@@ -2,6 +2,7 @@
 name = "jarvislabs"
 channels = ["conda-forge"]
 platforms = ["linux-64", "linux-aarch64", "osx-arm64"]
+exclude-newer = "7d"
 
 [dependencies]
 python = ">=3.11"  # ledger.py が tomllib を使う (3.11 で標準ライブラリ入り)

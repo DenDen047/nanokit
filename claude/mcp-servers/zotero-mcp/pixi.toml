@@ -2,6 +2,7 @@
 name = "zotero-mcp"
 channels = ["conda-forge"]
 platforms = ["linux-64", "linux-aarch64", "osx-arm64"]
+exclude-newer = "7d"
 
 [dependencies]
 python = ">=3.11,<3.13"

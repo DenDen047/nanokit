@@ -7,6 +7,9 @@
 
   中身を `bash -c` の 1 行にしているのは、launchd が $HOME を展開しないのと、
   launchd の最小 PATH に pixi・gh・fnm の node・/usr/local/bin の spark が無いため。
+
+  AbandonProcessGroup を true にするのは、更新のあとで立ち上げ直した常駐の MCP サーバーを、
+  ジョブの終わりに launchd がまとめて止めてしまわないようにするため。
 -->
 <plist version="1.0">
 <dict>
@@ -27,5 +30,7 @@
   </dict>
   <key>RunAtLoad</key>
   <false/>
+  <key>AbandonProcessGroup</key>
+  <true/>
 </dict>
 </plist>

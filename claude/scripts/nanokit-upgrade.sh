@@ -103,6 +103,23 @@ print((max(same)[1] if same else "") + "|" + (max(ok)[1] if ok else ""))
 ' "$2" "$COOLDOWN_DAYS"
 }
 
+# 常駐の MCP サーバーを立ち上げ直し、応答するようになったかまで確かめる。
+# 止まりきる前に start すると「起動済み」と誤って判断されるので、先に止まるのを待つ。
+restart_server() {
+  local s="$1"
+  bash "$s" stop >>"$LOG" 2>&1
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    bash "$s" status >/dev/null 2>&1 || break
+    sleep 1
+  done
+  bash "$s" start >>"$LOG" 2>&1
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    bash "$s" status >/dev/null 2>&1 && return 0
+    sleep 1
+  done
+  return 1
+}
+
 skill_label() {
   local f="$1/SKILL.md" ref sha
   ref="$(sed -n 's/^ *github-ref: *//p' "$f" | head -n 1)"
@@ -219,7 +236,7 @@ step_spark() {
 
 step_pixi_locks() {
   command -v pixi >/dev/null || { fail "pixi-locks: pixi が見つからない"; return; }
-  local m dir lock name server
+  local m dir lock name server s broken
   for m in "$NANOKIT_ROOT"/tools/*/pixi.toml "$NANOKIT_ROOT"/claude/mcp-servers/*/pixi.toml; do
     [ -f "$m" ] || continue
     dir="$(dirname "$m")"
@@ -241,22 +258,30 @@ step_pixi_locks() {
       continue
     fi
     dirty "$lock" || continue
-    # version タスクがあれば、更新した環境で動くかを確かめる。動かなければ元の lock に戻す。
-    if grep -qE '^version *=' "$m" && ! pixi run --manifest-path "$m" version >>"$LOG" 2>&1; then
+    # 更新した環境で動くかを確かめる。version タスクがあればそれを走らせ、常駐の MCP サーバーなら
+    # 立ち上げ直して応答を待つ。どちらかが駄目なら元の lock と環境に戻す。
+    server=""
+    for s in "$HOME/.claude/scripts/$name-server.sh" "$HOME/.claude/scripts/$name-mcp-server.sh"; do
+      [ -f "$s" ] && server="$s"
+    done
+    broken=""
+    # 版が上がったあとに要る手順 (ブラウザ本体の取り直しなど) は、各 pixi.toml の post-update タスクに書く。
+    if grep -qE '^post-update *=' "$m" && ! pixi run --manifest-path "$m" post-update >>"$LOG" 2>&1; then
+      broken="post-update タスクが失敗した"
+    elif grep -qE '^version *=' "$m" && ! pixi run --manifest-path "$m" version >>"$LOG" 2>&1; then
+      broken="version タスクが動かない"
+    elif [ -n "$server" ] && ! restart_server "$server"; then
+      broken="MCP サーバーが応答しない"
+    fi
+    if [ -n "$broken" ]; then
       revert "$lock"
       pixi install --manifest-path "$m" >>"$LOG" 2>&1
-      fail "$name: 更新後に version タスクが動かないので元の pixi.lock に戻した"
+      [ -n "$server" ] && { restart_server "$server" || fail "$name: 元の環境に戻しても MCP サーバーが応答しない ($server)"; }
+      fail "$name: 更新後に$broken ので元の pixi.lock に戻した (詳しくはログ)"
       continue
     fi
     CHANGED+=("$lock")
     SUMMARY+=("$name (pixi.lock)")
-    # 常駐している MCP サーバーは、新しい環境で立ち上げ直す。
-    for server in "$HOME/.claude/scripts/$name-server.sh" "$HOME/.claude/scripts/$name-mcp-server.sh"; do
-      if [ -f "$server" ]; then
-        bash "$server" stop >>"$LOG" 2>&1
-        bash "$server" start >>"$LOG" 2>&1 || fail "$name: 更新後に MCP サーバーが起動しない ($server)"
-      fi
-    done
   done
 }
 
@@ -390,12 +415,19 @@ step_pixi_global() {
   fi
   # 壊れたときに前の版へ戻す手がかりとして、更新前の一覧を残す。
   pixi global list >"$STATE_DIR/pixi-global-before.txt" 2>&1
-  local out rc
+  # pixi global update は、新しい版が出すコマンドを pixi-global.toml の exposed に書き足すことがある。
+  # 走る前に手を入れていなかったときだけ、その書き換えを commit に含める。
+  local manifest="$NANOKIT_ROOT/pixi-global.toml" was_dirty=false out rc
+  dirty "$manifest" && was_dirty=true
   out="$(pixi global update 2>&1)"
   rc=$?
   printf '%s\n' "$out" >>"$LOG"
   [ "$rc" -eq 0 ] || fail "pixi-global: pixi global update が失敗した (exit $rc)"
   printf '%s\n' "$out" | grep -E '^\(updated\)' | while read -r line; do say "pixi global $line"; done
+  if ! $was_dirty && dirty "$manifest"; then
+    CHANGED+=("$manifest")
+    SUMMARY+=("pixi-global.toml (pixi global update が書き足した exposed)")
+  fi
 }
 
 report() {
@@ -471,10 +503,10 @@ main() {
   step_spark
   step_pixi_locks
   step_npx_pins
+  step_pixi_global
   $DRY_RUN || commit_and_push
   step_npm_clis
   step_gh_ext
-  step_pixi_global
 
   if $DRY_RUN; then
     say "試し実行なので何も書き換えていない"

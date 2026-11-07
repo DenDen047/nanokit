@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  nanokit upgrade を毎日 04:30 に走らせる (眠っていた日は起きたときに走る)。
+  登録と解除は `nanokit upgrade --schedule` / `--unschedule` で行い、このファイルは
+  ~/Library/LaunchAgents/ へコピーで置かれる。symlink にしない。
+
+  中身を `bash -c` の 1 行にしているのは、launchd が $HOME を展開しないのと、
+  launchd の最小 PATH に pixi・gh・fnm の node・/usr/local/bin の spark が無いため。
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>local.nanokit-upgrade</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-c</string>
+    <string>export PATH="$HOME/.pixi/bin:$HOME/.local/share/fnm/aliases/default/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"; mkdir -p "$HOME/.local/state/nanokit-upgrade"; exec "$HOME/nanokit/nanokit" upgrade &gt;&gt; "$HOME/.local/state/nanokit-upgrade/launchd.log" 2&gt;&amp;1</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>4</integer>
+    <key>Minute</key>
+    <integer>30</integer>
+  </dict>
+  <key>RunAtLoad</key>
+  <false/>
+</dict>
+</plist>

@@ -17,6 +17,7 @@ This file is the repository instruction source; `AGENTS.md` is a symlink to it.
 ./nanokit install        # Full setup: dotter deploy + pixi global sync
 ./nanokit claude-setup   # Claude Code config + plugin install
 ./nanokit agent-config-sync  # Shared Claude Code / Codex instructions, skills, and Codex config
+./nanokit upgrade        # Update everything pulled in from upstream (--dry-run previews, --schedule runs it daily)
 ./nanokit uninstall      # Remove symlinks and tools
 dotter deploy            # Symlink dotfiles only
 dotter undeploy          # Remove symlinks only
@@ -53,6 +54,20 @@ Individual skill mappings do not belong in `.dotter/global.toml`; `agent-config-
 Codex's portable settings (`model`, `model_reasoning_effort`, `approval_policy`, `web_search`, …) are managed here too. Edit `codex/config.toml`; reflect with `./nanokit agent-config-sync` (`--diff` previews). The live file can't be a symlink because the Codex desktop app writes host-specific state (`[projects.*]` trust levels) back into it, and nanokit is a public repo — so the sync upserts only the managed keys idempotently and preserves other sections. `codex-install` runs it automatically.
 
 On a new host the Codex plugin is declared in `claude/settings.json` via `extraKnownMarketplaces` + `enabledPlugins`. If it doesn't install itself, run `claude plugin install codex@openai-codex`; install the `codex` CLI that skills call through `codex exec` with `./nanokit codex-install`.
+
+## Upstream updates (`./nanokit upgrade`)
+
+`claude/scripts/nanokit-upgrade.sh` checks and updates everything nanokit pulls in from outside. It finds its targets in the repo itself, so there is no separate list to keep in sync:
+
+- **Skills mirrored from GitHub**: every `claude/skills/*/SKILL.md` that carries `metadata.github-repo`, which `gh skill install` writes. Add one with `gh skill install <owner/repo> <skill> --dir ~/nanokit/claude/skills`; it follows the latest release, or the default branch when the repo has none. Do not hand-edit a tracked skill, because the next update overwrites it. To fork one, delete its `metadata.github-*` lines. The skills copied in by hand earlier (`pdf`, `tdd`, `diagnose`, `handoff`, `write-a-skill`, `domain-modeling`, `empirical-prompt-tuning`, `agent-reach`) stay untracked: most carry local edits or were renamed upstream, `agent-reach` must move together with the rev pinned in `tools/agent-reach/pixi.toml`, and `pdf` keeps its `$PDF_PASSWORD` placeholder because upstream's literal example trips GitGuardian.
+- **Everything else**: `use-spark` (through `spark-skill-sync.sh`), the `pixi.lock` of every `tools/*` and `claude/mcp-servers/*` project, `npx -y "pkg@X.Y.Z"` pins in wrappers, the npm-installed Codex and Gemini CLIs, gh extensions, and `pixi global`.
+- **Claude Code plugins** update themselves: `extraKnownMarketplaces.*.autoUpdate` is `true` in `claude/settings.json`.
+
+Packages follow the 7-day cooldown in the README: each project `pixi.toml` sets `exclude-newer = "7d"`, and npm pins move to the newest release at least 7 days old within the same major version (a new major is only logged). Skills skip the cooldown so they keep up with fast-moving upstreams, but an update is held back until `./nanokit upgrade --accept-held` when its added code lines contain network or dynamic-exec calls, or when the SKILL.md frontmatter changes anywhere beyond `description`, `name`, `license`, and `metadata` (for example `allowed-tools` or `hooks`). A lock bump must pass the project's `version` task or it is reverted, and MCP servers are restarted after their lock changes.
+
+The run commits only the paths it changed (`chore(upgrade): …`) and pushes only when the branch was neither behind origin nor carrying unpushed commits beforehand. A target with uncommitted edits is skipped and reported.
+
+`./nanokit upgrade --schedule` copies `claude/scripts/local.nanokit-upgrade.plist` into `~/Library/LaunchAgents/` (a copy, never a symlink) for a daily 04:30 run; `--unschedule` removes it. Success is silent. Failures go to `~/.local/state/nanokit-upgrade/failed.txt`, and the `SessionStart` hook `nanokit-upgrade.sh --report` shows them as a `systemMessage`, as it also does when a scheduled job has not run for 3 days. The full log is `~/.local/state/nanokit-upgrade/upgrade.log`.
 
 ## Gotchas
 

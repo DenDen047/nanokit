@@ -384,6 +384,11 @@ curl -fsSL https://claude.ai/install.sh | bash
 # Or re-apply only the shared agent configuration
 ./nanokit agent-config-sync --diff
 ./nanokit agent-config-sync
+
+# Update everything nanokit pulls in from upstream (skills, locks, pins, CLIs)
+./nanokit upgrade --dry-run
+./nanokit upgrade
+./nanokit upgrade --schedule   # macOS: run it daily at 04:30 via launchd
 ```
 
 This will:
@@ -428,6 +433,7 @@ claude plugin install everything-claude-code@everything-claude-code
 | `codex/rules/*.rules` | Global Codex command rules linked into `~/.codex/rules/` |
 | `codex/sync-config.py` | Safe, idempotent config/instruction/skill/rule synchronizer |
 | `claude/scripts/zotero-mcp-server.sh` | Zotero MCP server lifecycle script |
+| `claude/scripts/nanokit-upgrade.sh` | Upstream update runner behind `./nanokit upgrade` (see `CLAUDE.md`) |
 
 Plugin-managed files and runtime data remain outside this synchronization. A non-symlink path or a foreign symlink with the same skill name is treated as a collision and is never overwritten.
 
@@ -506,7 +512,7 @@ Pixi's `exclude-newer` is currently [**workspace-only**](https://github.com/pref
 exclude-newer = "7d"  # requires pixi v0.67.0+
 ```
 
-This applies to both conda and PyPI packages within that workspace. For `pixi global` (i.e. [`pixi-global.toml`](pixi-global.toml)), cooldown is not yet supported upstream.
+This applies to both conda and PyPI packages within that workspace. nanokit's own projects (`tools/*`, `claude/mcp-servers/*`) set it, so `./nanokit upgrade` honors the cooldown too. For `pixi global` (i.e. [`pixi-global.toml`](pixi-global.toml)), cooldown is not yet supported upstream.
 
 ## 🧪 Try nanokit in your OS
 

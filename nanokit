@@ -68,6 +68,7 @@ show_help() {
     echo -e "${CYAN}Commands:${NC}"
     echo "  install         🚀 Install and setup nanokit environment"
     echo "  deploy          📦 Apply all config changes: dotter symlinks + agent config sync (--diff to preview)"
+    echo "  upgrade         ⬆️  Update everything nanokit pulls in from upstream (--dry-run, --schedule)"
     echo "  claude-setup    🤖 Setup Claude Code configuration and plugins"
     echo "  ecc-install     🔧 Install ECC (Everything Claude Code) skills (optional)"
     echo "  ecc-update      🔄 Update ECC skills to the latest version"
@@ -1231,6 +1232,9 @@ main() {
             ;;
         "deploy")
             deploy_all "${@:2}"
+            ;;
+        "upgrade")
+            bash "$NANOKIT_ROOT/claude/scripts/nanokit-upgrade.sh" "${@:2}"
             ;;
         "claude-setup")
             claude_setup

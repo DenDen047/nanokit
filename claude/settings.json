@@ -92,6 +92,11 @@
             "type": "command",
             "command": "bash ~/.claude/scripts/agent-config-sync-reconnect.sh",
             "timeout": 20
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/nanokit-upgrade.sh --report",
+            "timeout": 10
           }
         ]
       }
@@ -168,13 +173,15 @@
       "source": {
         "source": "github",
         "repo": "warpdotdev/claude-code-warp"
-      }
+      },
+      "autoUpdate": true
     },
     "openai-codex": {
       "source": {
         "source": "github",
         "repo": "openai/codex-plugin-cc"
-      }
+      },
+      "autoUpdate": true
     }
   },
   "outputStyle": "concise-clear",

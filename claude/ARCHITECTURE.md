@@ -221,6 +221,7 @@ claude/
 | 視覚リマインダ発火 | `tail ~/.claude/debug/vision-reminder.log` |
 | MCP サーバ状態 | `bash ~/.claude/scripts/<server>.sh status` / `tail ~/.claude/debug/<server>.log` |
 | MCP 接続確認 | `claude mcp list` |
+| 上流の一括更新 (`nanokit upgrade`) | `tail ~/.local/state/nanokit-upgrade/upgrade.log` / 失敗の残り `~/.local/state/nanokit-upgrade/failed.txt` |
 | symlink 健全性 | `readlink ~/.claude/settings.json`（→ nanokit を指せば OK） |
 
 > `~/.claude/settings.json` が通常ファイル化したら、`CLAUDE.md` の「symlink 破壊からの復旧」手順で `rm` → `dotter deploy`。

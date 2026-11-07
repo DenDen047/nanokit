@@ -8,4 +8,4 @@
 # PATH が通らないが、そもそも Chrome が起動している対話セッション専用なので許容。
 # 更新はこの行のバージョンを上げるだけ。
 set -euo pipefail
-exec npx -y "@jackwener/opencli@1.8.8" "$@"
+exec npx -y "@jackwener/opencli@2.0.2" "$@"

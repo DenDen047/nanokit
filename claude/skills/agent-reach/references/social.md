@@ -25,8 +25,11 @@ opencli twitter search "query" -f yaml --from someone --exclude retweets
 opencli twitter tweets USERNAME -f yaml --limit 20         # one account's recent tweets
 opencli twitter profile USERNAME -f yaml                   # omit USERNAME for the logged-in account
 opencli twitter timeline -f yaml --type following          # home timeline
-opencli twitter article URL -f yaml
+opencli twitter article TWEET_ID -f yaml                   # the number at the end of the tweet URL
 ```
+
+Without `-f`, OpenCLI 2.x prints JSON wrapped as `{"ok": true, "data": ...}`; a failure is
+`{"ok": false, "error": {"code", "message", "hint"}}` with a nonzero exit status.
 
 `search` also takes raw X operators in the query (`lang:en`, `since:YYYY-MM-DD`,
 `"exact phrase"`, `OR`) and `--top-by-engagement N` to re-rank by engagement.
@@ -34,10 +37,12 @@ opencli twitter article URL -f yaml
 Check these in order when an OpenCLI call fails:
 
 1. **Chrome must be running** with the OpenCLI extension installed and x.com logged in.
-2. `opencli doctor` must report `Extension: connected`. If it says `not connected`,
+2. `opencli daemon status` must show `"extensionConnected": true`. If it is `false`,
    the browser side is down — report that and stop. Do not fall back to a web search
    and present the results as X data. `opencli daemon restart` clears a stale
-   connection after Chrome restarts; the daemon listens on 127.0.0.1:19825.
+   connection after Chrome restarts; the daemon listens on 127.0.0.1:19825. Do not use
+   `opencli doctor` or `opencli browser` for this: they leave an "OpenCLI Browser" tab
+   group that Chrome keeps in the bookmarks bar.
 3. Whichever X account Chrome is logged into is the one OpenCLI reads as, and it is
    meant to be the burner. `opencli twitter profile` (no argument) shows who that is.
    If it is not the burner, stop and tell the user instead of continuing.

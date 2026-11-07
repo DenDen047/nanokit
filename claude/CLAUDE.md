@@ -50,7 +50,7 @@ Max プランなので画像認識を惜しまない。**UI・図・ブラウザ
 ## Git LFS の置き場
 
 - 画像・音声・動画などの大きなファイルを git で管理するときは Git LFS を使い、中身は GitHub の LFS ではなく自前の Forgejo に置く。GitHub の LFS は無料枠が小さく、一度上げたファイルを消せない。コードは GitHub のままにする。
-- **LFS を新しく使うリポジトリでは、最初の push より前に `~/Documents/Projects/frogiraffe/scripts/forgejo-lxc/add-repo.sh <repo>` で `.lfsconfig` を作る。**順番を誤ると中身が GitHub に上がり、消せなくなる。
+- **LFS を新しく使うリポジトリでは、最初の push より前に `~/Documents/Projects/frogiraffe/homelab/ct/forgejo/add-repo.sh <repo>` で `.lfsconfig` を作る。**順番を誤ると中身が GitHub に上がり、消せなくなる。
 - Forgejo には tailnet の中からしか届かない。LFS の送受信が失敗したら、まず Tailscale の接続を確かめる。送り先・手順・落とし穴は `~/Documents/Projects/frogiraffe/okf/technologies/forgejo-git-lfs-server.md` にある。
 
 ## Orca の機能を先に使う

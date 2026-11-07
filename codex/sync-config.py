@@ -231,6 +231,22 @@ def desired_links() -> list[tuple[Path, Path, bool]]:
     return links
 
 
+def stale_skill_links() -> list[Path]:
+    """Links this sync made for a skill that has since been deleted from claude/skills.
+
+    Only dangling symlinks whose target sits directly in SKILLS_SOURCE are returned, so links
+    made by anything else (plugins, other repos) are never touched.
+    """
+    stale: list[Path] = []
+    for root in (home_path() / ".claude" / "skills", home_path() / ".agents" / "skills"):
+        if not root.is_dir():
+            continue
+        for link in sorted(root.iterdir()):
+            if link.is_symlink() and not link.exists() and resolved_link(link).parent == SKILLS_SOURCE.resolve():
+                stale.append(link)
+    return stale
+
+
 def apply_link(source: Path, destination: Path, action: str) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
     if action == "replace identical directory":
@@ -281,6 +297,7 @@ def main() -> int:
         if action:
             link_actions.append((source, destination, action))
 
+    stale = stale_skill_links()
     config_changed = old_text != new_text
     settings_changed = settings is not None and settings[1] != settings[2]
     if args.diff:
@@ -289,9 +306,11 @@ def main() -> int:
             print_config_diff(settings[0], settings[1], settings[2])
         for source, destination, action in link_actions:
             print(f"{action}: {destination} -> {source}")
+        for link in stale:
+            print(f"remove stale link: {link} -> {os.readlink(link)}")
         for msg in conflicts:
             print(f"WOULD SKIP (conflict): {msg}", file=sys.stderr)
-        if not config_changed and not settings_changed and not link_actions and not conflicts:
+        if not config_changed and not settings_changed and not link_actions and not stale and not conflicts:
             print("All shared agent settings are already in sync.")
         return 2 if conflicts else 0
 
@@ -318,7 +337,14 @@ def main() -> int:
             failures.append(f"{destination}: {exc}")
             continue
         print(f"✓ {action}: {destination} -> {source}")
-    if not link_actions and not conflicts:
+    for link in stale:
+        try:
+            link.unlink()
+        except OSError as exc:
+            failures.append(f"{link}: {exc}")
+            continue
+        print(f"✓ removed stale link: {link}")
+    if not link_actions and not stale and not conflicts:
         print("✓ shared instructions and skills already in sync")
 
     problems = conflicts + failures

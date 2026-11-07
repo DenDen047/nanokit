@@ -74,7 +74,9 @@ cmd_start() {
   fi
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] scrapling-mcp starting port=$PORT manifest=$MANIFEST" >> "$LOG_FILE"
 
-  nohup pixi run --manifest-path "$MANIFEST" mcp --http --host "$HOST" --port "$PORT" \
+  # scrapling 0.5 から、認証なしの HTTP は --no-auth を明示しないと起動しない。待ち受けは
+  # 127.0.0.1 だけで、ほかの常駐 MCP と同じく認証なしのローカル専用という運用を保つ。
+  nohup pixi run --manifest-path "$MANIFEST" mcp --http --host "$HOST" --port "$PORT" --no-auth \
     >> "$LOG_FILE" 2>&1 &
   echo $! > "$PID_FILE"
 

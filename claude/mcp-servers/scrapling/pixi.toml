@@ -12,4 +12,7 @@ scrapling = { version = "*", extras = ["ai"] }
 
 [tasks]
 mcp = "scrapling mcp"
-install-browsers = "python -m playwright install chromium"
+# scrapling 0.5 からブラウザは patchright 経由で起動する。版が上がると要るブラウザの版も変わるので、
+# nanokit upgrade が lock を上げたあとに post-update を走らせる。
+install-browsers = "patchright install chromium"
+post-update = { depends-on = ["install-browsers"] }

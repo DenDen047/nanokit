@@ -63,7 +63,7 @@ exposed = { zoxide = "zoxide" }
 [envs.make]
 channels = ["conda-forge"]
 dependencies = { make = "*" }
-exposed = { make = "make" }
+exposed = { make = "make", gmake = "gmake" }
 
 [envs.tig]
 channels = ["conda-forge"]

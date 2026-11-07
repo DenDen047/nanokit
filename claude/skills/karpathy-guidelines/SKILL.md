@@ -1,13 +1,14 @@
 ---
-name: karpathy-guidelines
 description: Behavioral guidelines to reduce common LLM coding mistakes. Use when writing, reviewing, or refactoring code to avoid overcomplication, make surgical changes, surface assumptions, and define verifiable success criteria.
+license: MIT
+metadata:
+    github-path: skills/karpathy-guidelines
+    github-ref: refs/heads/main
+    github-repo: https://github.com/forrestchang/andrej-karpathy-skills
+    github-tree-sha: e119339197d600aa39a24fd7a95c946800c9c949
+name: karpathy-guidelines
 ---
-
 # Karpathy Guidelines
-
-> Source: https://github.com/forrestchang/andrej-karpathy-skills (MIT License)
-> Mirrored into nanokit on 2026-04-29. Re-sync via:
-> `curl -sSL https://raw.githubusercontent.com/forrestchang/andrej-karpathy-skills/main/skills/karpathy-guidelines/SKILL.md > ~/nanokit/claude/skills/karpathy-guidelines/SKILL.md`
 
 Behavioral guidelines to reduce common LLM coding mistakes, derived from [Andrej Karpathy's observations](https://x.com/karpathy/status/2015883857489522876) on LLM coding pitfalls.
 

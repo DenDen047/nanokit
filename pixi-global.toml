@@ -211,7 +211,7 @@ exposed = { nvtop = "nvtop" }
 
 [envs.python]
 channels = ["conda-forge"]
-dependencies = { python = "*", numpy = "*", scipy = "*", pillow = "*", matplotlib = "*", pandas = "*", ipython = "*" , beautifulsoup4 = "*" , trimesh = "*", loguru = "*", scikit-learn = "*", pypdf = "*", pdfplumber = "*", pdf2image = "*", reportlab = "*" }
+dependencies = { python = "*", numpy = "*", scipy = "*", pillow = "*", matplotlib = "*", pandas = "*", ipython = "*" , beautifulsoup4 = "*" , trimesh = "*", loguru = "*", scikit-learn = "*", pypdf = "*", pdfplumber = "*", pdf2image = "*", reportlab = "*", pyyaml = "*" }
 exposed = { python = "python" }
 
 [envs.yt-dlp]

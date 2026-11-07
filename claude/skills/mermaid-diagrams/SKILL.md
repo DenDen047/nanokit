@@ -48,6 +48,7 @@ Follow these steps for every diagram creation/modification:
 - Command: `mmdc -i <filename>.mmd -o <filename>.svg`
 - Alternative formats: PNG (`-o <filename>.png`), PDF (`-o <filename>.pdf`)
 - Only render when user explicitly requests a preview/image
+- `mmdc` is mermaid-cli 12 (Mermaid 12). PDFs are fitted to the diagram by default (`--pdfFit` is gone; `--pdf-paper-format=Letter` gives a full page), `--size` replaces `--width` / `--height`, and `--iconPacks` only loads icon packs installed locally. `-s` is still the scale factor and `-b` the background.
 
 ## Supported Diagram Types
 

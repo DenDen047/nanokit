@@ -155,7 +155,7 @@ flowchart TB
 
 補足:
 - `SessionEnd` は出力・終了コードが Claude Code に無視される仕様 → 無音を保証。`reason=resume` や短いトランスクリプトはスキップ。再帰防止に子セッションは `MEMEX_CHILD=1` で early-exit。
-- 主要な `env`: `model=opus[1m]` / `effortLevel=xhigh` / `autoMemoryEnabled=true` / `defaultMode=auto` / `CLAUDE_CODE_AUTO_COMPACT_WINDOW=1000000`。
+- 主要な `env`: `model=opus` / `modelSettings.claude-opus-5-5.effortLevel=high` (Opus 5.5 はユーザー設定の最上位 `effortLevel` を見ない) / `autoMemoryEnabled=true` / `defaultMode=auto` / `CLAUDE_CODE_AUTO_COMPACT_WINDOW=1000000`。
 
 ---
 

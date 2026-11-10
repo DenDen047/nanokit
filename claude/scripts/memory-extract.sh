@@ -44,7 +44,7 @@
 # same hook; it carries MEMEX_CHILD=1 so the hook early-exits for it.
 #
 # Tunables (env): MEMEX_MODEL (default claude-opus-5-5), MEMEX_EFFORT (default
-#                 xhigh), MEMEX_MIN_LINES (default 12), MEMEX_DEST,
+#                 high), MEMEX_MIN_LINES (default 12), MEMEX_DEST,
 #                 MEMEX_TIMEOUT_S (default 900), MEMEX_MAX_LINES (200),
 #                 MEMEX_MAX_BYTES (25600), MEMEX_TARGET_LINES (175),
 #                 MEMEX_TARGET_BYTES (23000), MEMEX_PRUNE_TIMEOUT_S (900),
@@ -62,10 +62,10 @@ DEBUG_DIR="$HOME/.claude/debug"
 LEDGER="$DEBUG_DIR/memory-extract.log"
 RUNDIR="$DEBUG_DIR/memory-extract"
 MODEL="${MEMEX_MODEL:-claude-opus-5-5}"
-EFFORT="${MEMEX_EFFORT:-xhigh}"
+EFFORT="${MEMEX_EFFORT:-high}"
 MIN_LINES="${MEMEX_MIN_LINES:-12}"
 # Wall-clock kill switch for the detached child. A normal extraction finishes
-# in 2-5 min; without this, a wedged `claude -p` (opus + xhigh, nohup'd) has
+# in 2-5 min; without this, a wedged `claude -p` (opus, nohup'd) has
 # NO stop condition at all — no timeout, no turn cap, nothing (2026-07-03
 # loop-engineering audit, finding H2). No `timeout` binary on this Mac, so a
 # sleep+kill watchdog is used.

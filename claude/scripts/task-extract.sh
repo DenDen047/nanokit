@@ -31,7 +31,7 @@
 #   per-run log : ~/.claude/debug/task-extract/<ts>_<sid>.log
 #   queue       : ~/.local/state/task-radar/chat-queue.jsonl  (JSONL candidates)
 # Manual: bash task-extract.sh --now <transcript.jsonl>   /   --dry-run < payload.json
-# Tunables: TASKEX_MODEL (claude-sonnet-5), TASKEX_EFFORT (xhigh),
+# Tunables: TASKEX_MODEL (claude-sonnet-5), TASKEX_EFFORT (medium),
 #           TASKEX_MIN_LINES (20), TASKEX_TIMEOUT_S (600), TASKEX_QUEUE.
 set -uo pipefail
 
@@ -43,7 +43,7 @@ DEBUG_DIR="$HOME/.claude/debug"
 LEDGER="$DEBUG_DIR/task-extract.log"
 RUNDIR="$DEBUG_DIR/task-extract"
 MODEL="${TASKEX_MODEL:-claude-sonnet-5}"          # Sonnet で統一 (2026-07-08)
-EFFORT="${TASKEX_EFFORT:-xhigh}"
+EFFORT="${TASKEX_EFFORT:-medium}"
 MIN_LINES="${TASKEX_MIN_LINES:-20}"
 TIMEOUT_S="${TASKEX_TIMEOUT_S:-600}"
 # Queue lives OUTSIDE ~/.claude (writes under ~/.claude are approval-gated and a

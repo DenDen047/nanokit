@@ -104,7 +104,7 @@ Max プランの画像認識を惜しまない方針。**UI・図・ブラウザ
 
 | 観点 | **nanokit**（この repo） | **claude-settings**（別 repo, private） |
 |---|---|---|
-| 守備範囲 | 個人 `~/.claude` のグローバル層 | 各クライアント（HDT / OpenHeart / uSonar / Lagoon / personal …）への振り分け |
+| 守備範囲 | 個人 `~/.claude` のグローバル層 | 各クライアント（HDT / uSonar / Lagoon / personal …）への振り分け |
 | 主な実体 | hooks・skills・常駐 MCP サーバの**ランチャ実体**（`workspace-personal :8322` / `workspace-hdt :8324` / `zotero :8321` / `scrapling :8323`） | `templates/<client>/`＋`deploy.sh`＋per-client `.mcp.json` |
 | アカウント切替 | —（サーバを立てるだけ） | フォルダ毎に **direnv `.envrc`** が `WORKSPACE_MCP_CREDENTIALS_DIR` / `USER_GOOGLE_EMAIL` / `CLAUDE_CONFIG_DIR` を注入 |
 | 軸A 隔離（`~/.claude-hdt`） | 隔離元の `~/.claude/*`（settings.json・skills・scripts・CLAUDE.md 等）を供給 | `setup-config-dirs.sh` が `~/.claude-hdt` を作り、nanokit の `~/.claude/*` を symlink + creds だけ分離 |

@@ -137,7 +137,7 @@ codex mcp get scrapling               # → transport: streamable_http
 USER_GOOGLE_EMAIL だけが異なる。`workspace` は Claude Code の予約名なので個人側は
 `workspace-personal`。
 
-**責務分担**: クライアント (HDT / OpenHeart / uSonar / Lagoon / personal …) ごとの振り分け —
+**責務分担**: クライアント (HDT / uSonar / Lagoon / personal …) ごとの振り分け —
 direnv `.envrc`・per-client `.mcp.json`・Team アカウントの `CLAUDE_CONFIG_DIR` 隔離
 (`~/.claude-hdt`) — は別リポジトリ [`claude-settings`](https://github.com/DenDen047/claude-settings)
 (private) が担う。nanokit は個人 `~/.claude` の共通基盤と常駐 MCP サーバの実体を提供する側。

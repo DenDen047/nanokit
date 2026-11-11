@@ -6,7 +6,7 @@
 #   use-spark    Spark Desktop 同梱の skill (spark-skill-sync.sh で作り直す)
 #   pixi-locks   tools/*/pixi.toml と claude/mcp-servers/*/pixi.toml の pixi.lock
 #   npx-pins     claude/scripts/* と tools/*/* にある `npx -y "pkg@X.Y.Z"` の版
-#   npm-clis     npm で入れた Codex CLI と Gemini CLI (入っているときだけ)
+#   npm-clis     npm で入れた Codex CLI・Gemini CLI・OpenCode (入っているときだけ)
 #   gh-ext       gh の拡張機能
 #   pixi-global  pixi global の道具一式
 #
@@ -373,7 +373,7 @@ commit_and_push() {
 step_npm_clis() {
   command -v npm >/dev/null || return 0
   local pair pkg sub cur res pick
-  for pair in "@openai/codex:codex-update" "@google/gemini-cli:gemini-update"; do
+  for pair in "@openai/codex:codex-update" "@google/gemini-cli:gemini-update" "opencode-ai:opencode-update"; do
     pkg="${pair%%:*}"
     sub="${pair##*:}"
     cur="$(npm ls -g --depth=0 "$pkg" 2>/dev/null | grep -oE "$pkg@[0-9][^ ]*" | head -n 1)"

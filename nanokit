@@ -81,6 +81,9 @@ show_help() {
     echo "  gemini-install   ✨ Install Google Gemini CLI via npm (optional)"
     echo "  gemini-update    🔄 Update Gemini CLI to the latest version"
     echo "  gemini-uninstall 🧹 Remove Gemini CLI"
+    echo "  opencode-install   🧩 Install OpenCode via npm (optional)"
+    echo "  opencode-update    🔄 Update OpenCode to the latest version"
+    echo "  opencode-uninstall 🧹 Remove OpenCode"
     echo "  zotero-mcp-install    📚 Install zotero-mcp pixi env and register Zotero Web API credentials"
     echo "  zotero-mcp-update     🔄 Update zotero-mcp to the latest version"
     echo "  zotero-mcp-uninstall  🧹 Remove zotero-mcp env and credentials"
@@ -913,6 +916,108 @@ gemini_uninstall() {
     print_success "🧹 Gemini CLI uninstalled"
 }
 
+# OpenCode (anomalyco/opencode, MIT) optional setup — same npm-under-fnm pattern as Codex.
+# conda-forge has no opencode package, so npm is the install path. `nanokit upgrade` updates it
+# with the same 7-day cooldown; OpenCode itself only shows an update notice, never self-installs.
+OPENCODE_NPM_PACKAGE="opencode-ai"
+
+# Symlink the npm-installed opencode binary into ~/.pixi/bin (already on PATH).
+# NOTE: fnm installs globals per Node version — switching the fnm default orphans
+# this symlink; re-run `nanokit opencode-update` after changing the default version.
+opencode_link_binary() {
+    local npm_prefix bin_src bin_dst
+    npm_prefix="$(npm prefix -g 2>/dev/null)"
+    if [[ -z "$npm_prefix" ]]; then
+        print_warning "Could not determine npm global prefix."
+        return 1
+    fi
+    bin_src="$npm_prefix/bin/opencode"
+    bin_dst="$HOME/.pixi/bin/opencode"
+
+    if [[ ! -x "$bin_src" ]]; then
+        print_warning "opencode binary not found at $bin_src"
+        return 1
+    fi
+
+    mkdir -p "$HOME/.pixi/bin"
+    ln -sfn "$bin_src" "$bin_dst"
+    print_success "Linked $bin_dst -> $bin_src"
+}
+
+opencode_install() {
+    print_ascii_art
+
+    print_step "Installing OpenCode ($OPENCODE_NPM_PACKAGE)..."
+    echo ""
+
+    if ! command -v npm &> /dev/null; then
+        print_error "npm is required. Install Node via fnm first: fnm install --lts && fnm default lts-latest"
+        exit 1
+    fi
+
+    npm install -g "$OPENCODE_NPM_PACKAGE"
+    print_success "OpenCode installed"
+    echo ""
+
+    opencode_link_binary
+    echo ""
+
+    if command -v opencode &> /dev/null; then
+        print_info "Version: $(opencode --version 2>/dev/null || echo 'unknown')"
+    else
+        print_warning "opencode command not found on PATH. Ensure ~/.pixi/bin is on PATH."
+    fi
+    echo ""
+
+    print_info "Next steps (interactive, run manually):"
+    print_info "  1. opencode auth login   # add a provider API key"
+    print_info "  2. opencode              # start the TUI in a project"
+    print_success "🧩 OpenCode setup completed!"
+}
+
+opencode_update() {
+    if ! command -v npm &> /dev/null; then
+        print_error "npm is required. Install Node via fnm first: fnm install --lts && fnm default lts-latest"
+        exit 1
+    fi
+
+    print_step "Updating OpenCode to latest..."
+    npm install -g "$OPENCODE_NPM_PACKAGE@latest"
+    print_success "OpenCode updated"
+    opencode_link_binary
+    if command -v opencode &> /dev/null; then
+        print_info "Version: $(opencode --version 2>/dev/null || echo 'unknown')"
+    fi
+}
+
+opencode_uninstall() {
+    print_ascii_art
+
+    print_warning "This will remove OpenCode ($OPENCODE_NPM_PACKAGE) from npm global."
+    read -p "🗑️  Proceed? (y/N): " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        print_info "Cancelled"
+        return 0
+    fi
+
+    if ! command -v npm &> /dev/null; then
+        print_error "npm is not available; nothing to uninstall via npm."
+        exit 1
+    fi
+
+    print_step "Removing OpenCode..."
+    npm uninstall -g "$OPENCODE_NPM_PACKAGE" || true
+
+    local bin_dst="$HOME/.pixi/bin/opencode"
+    if [[ -L "$bin_dst" ]]; then
+        rm -f "$bin_dst"
+        print_success "Removed $bin_dst"
+    fi
+
+    print_success "🧹 OpenCode uninstalled"
+}
+
 # Zotero MCP setup — pixi project + OS-native secret store + HTTP server lifecycle.
 # Uses claude/mcp-servers/zotero-mcp/pixi.toml and claude/scripts/zotero-mcp-server.sh.
 ZOTERO_MCP_MANIFEST_REL="claude/mcp-servers/zotero-mcp/pixi.toml"
@@ -1271,6 +1376,15 @@ main() {
             ;;
         "gemini-uninstall")
             gemini_uninstall
+            ;;
+        "opencode-install")
+            opencode_install
+            ;;
+        "opencode-update")
+            opencode_update
+            ;;
+        "opencode-uninstall")
+            opencode_uninstall
             ;;
         "zotero-mcp-install")
             zotero_mcp_install

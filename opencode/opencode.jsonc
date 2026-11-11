@@ -1,0 +1,8 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  // 会話を opencode.ai の公開ページにする /share を塞ぐ。
+  "share": "disabled",
+  // OpenCode 自身の配信 (Zen) を外す。無料のモデルは会話を学習に使うことがあり、
+  // Claude Code の指示とスキルを読ませた状態でそこへ送らないため。
+  "disabled_providers": ["opencode"]
+}

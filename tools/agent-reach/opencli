@@ -19,7 +19,7 @@
 # `opencli browser` は複数のコマンドで 1 つのセッションを使い続けるので、ここでは閉じない。
 # 使い終わったら `opencli browser close --session <名前>` で閉じる。
 set -uo pipefail
-OPENCLI=(npx -y "@jackwener/opencli@2.0.2")
+OPENCLI=(npx -y "@jackwener/opencli@2.0.3")
 
 case "${1:-}" in
   "" | browser | daemon | list | help | -h | --help | -V | --version)

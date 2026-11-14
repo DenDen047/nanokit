@@ -299,6 +299,11 @@ channels = ["conda-forge"]
 dependencies = { git-filter-repo = "*" }
 exposed = { git-filter-repo = "git-filter-repo" }
 
+[envs.google-cloud-sdk]
+channels = ["conda-forge"]
+dependencies = { google-cloud-sdk = "*", google-crc32c = "*" }
+exposed = { bq = "bq", docker-credential-gcloud = "docker-credential-gcloud", gcloud = "gcloud", gsutil = "gsutil" }
+
 # The JarvisLabs CLI (`jl`) is deliberately NOT a pixi-global env: it ships only on
 # PyPI, and pixi global takes conda packages only (prefix-dev/pixi#2261 is still open).
 # It lives in the pixi project at tools/jarvislabs/ and reaches PATH through the

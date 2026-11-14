@@ -64,7 +64,7 @@
     ],
     "defaultMode": "auto"
   },
-  "cleanupPeriodDays": 180,
+  "cleanupPeriodDays": 36500,
   "model": "opus",
   "hooks": {
     "SessionStart": [

@@ -14,5 +14,22 @@
   // OpenCode 2 はプロジェクトの外のファイルに断りなく触れる。OpenCode 1 と同じく、触る前に聞かせる。
   "permissions": [
     { "action": "external_directory", "resource": "*", "effect": "ask" }
-  ]
+  ],
+  // Web を読む道具だけをつなぐ。Notion・Slack・Gmail などは、読んだ中身がモデルの送り先へ渡るのでつながない。
+  "mcp": {
+    "servers": {
+      // Claude Code と同じ Playwright MCP。--isolated で毎回まっさらなプロファイルにし、
+      // Claude Code 側の Playwright のログイン状態を無検閲のモデルに渡さない (同時に動かしてもぶつからない)。
+      "playwright": {
+        "type": "local",
+        "command": ["npx", "@playwright/mcp@latest", "--isolated"]
+      },
+      // Claude Code・Codex と共有している常駐の Scrapling (127.0.0.1 のみ、認証なし)。
+      "scrapling": {
+        "type": "remote",
+        "url": "http://127.0.0.1:8323/mcp",
+        "oauth": false
+      }
+    }
+  }
 }

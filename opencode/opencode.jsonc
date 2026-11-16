@@ -1,5 +1,8 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  // 無検閲のエージェントの送り先 (frogiraffe OKF decisions/uncensored-agent-opencode-abliteration.md)。
+  // OpenCode 2 は起動時の -m が無いので、ここで標準のモデルを決める。
+  "model": "abliteration-ai/abliterated-model-large-v2",
   // 会話を opencode.ai の公開ページにする /share を塞ぐ。
   "share": "disabled",
   // OpenCode 自身の配信 (Zen) を外す。無料のモデルは会話を学習に使うことがあり、

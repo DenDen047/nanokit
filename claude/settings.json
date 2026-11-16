@@ -15,6 +15,7 @@
       "Bash(ps:*)",
       "Bash(wc:*)",
       "Bash(mmdc:*)",
+      "Bash(modern-web-guidance:*)",
       "Bash(gh api:*)",
       "Bash(gh search:*)",
       "Bash(git add:*)",

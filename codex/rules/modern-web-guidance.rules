@@ -1,0 +1,24 @@
+# Modern Web Guidance の読むだけのサブコマンドは承認なしで実行してよい。
+# 実体は nanokit の tools/modern-web-guidance のラッパーで、DISABLE_TELEMETRY=1 を付けて
+# 固定した版を npx で動かす。初回は npm からパッケージを取るので通信が要る。
+# install / update / uninstall はラッパーが断るのでここには書かない。
+prefix_rule(
+    pattern = ["modern-web-guidance", "search"],
+    decision = "allow",
+    justification = "Read-only: searches the bundled web guidance locally; telemetry is disabled by the wrapper.",
+)
+prefix_rule(
+    pattern = ["modern-web-guidance", "retrieve"],
+    decision = "allow",
+    justification = "Read-only: prints bundled guides.",
+)
+prefix_rule(
+    pattern = ["modern-web-guidance", "list"],
+    decision = "allow",
+    justification = "Read-only: lists bundled guides.",
+)
+prefix_rule(
+    pattern = ["modern-web-guidance", "legacy-scan"],
+    decision = "allow",
+    justification = "Read-only: statically scans a directory for legacy web patterns.",
+)

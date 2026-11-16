@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Modern Web Guidance (Google Chrome チーム、Apache-2.0) の CLI ラッパー。
+# 同じ dir の sync-skill.sh が作る claude/skills/modern-web-guidance から呼ばれる。
+#
+# 上流の使い方 (npx -y modern-web-guidance@latest) との違いは 3 つ。
+# 1. DISABLE_TELEMETRY=1 をこのプロセスにだけ付ける。既定では search の検索語と guide の ID が
+#    Google (play.googleapis.com) へ送られる。DO_NOT_TRACK では止まらない。
+#    シェルの設定ファイルには書かない。Claude Code も同じ名前の変数を読み、/model のモデル一覧や
+#    Artifact の種類、Remote Control が消える (anthropics/claude-code#108726, #103712, #29580)。
+# 2. 版を固定する。更新は下の行の版を上げるだけで、nanokit upgrade もこの行を書き換え、
+#    続けて sync-skill.sh で SKILL.md を同じ版から作り直す。
+# 3. install / update / uninstall を断る。これらは Vercel の skills CLI を動かして各エージェントの
+#    skill の置き場へ別の写しを書き込み (その CLI も別に送信する)、nanokit の配布とぶつかる。
+#
+# node は fnm 管理なので、cron / launchd からは PATH が通らない。opencli と同じく対話のセッション用。
+set -euo pipefail
+MWG=(npx -y "modern-web-guidance@0.0.204")
+
+case "${1:-}" in
+  install | update | uninstall)
+    echo "modern-web-guidance wrapper: '$1' は使わない。この skill は nanokit が配布と更新をする (nanokit upgrade)。" >&2
+    exit 2 ;;
+esac
+
+export DISABLE_TELEMETRY=1
+exec "${MWG[@]}" "$@"

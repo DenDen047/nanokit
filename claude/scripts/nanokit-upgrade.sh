@@ -286,7 +286,7 @@ step_pixi_locks() {
 }
 
 step_npx_pins() {
-  local f spec pkg cur res pick newest tmp
+  local f spec pkg cur res pick newest tmp skill_dir
   for f in "$NANOKIT_ROOT"/claude/scripts/* "$NANOKIT_ROOT"/tools/*/*; do
     [ -f "$f" ] || continue
     spec="$(grep -oE 'npx -y "@?[^"@]+@[0-9][^"]*"' "$f" | head -n 1)"
@@ -310,8 +310,11 @@ step_npx_pins() {
       say "$pkg: $cur → $pick"
       continue
     fi
-    if dirty "$f"; then
-      fail "$pkg: ${f#"$NANOKIT_ROOT"/} に未 commit の変更があるので飛ばした"
+    # 横に sync-skill.sh があれば、同じ名前の skill を同じ版から作り直す (tools/modern-web-guidance)。
+    skill_dir=""
+    [ -x "${f%/*}/sync-skill.sh" ] && skill_dir="$NANOKIT_ROOT/claude/skills/$(basename "${f%/*}")"
+    if dirty "$f" ${skill_dir:+"$skill_dir"}; then
+      fail "$pkg: ${f#"$NANOKIT_ROOT"/}${skill_dir:+ か ${skill_dir#"$NANOKIT_ROOT"/}} に未 commit の変更があるので飛ばした"
       continue
     fi
     tmp="$(mktemp)"
@@ -321,6 +324,14 @@ step_npx_pins() {
       revert "$f"
       fail "$pkg: $pick が --version で動かないので $cur に戻した"
       continue
+    fi
+    if [ -n "$skill_dir" ]; then
+      if ! "${f%/*}/sync-skill.sh" >>"$LOG" 2>&1; then
+        revert "$f" "$skill_dir"
+        fail "$pkg: ${f%/*}/sync-skill.sh が失敗したので $cur に戻した"
+        continue
+      fi
+      CHANGED+=("$skill_dir")
     fi
     CHANGED+=("$f")
     SUMMARY+=("$pkg $cur → $pick")

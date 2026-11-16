@@ -4,5 +4,12 @@
   "share": "disabled",
   // OpenCode 自身の配信 (Zen) を外す。無料のモデルは会話を学習に使うことがあり、
   // Claude Code の指示とスキルを読ませた状態でそこへ送らないため。
-  "disabled_providers": ["opencode"]
+  "disabled_providers": ["opencode"],
+  // OpenCode 2 は CLAUDE.md を自動では読まない (AGENTS.md だけ)。Claude Code と同じ指示を読ませる。
+  // スキルは ~/.claude/skills を OpenCode 2 が自分で探す。
+  "instructions": ["~/.claude/CLAUDE.md"],
+  // OpenCode 2 はプロジェクトの外のファイルに断りなく触れる。OpenCode 1 と同じく、触る前に聞かせる。
+  "permissions": [
+    { "action": "external_directory", "resource": "*", "effect": "ask" }
+  ]
 }

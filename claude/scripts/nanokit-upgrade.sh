@@ -384,7 +384,7 @@ commit_and_push() {
 step_npm_clis() {
   command -v npm >/dev/null || return 0
   local pair pkg sub cur res pick
-  for pair in "@openai/codex:codex-update" "@google/gemini-cli:gemini-update" "opencode-ai:opencode-update"; do
+  for pair in "@openai/codex:codex-update" "@google/gemini-cli:gemini-update" "@opencode/cli:opencode-update"; do
     pkg="${pair%%:*}"
     sub="${pair##*:}"
     cur="$(npm ls -g --depth=0 "$pkg" 2>/dev/null | grep -oE "$pkg@[0-9][^ ]*" | head -n 1)"
@@ -400,7 +400,8 @@ step_npm_clis() {
       say "$pkg: $cur → $pick"
       continue
     fi
-    if "$NANOKIT_ROOT/nanokit" "$sub" >>"$LOG" 2>&1; then
+    # 待ち期間を満たした版を渡す。渡さないと nanokit 側が @latest を入れてしまう。
+    if NANOKIT_NPM_VERSION="$pick" "$NANOKIT_ROOT/nanokit" "$sub" >>"$LOG" 2>&1; then
       SUMMARY+=("$pkg $cur → $pick")
     else
       fail "$pkg: nanokit $sub が失敗した"

@@ -691,8 +691,8 @@ codex_update() {
         exit 1
     fi
 
-    print_step "Updating Codex CLI to latest..."
-    npm install -g "$CODEX_NPM_PACKAGE@latest"
+    print_step "Updating Codex CLI to ${NANOKIT_NPM_VERSION:-latest}..."
+    npm install -g "$CODEX_NPM_PACKAGE@${NANOKIT_NPM_VERSION:-latest}"
     print_success "Codex CLI updated"
     codex_link_binary
     if command -v codex &> /dev/null; then
@@ -879,8 +879,8 @@ gemini_update() {
         exit 1
     fi
 
-    print_step "Updating Gemini CLI to latest..."
-    npm install -g "$GEMINI_NPM_PACKAGE@latest"
+    print_step "Updating Gemini CLI to ${NANOKIT_NPM_VERSION:-latest}..."
+    npm install -g "$GEMINI_NPM_PACKAGE@${NANOKIT_NPM_VERSION:-latest}"
     print_success "Gemini CLI updated"
     gemini_link_binary
     if command -v gemini &> /dev/null; then
@@ -919,7 +919,17 @@ gemini_uninstall() {
 # OpenCode (anomalyco/opencode, MIT) optional setup — same npm-under-fnm pattern as Codex.
 # conda-forge has no opencode package, so npm is the install path. `nanokit upgrade` updates it
 # with the same 7-day cooldown; OpenCode itself only shows an update notice, never self-installs.
-OPENCODE_NPM_PACKAGE="opencode-ai"
+# OpenCode 2 moved to @opencode/cli; opencode-ai is the OpenCode 1 line and both own the
+# same `opencode` command, so the old package is removed before installing.
+OPENCODE_NPM_PACKAGE="@opencode/cli"
+OPENCODE_V1_NPM_PACKAGE="opencode-ai"
+
+opencode_remove_v1() {
+    if npm ls -g --depth=0 "$OPENCODE_V1_NPM_PACKAGE" &> /dev/null; then
+        print_step "Removing OpenCode 1 ($OPENCODE_V1_NPM_PACKAGE)..."
+        npm uninstall -g "$OPENCODE_V1_NPM_PACKAGE"
+    fi
+}
 
 # Symlink the npm-installed opencode binary into ~/.pixi/bin (already on PATH).
 # NOTE: fnm installs globals per Node version — switching the fnm default orphans
@@ -955,6 +965,7 @@ opencode_install() {
         exit 1
     fi
 
+    opencode_remove_v1
     npm install -g "$OPENCODE_NPM_PACKAGE"
     print_success "OpenCode installed"
     echo ""
@@ -981,8 +992,9 @@ opencode_update() {
         exit 1
     fi
 
-    print_step "Updating OpenCode to latest..."
-    npm install -g "$OPENCODE_NPM_PACKAGE@latest"
+    print_step "Updating OpenCode to ${NANOKIT_NPM_VERSION:-latest}..."
+    opencode_remove_v1
+    npm install -g "$OPENCODE_NPM_PACKAGE@${NANOKIT_NPM_VERSION:-latest}"
     print_success "OpenCode updated"
     opencode_link_binary
     if command -v opencode &> /dev/null; then

@@ -6,7 +6,7 @@ description: |
   DO NOT trigger for: backend (SQL, ORMs, API routes), infra/scripts (CI/CD, Docker, Actions, Python/Go, Git), or tooling/trivial (Vite, tsconfig, ESLint, tests, copy/renames, 3P docs), etc.
 ---
 
-<!-- Generated from modern-web-guidance@0.0.204 by nanokit tools/modern-web-guidance/sync-skill.sh. Do not edit; re-run the script. -->
+<!-- Generated from modern-web-guidance@1.0.0 by nanokit tools/modern-web-guidance/sync-skill.sh. Do not edit; re-run the script. -->
 
 # Modern Web Guidance
 
@@ -22,7 +22,7 @@ Run `modern-web-guidance` (the nanokit wrapper on PATH) using a **2–5 word act
 - **Example**: Search `"light dismiss dialog"` or `"responsive data table"`, **not** `"dialog"` (too terse), `"responsive table dark mode"` (compound — split into two searches), or `"close React settings modal on outside click"` (framework/app noise).
 
 ```sh
-modern-web-guidance search "<query>" --skill-version 2026_11_06-909bc374
+modern-web-guidance search "<query>" --skill-version 2026_11_09-5bcc021b
 ```
 
 > **Note**: Returns `[{ "id", "description" }, ...]`. Judge results by their `description` fields:
@@ -87,6 +87,6 @@ modern-web-guidance legacy-scan <path> --json
 
 ## Interpreting Browser Support & Fallbacks
 
-* **Default Behavior**: All guides assume **Baseline Widely available** features are safe to use without fallbacks. For features that are not Baseline widely available, you **MUST** follow the fallback recommendations in the guide, unless the user or `.mwgrc` has specified a custom browser support policy.
-* **Custom Policies**: If `.mwgrc` configures `"baseline"` (e.g., `"newly"`, `"limited"`, or `"2024"`, surfaced as a `> [!IMPORTANT]` banner on `retrieve`) or the user defines explicit browser support requirements, use the guide's compatibility data to determine which fallbacks apply — **omit** compatibility fallbacks, `@supports not (...)` blocks, and polyfills for features that already satisfy the target (for `Baseline YYYY` targets, a feature satisfies the target if its "Baseline since" date is `<= YYYY`). Examples: _"Do not implement feature fallbacks"_, _"Safari 17.4+"_, _"Never implement polyfills; use a lightweight custom fallback or redesign"_, or _"Allow Newly Available features if feature-detected with graceful degradation"_.
-* **Reactive Policy Discovery**: Suggest setting `"baseline"` in `.mwgrc` via `modern-web-guidance set-baseline <widely|newly|limited|YYYY>` or documenting a policy in `CLAUDE.md` / `AGENTS.md` (e.g., `**Browser Support:** Allow Newly Available features, but only adopt custom fallback code that adds <= 20 lines and no external dependencies`) if the developer targets a restricted runtime (Electron/Tauri), excludes specific browsers, hesitates over polyfill size/complexity, or asks if a feature is safe without fallbacks.
+* **Default Behavior**: All guides assume **Baseline Widely available** features are safe to use without fallbacks. For features that are not Baseline widely available, you **MUST** follow the fallback recommendations in the guide, unless the user has specified a custom browser support policy.
+* **Custom Policies**: If the user defines explicit browser support requirements, use the guide's compatibility data to determine if a fallback can be ignored (for `Baseline YYYY` targets, a feature satisfies the target if its "Baseline since" date is `<= YYYY`). Examples: _"Do not implement feature fallbacks"_, _"Safari 17.4+"_, _"Never implement polyfills; use a lightweight custom fallback or redesign"_, or _"Allow Newly Available features if feature-detected with graceful degradation"_.
+* **Reactive Policy Discovery**: Suggest documenting a policy in `AGENTS.md` or `CLAUDE.md` (e.g., `**Browser Support:** Allow Newly Available features, but only adopt custom fallback code that adds <= 20 lines and no external dependencies`) if the developer targets a restricted runtime (Electron/Tauri), excludes specific browsers, hesitates over polyfill size/complexity, or asks if a feature is safe without fallbacks.

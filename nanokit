@@ -160,6 +160,48 @@ register_shared_http_mcp() {
     fi
 }
 
+# Register one stdio MCP (a command) in every installed local agent client.
+# Usage: register_shared_stdio_mcp <name> <diff_only> <command> [args...]
+register_shared_stdio_mcp() {
+    local name="$1"
+    local diff_only="$2"
+    shift 2
+    local cmd="$1"
+    shift
+    local args="$*"
+    local current=""
+
+    if command -v claude &> /dev/null; then
+        current="$(claude mcp get "$name" 2>/dev/null || true)"
+        if [[ "$current" == *"Command: $cmd"* && "$current" == *"Args: $args"* ]]; then
+            [[ "$diff_only" == true ]] || print_info "Claude MCP '$name' already runs $cmd $args"
+        elif [[ "$diff_only" == true ]]; then
+            echo "MCP DIFF: Claude '$name' -> $cmd $args"
+        else
+            if [[ -n "$current" ]]; then
+                claude mcp remove "$name" -s user >/dev/null
+            fi
+            claude mcp add -s user "$name" -- "$cmd" "$@" >/dev/null
+            print_success "Claude MCP '$name' -> $cmd $args"
+        fi
+    fi
+
+    if command -v codex &> /dev/null; then
+        current="$(codex mcp get "$name" 2>/dev/null || true)"
+        if [[ "$current" == *"command: $cmd"* && "$current" == *"args: $args"* ]]; then
+            [[ "$diff_only" == true ]] || print_info "Codex MCP '$name' already runs $cmd $args"
+        elif [[ "$diff_only" == true ]]; then
+            echo "MCP DIFF: Codex '$name' -> $cmd $args"
+        else
+            if [[ -n "$current" ]]; then
+                codex mcp remove "$name" >/dev/null
+            fi
+            codex mcp add "$name" -- "$cmd" "$@" >/dev/null
+            print_success "Codex MCP '$name' -> $cmd $args"
+        fi
+    fi
+}
+
 sync_shared_http_mcps() {
     local diff_only="${1:-false}"
     print_step "Syncing client-safe shared HTTP MCP registrations..."
@@ -169,6 +211,11 @@ sync_shared_http_mcps() {
     # Agent Reach が推す Exa 検索。upstream は npm の mcporter 経由で呼ぶが、
     # 実体はキー不要の HTTP MCP なので両クライアントへ直接登録する。
     register_shared_http_mcp exa "https://mcp.exa.ai/mcp" "$diff_only"
+    # Money Forward ME, read-only, served over ssh by the homelab moneyforward LXC. Only on a Mac that has the
+    # key from homelab/ct/moneyforward/create.sh, so other hosts do not get a server that cannot connect.
+    if [[ -f "$HOME/.ssh/moneyforward_ed25519" ]]; then
+        register_shared_stdio_mcp moneyforward "$diff_only" ssh -T -o BatchMode=yes -o ConnectTimeout=10 moneyforward
+    fi
 }
 
 # Install nanokit

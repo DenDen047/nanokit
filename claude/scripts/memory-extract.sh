@@ -737,7 +737,8 @@ extract() {
     --effort "$EFFORT" \
     --permission-mode acceptEdits \
     --strict-mcp-config \
-    --allowedTools "Read,Write,Edit,Glob,Grep" </dev/null &
+    --allowedTools "Read,Write,Edit,Glob,Grep" \
+    --disallowedTools Bash </dev/null &
   local cpid=$!
   ( sleep "$TIMEOUT_S" && kill -- -"$cpid" 2>/dev/null \
       && echo "=== memory-extract KILLED after ${TIMEOUT_S}s timeout $(ts) ===" ) &

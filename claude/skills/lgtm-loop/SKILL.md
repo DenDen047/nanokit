@@ -13,11 +13,13 @@ description: >
 ユーザーが意図する機能を実装し、Codex (GPT) によるレビュー → 修正 → 再レビューを LGTM 達成まで反復する。
 最終ゴールは **ユーザーの意図する機能が動くこと**。LGTM はそれを補強するコード品質の安全網であり、ゴール自体ではない。
 
+レビューの指摘は仮説として扱い、採否は動かして確かめた結果で決める。差分だけを見た指摘は命名や将来への備えに偏りやすく、全部直すと往復が収束しない。トークンはレビューの往復より検証に使う。
+
 ## Context: $ARGUMENTS
 
 ## 定数
 
-- MAX_ITERATIONS = `10`
+- MAX_ITERATIONS = `3`
 
 モデルと reasoning effort は **`~/.codex/config.toml` の値を継承する**。
 `codex exec` に `-m` や `-c model=...` / `-c model_reasoning_effort=...` を **付けない** こと。
@@ -65,6 +67,7 @@ review-only モードでは skip。`karpathy-guidelines` skill (4 原則) を必
 4. **Goal-Driven Execution** — Step 1a の受け入れ基準を成功条件として実装。
    「test を先に書いてから実装を通す」を基本動作とする
    (例: "Add validation" → 不正入力に対する test を書く → make them pass)
+   新しい test は **実装前 (バグ修正なら修正前) に実行して落ちることを確かめ、その出力を残す**。最初から通る test は修正の根拠にならない
 
 実装の進め方:
 - task-driven: 引数のタスクを 5–15 個の小さな Edit に分けて実装
@@ -78,8 +81,9 @@ review-only モードでは skip。`karpathy-guidelines` skill (4 原則) を必
 ### 2a. 機能ゲート
 
 Step 1a で立てた受け入れ基準を満たしているか:
-- 新規 test を実行し pass を確認
-- 受け入れシナリオを手動 / 自動でなぞる
+- 新規 test を実行し pass を確認 (Step 1b で落ちることを確かめた test に限る)
+- 受け入れシナリオを手動 / 自動でなぞる。CLI なら実際に実行し、UI ならブラウザで操作して、出力や画面を見る
+- test が本当にバグを捕まえるか怪しいときは、修正の要の行を一時的に戻して test が落ちることを確かめ、元に戻す
 - fail → Step 1b に戻って実装を直す (Karpathy "Surgical Changes" 厳守)
 
 ### 2b. 品質ゲート
@@ -139,18 +143,20 @@ codex exec resume <thread_id> --json -c 'sandbox_mode="read-only"' --skip-git-re
 [git diff の出力]
 ```
 
-## レビュー観点
-1. バグ・ロジックエラー (境界条件、off-by-one、null/undefined)
-2. エッジケースの見落とし
-3. セキュリティ上の問題 (入力検証、インジェクション、認証)
-4. パフォーマンス上の懸念
-5. エラーハンドリングの不足
-6. API 設計・インターフェースの問題
+## 確認してほしい観点
+1. [この変更で壊れやすい点を具体的に。例: 月末 23 時台の日付が翌月に集計されないか]
+2. [例: 0 件・上限値・不正入力のときの振る舞い]
+3. [例: 認証を通らずに他人のデータが読めないか]
 
-各指摘に 重要度 (CRITICAL / HIGH / MEDIUM / LOW)・該当箇所 (ファイル名:行)・
-問題の説明・修正案 (コード付き) を付けてください。
-問題がない場合は「LGTM」と明記してください。
+## 指摘の条件
+- 各指摘に、問題が起きる具体的な入力や手順と、そのとき期待と違ってどうなるかを書いてください。書けないものは指摘しないでください
+- 命名・書き方の好み・将来への備え (今の要件に無い抽象化や拡張性) は指摘しないでください
+- 重要度 (CRITICAL / HIGH / MEDIUM / LOW)・該当箇所 (ファイル名:行)・修正案を付けてください
+- 読むだけにして、スクリプトやコマンドは実行しないでください
+- 問題がなければ、無理に指摘を探さず「LGTM」と書いてください
 ````
+
+観点は受け入れ基準と diff から 3〜4 個に絞って具体的に書く。「厳しく」「徹底的に疑え」と強調するより、観点を具体化したほうが見つかるバグが多い。
 
 出力の 1 行目に出る **thread_id を覚えておき**、2 ラウンド目以降の `codex exec resume` で使う。
 
@@ -171,7 +177,8 @@ codex exec resume <thread_id> --json -c 'sandbox_mode="read-only"' --skip-git-re
 <git diff の出力>
 ```
 
-変更全体を再レビューし、残存する問題があれば指摘してください。
+前ラウンドの各指摘について「解消 / 未解消」と根拠 (ファイル名:行) を答えてください。
+新しい指摘は、CRITICAL / HIGH で、具体的な入力や手順を書けるものだけにしてください。
 すべて解消されていれば「LGTM」と明記してください。
 ````
 
@@ -180,8 +187,10 @@ plan-driven モードのときは prompt に 1 行追加: 「plans/foo.md から
 ## Step 4: FIX — 指摘の整理と修正
 
 - Codex 応答から `CRITICAL` / `HIGH` / `MEDIUM` / `LOW` を抽出し、`TaskCreate` で 1 件 1 タスクに分解
-- **CRITICAL** がある場合は自動修正前にユーザーに確認 (重大変更は人間が判断)
-- **HIGH / MEDIUM / LOW** は AUTO で順次修正 (ただし Karpathy "Surgical Changes" 厳守、無関係な refactor 禁止)
+- **バグの指摘は、直す前に再現する。** 指摘の入力や手順を test にし、いまのコードで落ちることを確かめてから直す。再現できなければ直さず、試した内容を添えて次のラウンドで Codex に返す
+- **CRITICAL** がある場合は、再現できたら自動修正前にユーザーに確認 (重大変更は人間が判断)
+- **HIGH / MEDIUM** は再現できたものだけ AUTO で修正 (Karpathy "Surgical Changes" 厳守、無関係な refactor 禁止)
+- **LOW** は直さず、終了時の出力に一覧で載せてユーザーの判断に任せる
 - Edit / Write で修正を適用
 - 修正後は必ず Step 2 (GATE) に戻って機能ゲート + 品質ゲートを再実行
 
@@ -191,18 +200,18 @@ plan-driven モードのときは prompt に 1 行追加: 「plans/foo.md から
 
 1. 機能ゲート (Step 2a) pass — 受け入れ基準を満たしている
 2. 品質ゲート (Step 2b) pass — リポジトリ標準チェックが green
-3. Codex 応答に "LGTM" を含む — コード品質に重大な指摘なし
+3. Codex 応答に "LGTM" を含む、または残る指摘がどれも再現できなかったか LOW だけ
 
 どれか 1 つでも未達なら Step 2 → 3 → 4 をもう 1 周。
-反復回数 `>= MAX_ITERATIONS (=10)` に達したら現状を整理してユーザーに判断委ね。
+反復回数 `>= MAX_ITERATIONS (=3)` に達したら現状を整理してユーザーに判断委ね。3 往復で収束しない指摘は、往復を重ねても収束しないことが多い。
 
 **注意:**
 - Codex が LGTM を返しても機能ゲート fail なら未完了 (機能未実装の可能性)。実装に戻る。
-- 機能が動いていても Codex の CRITICAL/HIGH が残っていれば未完了。修正に戻る。
+- 機能が動いていても、再現できた CRITICAL/HIGH が残っていれば未完了。修正に戻る。
 
 ## ルール
 
-- Codex の指摘を勝手に却下しない (反論はしてよいが同じ thread_id の会話で再議論する)
+- 再現できない指摘は却下してよい。黙って捨てず、試した内容を同じ thread_id の会話で Codex に返す
 - Claude のレビューと Codex のレビューは混ぜない — Codex の指摘をそのまま提示し対応する
 - thread_id は session 内で保持。別セッションへ持ち越さない
 - diff が 500 行を超える場合はファイル単位で分割レビュー
@@ -220,14 +229,17 @@ plan-driven モードのときは prompt に 1 行追加: 「plans/foo.md から
 - 機能ゲート: pass (受け入れ基準すべて満たす)
 - 品質ゲート: pass (lint + typecheck + test green)
 - Codex: LGTM
-- 総修正件数: M 件 (CRITICAL 0 / HIGH a / MEDIUM b / LOW c)
+- 総修正件数: M 件 (CRITICAL 0 / HIGH a / MEDIUM b)
+- 証拠: 修正前に落ち、修正後に通った test 名と実行結果。受け入れシナリオを実際になぞった出力 (UI ならスクリーンショット)
+- 再現できず却下した指摘: K 件 (要約)
+- 直していない LOW: L 件 (一覧)
 ```
 
 中断時 (MAX_ITERATIONS 到達 or ユーザー判断要):
 ```
 ## LGTM Loop 中断
 
-- 反復回数: N ラウンド (上限 10)
+- 反復回数: N ラウンド (上限 3)
 - 機能ゲート: pass / fail
 - 品質ゲート: pass / fail
 - Codex: 残存指摘 K 件 (CRITICAL a / HIGH b / ...)

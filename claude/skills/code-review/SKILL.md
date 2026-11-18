@@ -45,30 +45,35 @@ Read each changed file in full. Check for:
 - Insecure dependencies
 - Path traversal risks
 
-**Code Quality (HIGH):**
-- Functions > 50 lines
-- Files > 800 lines
-- Nesting depth > 4 levels
-- Missing error handling
-- console.log statements
-- TODO/FIXME comments
-- Missing JSDoc for public APIs
+**Correctness (HIGH):**
+- Logic errors, off-by-ones, boundary values (0 件・上限・月末や日付の境界・丸め), null handling
+- Missing error handling on paths that can actually fail
 
-**Best Practices (MEDIUM):**
-- Mutation patterns (use immutable instead)
-- Emoji usage in code/comments
-- Missing tests for new code
-- Accessibility issues (a11y)
+**Tests (HIGH):**
+- Missing tests for new behavior
+- Tests that would still pass if the change were reverted, tests without assertions, tests that re-implement the code instead of calling it
 
-### Phase 3 — REPORT
+**Style (LOW, never blocks):**
+- Long functions/files, deep nesting, leftover debug output, TODO/FIXME — mention only when they hide a real bug
+- Do not report naming preferences or speculative future-proofing
+
+Every CRITICAL/HIGH finding must state a concrete input or step that triggers it and what goes wrong. Drop findings you cannot state that way.
+
+### Phase 3 — VALIDATE
+
+Run the project's checks the same way as PR mode Phase 4 (prefer `pixi run check` / `pixi run test` when defined). Where a finding claims a bug, try the triggering input (a quick test or command) and mark it **reproduced** or **not reproduced**.
+
+### Phase 4 — REPORT
 
 Generate report with:
 - Severity: CRITICAL, HIGH, MEDIUM, LOW
+- Reproduced / not reproduced
 - File location and line numbers
-- Issue description
+- Issue description with the triggering input
 - Suggested fix
+- Validation results (pass/fail per check)
 
-Block commit if CRITICAL or HIGH issues found.
+Block commit if a reproduced CRITICAL/HIGH issue or a failing check is found.
 Never approve code with security vulnerabilities.
 
 ---
@@ -114,7 +119,7 @@ gh pr diff <NUMBER> --name-only | while IFS= read -r file; do
 done
 ```
 
-Apply the review checklist across 7 categories:
+Apply the review checklist across 7 categories. Every CRITICAL/HIGH finding must state a concrete input or step that triggers it; drop findings you cannot state that way, and do not report naming preferences or speculative future-proofing:
 
 | Category | What to Check |
 |---|---|
@@ -169,6 +174,8 @@ pytest  # Tests
 ```
 
 Run only the commands that apply to the detected project type. Record pass/fail for each.
+
+For each CRITICAL/HIGH finding that claims a bug, try the triggering input on the PR head (a quick test or command) and mark it **reproduced** or **not reproduced**. Only reproduced findings count toward REQUEST CHANGES / BLOCK.
 
 ### Phase 5 — DECIDE
 
@@ -230,7 +237,7 @@ Create review artifact at `.claude/PRPs/reviews/pr-<NUMBER>-review.md`:
 
 ### Phase 7 — PUBLISH
 
-Post the review to GitHub:
+Posting is outward-facing (it appears under the user's account). Show the decision and summary to the user and post only after they approve. Then post the review to GitHub:
 
 ```bash
 # If APPROVE

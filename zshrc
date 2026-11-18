@@ -13,6 +13,11 @@ export HISTSIZE=10000
 export SAVEHIST=10000
 setopt SHARE_HISTORY HIST_IGNORE_DUPS HIST_IGNORE_SPACE
 
+# 🔣 Treat a leading "=" as a plain character. With EQUALS on, `echo =====`
+# fails with "==== not found" and aborts the rest of the command line, which
+# broke many Claude Code Bash calls (Claude Code copies these options at startup).
+unsetopt EQUALS
+
 # 👾 For shell tools like Claude
 export PATH="$HOME/.local/bin:$PATH"
 export PATH="/usr/local/bin:$PATH"

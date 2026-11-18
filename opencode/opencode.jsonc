@@ -8,6 +8,29 @@
   // OpenCode 自身の配信 (Zen) を外す。無料のモデルは会話を学習に使うことがあり、
   // Claude Code の指示とスキルを読ませた状態でそこへ送らないため。
   "disabled_providers": ["opencode"],
+  // 自宅の GPU PC (RTX 5070 Ti 16GB) の llama-server。中継サーバーを通らない無検閲のモデル。
+  // 起動は GPU PC の ~/Documents/Projects/local-llm/serve.sh、鍵は GPU PC と同じものを Mac の
+  // ~/.config/local-llm/api-key に置く。IP は固定していないので mDNS 名で指す。
+  "providers": {
+    "local-llm": {
+      "name": "Local LLM (自宅 GPU PC)",
+      "package": "@opencode/ai/providers/openai-compatible",
+      "settings": {
+        "baseURL": "http://ikuta-MS-7E26.local:8080/v1",
+        "apiKey": "{file:~/.config/local-llm/api-key}"
+      },
+      "models": {
+        "qwen3.8-27b-rvn": {
+          "modelID": "qwen3.8-27b-rvn",
+          "name": "Local Qwen3.8 27B RVN (Q3_K_S, 無検閲)",
+          "capabilities": { "tools": true, "input": ["text"], "output": ["text"] },
+          "compatibility": { "reasoningField": "reasoning_content" },
+          // サーバーの文脈は 131,072。出力に 16K を残す。
+          "limit": { "context": 131072, "output": 16384 }
+        }
+      }
+    }
+  },
   // OpenCode 2 は CLAUDE.md を自動では読まない (AGENTS.md だけ)。Claude Code と同じ指示を読ませる。
   // スキルは ~/.claude/skills を OpenCode 2 が自分で探す。
   "instructions": ["~/.claude/CLAUDE.md"],

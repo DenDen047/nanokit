@@ -39,7 +39,7 @@ Max プランなので画像認識を惜しまない。**UI・図・ブラウザ
 ## 環境管理ポリシー
 
 - **pixi-only**: シェルツールはすべて `pixi global` (conda-forge) で管理する。`brew`, `cargo install`, `pip install`, `go install` で追加しない。
-- **conda-forge に無い CLI**: `pixi global` は conda パッケージしか入れられない ([pixi#2261](https://github.com/prefix-dev/pixi/issues/2261) は未解決)。PyPI/npm 専売の CLI は `tools/<name>/pixi.toml` に pixi プロジェクトを作り (`[pypi-dependencies]` で固定、`pixi.lock` をコミット)、`pixi run --manifest-path` を exec するだけの薄いラッパを dotter で `~/.pixi/bin/<cmd>` へ symlink する。実装例は `tools/jarvislabs/` (`jl`)、`tools/agent-reach/` (`agent-reach` / `twitter` / `rdt` を 1 env に同居、共有ラッパ `run-in-env`)、`claude/scripts/mmdc` (npm の mermaid-cli)。`uv tool install` / `npm -g` で入れ直さない。
+- **conda-forge に無い CLI**: `pixi global` は conda パッケージしか入れられない ([pixi#2261](https://github.com/prefix-dev/pixi/issues/2261) は未解決)。PyPI/npm 専売の CLI は `tools/<name>/pixi.toml` に pixi プロジェクトを作り (`[pypi-dependencies]` で固定、`pixi.lock` をコミット)、`pixi run --manifest-path` を exec するだけの薄いラッパを dotter で `~/.pixi/bin/<cmd>` へ symlink する。実装例は `tools/jarvislabs/` (`jl`)、`tools/agent-reach/` (`agent-reach`、ラッパ `run-in-env`)、`claude/scripts/mmdc` (npm の mermaid-cli)。`uv tool install` / `npm -g` で入れ直さない。
 - `~/.zshenv` の `unsetopt GLOBAL_RCS` により `/etc/zprofile` の `path_helper` がスキップされ、`/opt/homebrew/bin` 等は PATH に入らない。これは意図的な設計。
 
 ## Jarvis Labs 利用許可

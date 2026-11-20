@@ -38,7 +38,7 @@ yt-dlp --dump-json "ytsearch5:query"
 
 ## When there are no subtitles
 
-`agent-reach transcribe URL` downloads the audio and transcribes it, but it needs a
+`agent-reach youtube transcribe URL` downloads the audio and transcribes it, but it needs a
 Groq or OpenAI key (`agent-reach configure groq-key`) that is not configured on this
 host. Either ask the user before setting one up, or say the video has no usable
 transcript. Do not send audio to a provider on your own initiative.

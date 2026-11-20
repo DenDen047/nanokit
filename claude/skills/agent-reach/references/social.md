@@ -1,102 +1,36 @@
 # Twitter/X and Reddit
 
-Both are read as a dedicated throwaway account, never the user's main one. Read-only,
-and gently: burst traffic is what gets an account restricted.
+Both go through `agent-reach`, which drives OpenCLI inside its own dedicated, headless Chrome profile (separate from the user's everyday Chrome). Output is one JSON object; see "Results and errors" in [../SKILL.md](../SKILL.md).
 
-`agent-reach doctor --json` shows whether credentials are present. It does not run a
-live probe, so a populated backend means "configured", not "verified".
+## Twitter/X
 
-## Twitter/X — OpenCLI first, twitter-cli as the headless fallback
+X is read with the burner account only. The user logs it in once with `agent-reach login twitter`, which adds the channel, opens the dedicated window and records the login as manual. Until that has happened, any browser-backed `twitter` call copies the X login from the user's everyday Chrome (if it is connected to the OpenCLI extension) and reads X as the main account. So:
 
-Two backends, and the choice is mechanical:
-
-- **Chrome is running** → use `opencli`. It reads through the browser session, needs
-  no cookie handling, and is the only backend whose search works.
-- **Chrome is not running** → use `twitter`. Everything works except `search`.
-
-Both read as the burner account, never the user's main one.
-
-### OpenCLI (preferred)
+- If `agent-reach doctor --text` shows `twitter` as `not_added`, do not call `agent-reach twitter`. Ask the user to run `agent-reach login twitter` and log in with the burner account.
+- Never run `agent-reach login twitter --import-existing` or `agent-reach browser use <ID>`; both copy a login from another browser.
 
 ```bash
-opencli twitter search "query" -f yaml --limit 10
-opencli twitter search "query" -f yaml --product live      # Latest tab instead of Top
-opencli twitter search "query" -f yaml --from someone --exclude retweets
-opencli twitter tweets USERNAME -f yaml --limit 20         # one account's recent tweets
-opencli twitter profile USERNAME -f yaml                   # omit USERNAME for the logged-in account
-opencli twitter timeline -f yaml --type following          # home timeline
-opencli twitter article TWEET_ID -f yaml                   # the number at the end of the tweet URL
+agent-reach twitter search "query" --limit 10
+agent-reach twitter profile <username>
+agent-reach twitter tweets <username> --limit 10
+agent-reach twitter thread <tweet-url-or-id>     # also the way to read one post from its URL
 ```
 
-Without `-f`, OpenCLI 2.x prints JSON wrapped as `{"ok": true, "data": ...}`; a failure is
-`{"ok": false, "error": {"code", "message", "hint"}}` with a nonzero exit status.
+`agent-reach read <x.com URL>` goes to the `web` channel, not to X, because `twitter` has no `read` action.
 
-The `opencli` wrapper on PATH closes the Chrome window and tabs OpenCLI opened as soon as each
-command finishes, so nothing is left behind. The exception is `opencli browser`, which keeps one
-session across several commands: if you use it, end with `opencli browser close --session <name>`.
+Upstream marks the channel experimental. A readable single post does not mean the reply stream is readable, and no action returns a complete reply tree.
 
-`search` also takes raw X operators in the query (`lang:en`, `since:YYYY-MM-DD`,
-`"exact phrase"`, `OR`) and `--top-by-engagement N` to re-rank by engagement.
-
-Check these in order when an OpenCLI call fails:
-
-1. **Chrome must be running** with the OpenCLI extension installed and x.com logged in.
-2. `opencli daemon status` must show `"extensionConnected": true`. If it is `false`,
-   the browser side is down — report that and stop. Do not fall back to a web search
-   and present the results as X data. `opencli daemon restart` clears a stale
-   connection after Chrome restarts; the daemon listens on 127.0.0.1:19825. Do not use
-   `opencli doctor` or `opencli browser` for this: they leave an "OpenCLI Browser" tab
-   group that Chrome keeps in the bookmarks bar.
-3. Whichever X account Chrome is logged into is the one OpenCLI reads as, and it is
-   meant to be the burner. `opencli twitter profile` (no argument) shows who that is.
-   If it is not the burner, stop and tell the user instead of continuing.
-
-### twitter-cli (fallback, no Chrome needed)
-
-Cookies live in `~/.agent-reach/config.yaml`, put there by the user with
-`agent-reach configure twitter-cookies`. The `twitter` wrapper on PATH
-(`nanokit/tools/agent-reach/run-in-env`) passes them to the CLI as
-`TWITTER_AUTH_TOKEN` / `TWITTER_CT0`, so plain `twitter ...` just works.
+## Reddit
 
 ```bash
-twitter feed -n 20                  # home timeline
-twitter tweet URL_OR_ID             # one tweet with replies
-twitter article URL_OR_ID
-twitter user-posts @username -n 20
-twitter user @username
-twitter search "query"              # HTTP 404 — broken, use OpenCLI
+agent-reach reddit search "query" --limit 10
+agent-reach reddit read <post-url>
+agent-reach reddit subreddit <name> --limit 10
+agent-reach reddit search "query" --backend public-web   # anonymous public route only, no browser
 ```
 
-`search` fails because twitter-cli builds an X transaction ID by scraping x.com's JS
-and that scraper no longer matches the site (`Failed to init ClientTransaction`).
-0.8.5 is the newest release on PyPI (2026-03-17), so upgrading is not a fix.
+Until the user has run `agent-reach login reddit`, always pass `--backend public-web`. Without it, a failed public attempt falls through to the dedicated browser, which copies the Reddit login from the user's everyday Chrome if one exists. The same fall-through applies to `twitter`, which is why X is not called before its login. After `login reddit`, search and read go to the dedicated browser first, as that account; `--backend public-web` still forces an anonymous lookup. The public route shares the `web` channel's anonymous Exa endpoint, so when `web` is rate-limited, Reddit's public route is too.
 
-If the wrapper prints "Cookie 未設定", stop and tell the user which step is missing —
-extracting cookies is their job (Cookie-Editor → Export → Header String →
-`agent-reach configure twitter-cookies`). Never read cookies out of a browser
-yourself, and never print the token values.
+## Pacing
 
-Without cookies the CLI still answers some calls through a guest token — profile
-lookups and `feed` return plausible data — so **getting output back is not proof of
-authentication**. The reliable tell is that wrapper message. The
-`Failed to init ClientTransaction` warning is *not* a tell: it appears in every run,
-authenticated or not.
-
-## Reddit (`rdt`)
-
-Reddit has no anonymous path: the `.json` endpoints return 403 and the official API
-needs manual approval. `rdt` uses a logged-in cookie, set up once with `rdt login`.
-
-```bash
-rdt search "query" --limit 10
-rdt read POST_ID                # post body + comments
-rdt sub LocalLLaMA --limit 20
-rdt popular --limit 10
-rdt all --limit 10
-```
-
-`--yaml` gives agent-friendly output. If a call returns 403 or an empty result set,
-the cookie has expired — report that and let the user re-run `rdt login`; do not try
-to harvest cookies from the browser.
-
-`rdt` also has write commands (`comment`, vote). Never call them.
+Agent Reach queues browser calls itself (at most 2 per platform, 4 in total, and 10 seconds between two searches on one platform). Still keep volumes modest: the burner account can be restricted for burst traffic.

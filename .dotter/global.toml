@@ -37,11 +37,9 @@ wezterm = { target = "$HOME/.config/wezterm", type = "symbolic", recurse = false
 "tools/jarvislabs/jl" = "$HOME/.pixi/bin/jl"
 # 同じ env を使う案件別費用台帳。実体は tools/jarvislabs/ledger.py。
 "tools/jarvislabs/jl-ledger" = "$HOME/.pixi/bin/jl-ledger"
-# Agent Reach env が出す 3 コマンド。実体はどれも tools/agent-reach/run-in-env。
+# Agent Reach。実体は tools/agent-reach/run-in-env。
 "tools/agent-reach/agent-reach" = "$HOME/.pixi/bin/agent-reach"
-"tools/agent-reach/twitter" = "$HOME/.pixi/bin/twitter"
-"tools/agent-reach/rdt" = "$HOME/.pixi/bin/rdt"
-# OpenCLI だけは npm 専売なので同じ env には入らず、npx 固定のラッパを配る。
+# Agent Reach が X と Reddit の読み取りに使う OpenCLI は npm 専売なので同じ env には入らず、npx 固定のラッパを配る。
 "tools/agent-reach/opencli" = "$HOME/.pixi/bin/opencli"
 # Modern Web Guidance も npm 専売。送信を止めて版を固定するラッパを配る (skill は sync-skill.sh が作る)。
 "tools/modern-web-guidance/modern-web-guidance" = "$HOME/.pixi/bin/modern-web-guidance"

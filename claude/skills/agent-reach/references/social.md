@@ -4,10 +4,12 @@ Both go through `agent-reach`, which drives OpenCLI inside its own dedicated, he
 
 ## Twitter/X
 
-X is read with the burner account only. The user logs it in once with `agent-reach login twitter`, which adds the channel, opens the dedicated window and records the login as manual. Until that has happened, any browser-backed `twitter` call copies the X login from the user's everyday Chrome (if it is connected to the OpenCLI extension) and reads X as the main account. So:
+X is read with the burner account only. On this host the user's everyday Chrome is logged in to X with that burner account, so the dedicated browser takes its X login from there: `agent-reach login twitter --import-existing` copies only the x.com cookies, through the OpenCLI extension in that Chrome, without opening a window. It has been done once; later calls reuse the saved session.
 
-- If `agent-reach doctor --text` shows `twitter` as `not_added`, do not call `agent-reach twitter`. Ask the user to run `agent-reach login twitter` and log in with the burner account.
-- Never run `agent-reach login twitter --import-existing` or `agent-reach browser use <ID>`; both copy a login from another browser.
+- If an X call returns `NEED_LOGIN`, run `agent-reach login twitter --import-existing` once and retry once. If it fails again, stop and tell the user.
+- Never run `agent-reach browser use <ID>`; it switches the copy source to another browser, which may hold a different account.
+- Do not use `agent-reach login twitter` (the login window) unless the user asks. X refused the burner's login from the dedicated window with "We've temporarily limited your login."
+- The user's other tools on this Mac read X with the same burner account through the everyday OpenCLI. Keep volumes modest, because burst traffic from both can get the account restricted.
 
 ```bash
 agent-reach twitter search "query" --limit 10
@@ -29,7 +31,7 @@ agent-reach reddit subreddit <name> --limit 10
 agent-reach reddit search "query" --backend public-web   # anonymous public route only, no browser
 ```
 
-Until the user has run `agent-reach login reddit`, always pass `--backend public-web`. Without it, a failed public attempt falls through to the dedicated browser, which copies the Reddit login from the user's everyday Chrome if one exists. The same fall-through applies to `twitter`, which is why X is not called before its login. After `login reddit`, search and read go to the dedicated browser first, as that account; `--backend public-web` still forces an anonymous lookup. The public route shares the `web` channel's anonymous Exa endpoint, so when `web` is rate-limited, Reddit's public route is too.
+Always pass `--backend public-web`. The Reddit login has been copied from the everyday Chrome (`agent-reach login reddit --import-existing`), but Reddit's network-security filter answers the dedicated browser's requests (`--backend opencli`, and the fall-through without a flag) with HTTP 403 and `UPSTREAM_BROKEN`; logging in again does not help. The public route uses the `web` channel's anonymous Exa endpoint, so when `web` is rate-limited, Reddit's public route is too. Then stop and tell the user; do not retry through the browser.
 
 ## Pacing
 

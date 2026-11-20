@@ -1,4 +1,4 @@
-> **This host:** the dedicated browser uses the installed Chrome on purpose. Never run `agent-reach browser setup --retry-cloak`, `agent-reach add`, or, for X, `login --import-existing` / `browser use`. See [../SKILL.md](../SKILL.md) and [social.md](social.md).
+> **This host:** the dedicated browser uses the installed Chrome on purpose. Never run `agent-reach browser setup --retry-cloak`, `agent-reach add`, or `browser use`. X and Reddit take their logins from the user's everyday Chrome (`login <channel> --import-existing`), whose X login is the burner account. See [../SKILL.md](../SKILL.md) and [social.md](social.md).
 
 # 会话与专用浏览器
 

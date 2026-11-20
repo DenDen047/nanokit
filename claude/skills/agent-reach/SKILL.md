@@ -22,7 +22,7 @@ Based on [Agent-Reach](https://github.com/Panniantong/Agent-Reach) 1.6.1 (rev `c
 
 `agent-reach` comes from a pixi env at `nanokit/tools/agent-reach/`. Its wrapper `run-in-env` installs the OpenCLI version pinned in the `opencli` wrapper next to it into `.opencli/` with the env's node, and puts it first on PATH. Several `agent-reach` commands install things outside pixi or rewrite this skill:
 
-- `agent-reach update`, `setup`, `add <channel>`, `remove`, `uninstall` — they run uv, pip or npm into `~/.agent-reach/tools/` and replace the program. Updates come from `nanokit upgrade` and a rev bump in `tools/agent-reach/pixi.toml`. If a result carries `meta.update`, ignore it. The user's one-time `agent-reach login twitter` (and optionally `login reddit`) adds the channel as a side effect; that is fine, because `run-in-env` has already put the pinned OpenCLI package and the env's node on PATH and recorded the Chrome backend, so nothing gets installed.
+- `agent-reach update`, `setup`, `add <channel>`, `remove`, `uninstall` — they run uv, pip or npm into `~/.agent-reach/tools/` and replace the program. Updates come from `nanokit upgrade` and a rev bump in `tools/agent-reach/pixi.toml`. If a result carries `meta.update`, ignore it. `agent-reach login twitter --import-existing` and `login reddit --import-existing` (see [references/social.md](references/social.md)) are fine, because `run-in-env` has already put the pinned OpenCLI package and the env's node on PATH and recorded the Chrome backend, so nothing gets installed.
 - `agent-reach skill link|unlink` — this file in `nanokit/claude/skills/` is the single source, distributed by symlink.
 - `agent-reach browser setup --retry-cloak` — it pip-installs CloakBrowser and downloads its Chromium build. The dedicated browser uses the installed Chrome on purpose (`tools/agent-reach/use-system-chrome.py`).
 - `mcporter`, `pipx install`, `npm install -g` — not installed, and not to be installed.
@@ -37,8 +37,8 @@ Upstream's own rule is to prefer the agent's native tools for public content and
 | A web page / article / RSS feed | Jina Reader, scrapling MCP, feedparser | [references/web.md](references/web.md) |
 | YouTube video, subtitles | `yt-dlp`, or `agent-reach youtube` | [references/video.md](references/video.md) |
 | GitHub repo, code, issues, PRs | `gh` | [references/dev.md](references/dev.md) |
-| Twitter/X | `agent-reach twitter`, only after the user's burner `login twitter` | [references/social.md](references/social.md) |
-| Reddit | `agent-reach reddit --backend public-web` (drop the flag only after `login reddit`) | [references/social.md](references/social.md) |
+| Twitter/X | `agent-reach twitter` (burner login copied from the everyday Chrome) | [references/social.md](references/social.md) |
+| Reddit | `agent-reach reddit --backend public-web` | [references/social.md](references/social.md) |
 
 `agent-reach read <url>` picks the channel from a URL. `agent-reach channels` lists every action and its parameters.
 
@@ -81,6 +81,6 @@ agent-reach doctor --text          # offline status of every channel
 agent-reach check <channel> --text # one live test
 ```
 
-Only `github`, `youtube`, `web`, `twitter` and `reddit` matter; ignore every other row (`needs_setup` on bilibili, `unverified` on v2ex, `not_added` on the rest). `twitter` or `reddit` as `not_added` means the user has not run `agent-reach login <channel>` yet; for X that also means do not call it (see [references/social.md](references/social.md)).
+Only `github`, `youtube`, `web`, `twitter` and `reddit` matter; ignore every other row (`needs_setup` on bilibili, `unverified` on v2ex, `not_added` on the rest). `twitter` and `reddit` show `unverified` until a live check; their logins come from the everyday Chrome (see [references/social.md](references/social.md)).
 
 If the dedicated browser reports `Port <n> belongs to an unmanaged browser`, another program holds port 9222. Do not close it; with the user's consent run `agent-reach configure browser-port <free port>`.

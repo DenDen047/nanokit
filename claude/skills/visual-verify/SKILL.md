@@ -32,7 +32,7 @@ description: >
 
    | 対象 | 取得方法 |
    |---|---|
-   | URL | Orca の中なら内蔵ブラウザ（`orca tab create --url <url> --worktree <id> --json` → `orca viewport --page <id> --width <w> --height <h> --json` → `orca screenshot --page <id>`、ページ全体は `full-screenshot`）。ページを読み直すと幅の指定が戻るので、遷移のたびに `viewport` を掛け直す。Orca の外では Playwright MCP（`browser_navigate` → `browser_resize` → `browser_take_screenshot`）。**主要ブレークポイント**（例 375 / 768 / 1280px）でそれぞれ撮る |
+   | URL | Orca の中なら内蔵ブラウザ（`orca tab create --url <url> --worktree <id> --json` → `orca viewport --page <id> --width <w> --height <h> --json` → `orca screenshot --page <id>`、ページ全体は `full-screenshot`）。ページを読み直すと幅の指定が戻るので、遷移のたびに `viewport` を掛け直す。Orca の外では Claude in Chrome（`navigate` → `resize_window` → `computer` の screenshot）、つながらなければ Playwright MCP（`browser_navigate` → `browser_resize` → `browser_take_screenshot`）。**主要ブレークポイント**（例 375 / 768 / 1280px）でそれぞれ撮る |
    | ローカル HTML | Orca の内蔵ブラウザは `file://<絶対パス>` をそのまま開ける。GLB などを読み込むページは `file://` では読めないので、ファイルのあるディレクトリで `python3 -m http.server <port> --bind 127.0.0.1` を起動して `http://127.0.0.1:<port>/<file>` を開き、撮り終えたらサーバを落とす。Orca の外ではヘッドレスブラウザで PNG 出力 |
    | SVG | `rsvg-convert -o /tmp/vv.png <file.svg>`（無ければヘッドレスブラウザ） |
    | PDF | `pdftoppm -png -r 150 <file.pdf> /tmp/vv` でページ画像化 |

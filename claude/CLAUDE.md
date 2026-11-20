@@ -55,11 +55,11 @@ Max プランなので画像認識を惜しまない。**UI・図・ブラウザ
 
 ## Orca の機能を先に使う
 
-Orca の中 (`$ORCA_CLI_COMMAND` がある) では、Orca が持っている機能をほかの道具より先に使う。CLI は `"$ORCA_CLI_COMMAND"` で呼び、書き方は `orca-cli` skill が読み込む、Orca の版に合った手引きに従う。Orca の外 (launchd の `claude -p`、Hermes、別の機械) ではこの節は当てはまらず、ブラウザは Playwright MCP の Chrome を使う。
+Orca の中 (`$ORCA_CLI_COMMAND` がある) では、Orca が持っている機能をほかの道具より先に使う。CLI は `"$ORCA_CLI_COMMAND"` で呼び、書き方は `orca-cli` skill が読み込む、Orca の版に合った手引きに従う。Orca の外 (launchd の `claude -p`、Hermes、別の機械) ではこの節は当てはまらず、ブラウザは下の順の Claude in Chrome から選ぶ。
 
 | やること | Orca で使うもの | 使わないもの |
 |---|---|---|
-| Web ページを開く・読む・操作する・撮る | 内蔵ブラウザ (`tab create`・`snapshot`・`click`・`screenshot`) | Playwright MCP、Claude in Chrome、Vivaldi |
+| Web ページを開く・読む・操作する・撮る | 内蔵ブラウザ (`tab create`・`snapshot`・`click`・`screenshot`)。ログインが要るサイトと内蔵ブラウザで通らないサイトは、下の順で Claude in Chrome、Playwright MCP | Vivaldi |
 | 人に見せるファイルや URL を開く | `tab create --url "file://<絶対パス>"` (Web ページならその URL)、ソースコードなら `file open` | `open`。Mac Studio の画面に出るだけで、MacBook Air から遠隔で使っている本人には見えない |
 | 作業を別のワークツリーに分ける | `worktree create` | 素の `git worktree`、Claude Code の `EnterWorktree` |
 | デスクトップのアプリを操作する | `computer` | Claude や Codex の Computer Use |
@@ -72,10 +72,10 @@ Orca の中 (`$ORCA_CLI_COMMAND` がある) では、Orca が持っている機�
 
 1. API や MCP がある (Notion・Slack・Gmail・freee など) なら、ブラウザを使わない。
 2. Orca の内蔵ブラウザ。タブは必ず `--worktree` でこの会話のワークスペースを指定して開く。省くと、Orca の画面でいま選ばれている別のワークスペースに開いてしまう。フォルダ型のワークスペースでは `orca worktree current` が使えず、同じフォルダにワークスペースが複数あることもあるので、会話の ID から引いて `--worktree "id:<値>"` で渡す。値は `"$ORCA_CLI_COMMAND" worktree ps --json | jq -r --arg s "$ORCA_AGENT_SESSION_ID" '.result.worktrees[] | select(tostring | contains($s)) | .worktreeId'` で取れる。Claude Code では、指定が無いとフック (`orca-tab-worktree-guard.py`) が止めて正しい値を教える。
-3. 内蔵ブラウザで通らないときだけ、Playwright MCP の Chrome (普段の Chrome とは別のプロファイル) を使う。埋め込み型のブラウザを拒むログイン、Chrome の拡張機能が要る作業、同じテストを繰り返し流す作業が当たる。
-4. 本人の普段使いのブラウザ (Vivaldi と、Claude in Chrome がつながる本人の Chrome) は、本人が名指しで頼んだときだけ使う。ログインが全部そろっているので、読んだページに仕込まれた指示に乗っ取られたときの被害が一番大きい。
+3. Claude in Chrome (本人の Chrome)。内蔵ブラウザで通らないときに使う。アカウント登録やログインが要るサイトは本人の Chrome で済んでいることが多いので、内蔵ブラウザを飛ばして最初からこれを使う。Orca のチャットから動く会話には `mcp__claude-in-chrome__*` が出ないので、ブラウザの工程だけを `claude -p --chrome` に任せる。
+4. Playwright MCP の Chrome (普段の Chrome とは別のプロファイル)。Claude in Chrome がつながらないときや、サイトを拒まれたときに使う。
 
-ログインが要るサイトは、用途ごとに作った Orca のブラウザプロファイル (`tab profile create`) に本人が一度だけログインする。お金が動くサイトは既定のプロファイルに入れない。
+Vivaldi は本人が名指しで頼んだときだけ使う。
 
 ## ハマりポイント
 

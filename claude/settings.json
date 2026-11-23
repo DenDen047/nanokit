@@ -5,6 +5,7 @@
     "ECC_MCP_RECONNECT_ZOTERO": "bash ~/.claude/scripts/zotero-mcp-server.sh start",
     "ECC_MCP_RECONNECT_WORKSPACE_PERSONAL": "bash ~/.claude/scripts/workspace-mcp-personal-server.sh start",
     "ECC_MCP_RECONNECT_WORKSPACE_HDT": "bash ~/.claude/scripts/workspace-mcp-hdt-server.sh start",
+    "ECC_MCP_RECONNECT_WORKSPACE_WORK": "bash ~/.claude/scripts/workspace-mcp-work-server.sh start",
     "ECC_MCP_RECONNECT_SCRAPLING": "bash ~/.claude/scripts/scrapling-mcp-server.sh start"
   },
   "permissions": {
@@ -85,6 +86,11 @@
           {
             "type": "command",
             "command": "bash ~/.claude/scripts/workspace-mcp-hdt-server.sh start",
+            "timeout": 20
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/workspace-mcp-work-server.sh start",
             "timeout": 20
           },
           {

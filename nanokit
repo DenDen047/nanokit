@@ -121,7 +121,7 @@ link_wezterm_cli() {
 }
 
 # Register one safe shared HTTP MCP in every installed local agent client.
-# Client-scoped services (for example workspace-hdt/personal) must NOT use this
+# Client-scoped services (for example workspace-hdt/personal/work) must NOT use this
 # helper because Codex has one user-level config across all client folders.
 register_shared_http_mcp() {
     local name="$1"

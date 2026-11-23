@@ -18,7 +18,7 @@ metadata:
 - **exit 134 は接続失敗のサイン。** `spark` は Spark Desktop に繋がらないとき、エラーメッセージを出さず SIGABRT (exit 134) で落ちることがある。出力が空で 134 なら、まず Spark Desktop が起動していて Settings の AI Agents で CLI アクセスが有効かを確認する。読み取り系は Codex の既定サンドボックス内でもそのまま通る (2026-09-11 に read-only と workspace-write の両方で確認済み) ので、サンドボックスを真っ先に疑わない。それでも 134 が続くなら `with_escalated_permissions: true` を付けて再実行する。
 - **`spark` は pixi global の管理外。** 実体は Spark Desktop.app 同梱バイナリへの `/usr/local/bin/spark` symlink なので、`pixi global install spark` を試みない。
 - **この環境の Spark は読み取り専用。書き込み系は使わない。** Spark に課金していないため全アカウントが read-only 固定で、`draft` / `action` / `contact-action` / `comment` / `event` はアプリ側で必ず弾かれる。試すだけ無駄なので Claude Code では `deny` で実際に塞がれている (確認済み)。Codex 側にも `forbidden` を宣言しているが、non-interactive の `codex exec` では素通りするのを確認しているため、エージェント自身が呼ばないこと。下の各コマンドの説明が triage / send 権限の話をしていても、この環境には当てはまらない。
-- **書き込みが要るときは Gmail を直接操作する。** メールの送信・下書き・整理は `mcp__workspace-personal__*` (sh.mn.nat@gmail.com)、HDT 宛は `mcp__workspace-hdt__*` を使う。カレンダー更新も同じ Google 側で行う。Spark は「全アカウントを横断して読む」ためだけに使い、Google 以外のアカウントには書き込み経路そのものが無い。
+- **書き込みが要るときは Gmail を直接操作する。** メールの送信・下書き・整理は `mcp__workspace-personal__*` (sh.mn.nat@gmail.com)、仕事と課金のアカウントは `mcp__workspace-work__*` (denden047-work@gmail.com)、HDT 宛は `mcp__workspace-hdt__*` を使う。カレンダー更新も同じ Google 側で行う。Spark は「全アカウントを横断して読む」ためだけに使い、Google 以外のアカウントには書き込み経路そのものが無い。
 
 # Using spark
 

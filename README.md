@@ -400,7 +400,7 @@ This will:
 6. Register client-safe HTTP MCPs (`scrapling`, `zotero`, `deepwiki`, `exa`) in both CLIs.
 7. Register Claude Code plugin marketplaces and plugins.
 
-Client-scoped MCPs such as `workspace-hdt` / `workspace-personal` are intentionally not added to Codex user scope; `claude-settings` selects them per project so organization credentials do not leak across clients.
+Client-scoped MCPs such as `workspace-hdt` / `workspace-personal` / `workspace-work` are intentionally not added to Codex user scope; `claude-settings` selects them per project so organization credentials do not leak across clients.
 
 ### Plugins
 

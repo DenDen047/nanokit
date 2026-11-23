@@ -13,6 +13,7 @@
 | workspace-personal | 8322 | `workspace-mcp-personal-server.sh` | 個人 Google (`sh.mn.nat@gmail.com`) |
 | scrapling-mcp | 8323 | `scrapling-mcp-server.sh` | ブラウザ取得 (Playwright) |
 | workspace-hdt | 8324 | `workspace-mcp-hdt-server.sh` | HDT Google (ポータブル OAuth) |
+| workspace-work | 8325 | `workspace-mcp-work-server.sh` | 仕事と課金の Google (`denden047-work@gmail.com`) |
 
 ### 登録先の振り分け
 
@@ -131,10 +132,11 @@ codex mcp get scrapling               # → transport: streamable_http
 |---|---|---|---|---|
 | `workspace-personal` | 8322 | `personal` | `sh.mn.nat@gmail.com` (= frogiraffe) | `mcp__workspace-personal__*` |
 | `workspace-hdt` | 8324 | `HDT` | `n.muramatsu@hyper-digitaltwins.com` | `mcp__workspace-hdt__*` |
+| `workspace-work` | 8325 | `work` | `denden047-work@gmail.com` (仕事と課金) | `mcp__workspace-work__*` |
 
 **設計**: いずれも **ポータブルな OAuth creds (タイプA)** を使うため、HDT の Claude アカウント
 (軸A, `CLAUDE_CONFIG_DIR=~/.claude-hdt`) とは独立に HDT の Google データへ到達できる (越境
-スケジューリングの核心)。OAuth クライアントは両者共通 (`claude-google-oauth`)、creds dir と
+スケジューリングの核心)。OAuth クライアントは3つとも共通 (`claude-google-oauth`)、creds dir と
 USER_GOOGLE_EMAIL だけが異なる。`workspace` は Claude Code の予約名なので個人側は
 `workspace-personal`。
 
@@ -153,6 +155,7 @@ direnv `.envrc`・per-client `.mcp.json`・Team アカウントの `CLAUDE_CONFI
 ```bash
 claude mcp add --transport http -s user workspace-personal http://127.0.0.1:8322/mcp
 claude mcp add --transport http -s user workspace-hdt        http://127.0.0.1:8324/mcp
+claude mcp add --transport http -s user workspace-work       http://127.0.0.1:8325/mcp
 ```
 
 この user スコープ登録は **個人アカウントのセッションにのみ**効く (HDT フォルダには波及しない)。

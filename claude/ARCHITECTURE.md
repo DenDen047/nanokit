@@ -10,7 +10,7 @@
 |---|---|---|
 | ① 視覚確認の徹底 | UI・図・生成画像を「推測」で済ませず必ず目視 | `vision-reminder.sh` (PostToolUse) + `/visual-verify` skill |
 | ② メモリ・パーソナライゼーション | 好み・思考・嗜好を**無音で**収集し全プロジェクトに反映 | `memory-extract.sh` (SessionEnd) + 個人メモリ層 + `@import` |
-| ③ マルチアカウント到達性 | どのフォルダからも複数 Google アカウントへ直接届く | 常駐 MCP HTTP シングルトン (`8321`–`8324`) |
+| ③ マルチアカウント到達性 | どのフォルダからも複数 Google アカウントへ直接届く | 常駐 MCP HTTP シングルトン (`8321`–`8325`) |
 
 ---
 
@@ -38,7 +38,7 @@
 | 軸 | 何を決めるか | 実体 |
 |---|---|---|
 | **軸A: Claude アカウント** | どの Claude Code 設定で動くか | `CLAUDE_CONFIG_DIR=~/.claude`（個人）vs `~/.claude-hdt`（HDT） |
-| **軸B: データアカウント** | どの Google アカウントのデータに触るか | ポータブルな OAuth creds（`workspace-personal` / `workspace-hdt`） |
+| **軸B: データアカウント** | どの Google アカウントのデータに触るか | ポータブルな OAuth creds（`workspace-personal` / `workspace-hdt` / `workspace-work`） |
 
 軸Bがポータブルな OAuth であるため、**個人の Claude（軸A）からでも HDT の Google データ（軸B）へ到達できる**（＝越境スケジューリング）。
 
@@ -53,7 +53,7 @@ Claude Code セッションのライフサイクルに、`settings.json` で登�
 ```mermaid
 flowchart TB
     start["SessionStart"]
-    start -->|"4 つの MCP ランチャを起動 (冪等)"| mcp["常駐 MCP サーバ :8321 - :8324"]
+    start -->|"5 つの MCP ランチャを起動 (冪等)"| mcp["常駐 MCP サーバ :8321 - :8325"]
     start --> work["ツール実行ループ<br/>(Edit / Bash / MCP ...)"]
 
     work -->|"PreToolUse : Edit/Write"| kar["karpathy-reminder.sh<br/>コーディング 4 原則を注入"]
@@ -105,7 +105,7 @@ Max プランの画像認識を惜しまない方針。**UI・図・ブラウザ
 | 観点 | **nanokit**（この repo） | **claude-settings**（別 repo, private） |
 |---|---|---|
 | 守備範囲 | 個人 `~/.claude` のグローバル層 | 各クライアント（HDT / uSonar / Lagoon / personal …）への振り分け |
-| 主な実体 | hooks・skills・常駐 MCP サーバの**ランチャ実体**（`workspace-personal :8322` / `workspace-hdt :8324` / `zotero :8321` / `scrapling :8323`） | `templates/<client>/`＋`deploy.sh`＋per-client `.mcp.json` |
+| 主な実体 | hooks・skills・常駐 MCP サーバの**ランチャ実体**（`workspace-personal :8322` / `workspace-hdt :8324` / `workspace-work :8325` / `zotero :8321` / `scrapling :8323`） | `templates/<client>/`＋`deploy.sh`＋per-client `.mcp.json` |
 | アカウント切替 | —（サーバを立てるだけ） | フォルダ毎に **direnv `.envrc`** が `WORKSPACE_MCP_CREDENTIALS_DIR` / `USER_GOOGLE_EMAIL` / `CLAUDE_CONFIG_DIR` を注入 |
 | 軸A 隔離（`~/.claude-hdt`） | 隔離元の `~/.claude/*`（settings.json・skills・scripts・CLAUDE.md 等）を供給 | `setup-config-dirs.sh` が `~/.claude-hdt` を作り、nanokit の `~/.claude/*` を symlink + creds だけ分離 |
 | シークレット | （zotero 等 nanokit 固有のみ） | `setup-secrets.sh` + `lib/secret.sh` で全クライアント分を OS ストアへ |
@@ -124,12 +124,14 @@ flowchart TB
         wp["workspace-personal :8322<br/>sh.mn.nat@gmail.com"]
         sc["scrapling :8323"]
         wh["workspace-hdt :8324<br/>n.muramatsu@hyper-digitaltwins.com"]
+        ww["workspace-work :8325<br/>denden047-work@gmail.com"]
     end
 
     personal -->|"direnv .envrc が接続先を選ぶ"| z
     personal --> wp
     personal --> sc
     personal --> wh
+    personal --> ww
     hdt --> wh
 ```
 
@@ -146,7 +148,7 @@ flowchart TB
 
 | ライフサイクル | matcher | スクリプト / コマンド | 役割 | 会話への可視性 |
 |---|---|---|---|---|
-| `SessionStart` | `*` | `zotero` / `workspace-personal` / `workspace-hdt` / `scrapling` の各 `*-server.sh start` | 常駐 MCP を冪等起動 | 不可視（出力無視） |
+| `SessionStart` | `*` | `zotero` / `workspace-personal` / `workspace-hdt` / `workspace-work` / `scrapling` の各 `*-server.sh start` | 常駐 MCP を冪等起動 | 不可視（出力無視） |
 | `PreToolUse` | `Edit\|Write\|MultiEdit\|NotebookEdit` | `karpathy-reminder.sh` | コーディング 4 原則を初回注入 | system-reminder |
 | `PreToolUse` | `Bash` | `orca-tab-worktree-guard.py` | Orca のブラウザを `--worktree` なしで開く呼び出しを止め、この会話のワークスペースの指定を教える (省くと画面で選ばれている別のワークスペースに開く) | exit 2 で差し戻し |
 | `PostToolUse` | `Write\|Edit\|MultiEdit\|Bash` | `vision-reminder.sh` | 編集・プロット後にスクショ目視を促す | system-reminder（クールダウン付） |
@@ -169,6 +171,7 @@ flowchart TB
 | `workspace-personal` | `8322` | [`workspace-mcp-personal-server.sh`](./scripts/workspace-mcp-personal-server.sh) | uvx | `sh.mn.nat@gmail.com` |
 | `scrapling` | `8323` | [`scrapling-mcp-server.sh`](./scripts/scrapling-mcp-server.sh) | `mcp-servers/scrapling/` | Claude Code ⇄ Codex 共有 |
 | `workspace-hdt` | `8324` | [`workspace-mcp-hdt-server.sh`](./scripts/workspace-mcp-hdt-server.sh) | uvx | `n.muramatsu@hyper-digitaltwins.com` |
+| `workspace-work` | `8325` | [`workspace-mcp-work-server.sh`](./scripts/workspace-mcp-work-server.sh) | uvx | `denden047-work@gmail.com` (仕事と課金) |
 
 > 各サーバの credentials・モード切替・接続確認の手順は [`../specs/mcp-operations.md`](../specs/mcp-operations.md) を参照。
 
@@ -190,6 +193,7 @@ claude/
 │   ├── workspace-mcp-personal-server.sh  # MCP ランチャ :8322
 │   ├── scrapling-mcp-server.sh     # MCP ランチャ :8323
 │   ├── workspace-mcp-hdt-server.sh # MCP ランチャ :8324
+│   ├── workspace-mcp-work-server.sh # MCP ランチャ :8325
 │   └── mmdc                        # mermaid CLI ラッパ (→ ~/.pixi/bin/mmdc)
 ├── skills/              # スキル群（visual-verify, committing-changes, pdf, ...）
 ├── agents/              # カスタム sub-agent（root-cause, status-briefing）

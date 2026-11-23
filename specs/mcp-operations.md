@@ -13,7 +13,7 @@
 | workspace-personal | 8322 | `workspace-mcp-personal-server.sh` | 個人 Google (`sh.mn.nat@gmail.com`) |
 | scrapling-mcp | 8323 | `scrapling-mcp-server.sh` | ブラウザ取得 (Playwright) |
 | workspace-hdt | 8324 | `workspace-mcp-hdt-server.sh` | HDT Google (ポータブル OAuth) |
-| workspace-work | 8325 | `workspace-mcp-work-server.sh` | 仕事と課金の Google (`denden047-work@gmail.com`) |
+| workspace-work | 8325 | `workspace-mcp-work-server.sh` | 仕事と課金の Google (`denden047.work@gmail.com`) |
 
 ### 登録先の振り分け
 
@@ -132,7 +132,7 @@ codex mcp get scrapling               # → transport: streamable_http
 |---|---|---|---|---|
 | `workspace-personal` | 8322 | `personal` | `sh.mn.nat@gmail.com` (= frogiraffe) | `mcp__workspace-personal__*` |
 | `workspace-hdt` | 8324 | `HDT` | `n.muramatsu@hyper-digitaltwins.com` | `mcp__workspace-hdt__*` |
-| `workspace-work` | 8325 | `work` | `denden047-work@gmail.com` (仕事と課金) | `mcp__workspace-work__*` |
+| `workspace-work` | 8325 | `work` | `denden047.work@gmail.com` (仕事と課金) | `mcp__workspace-work__*` |
 
 **設計**: いずれも **ポータブルな OAuth creds (タイプA)** を使うため、HDT の Claude アカウント
 (軸A, `CLAUDE_CONFIG_DIR=~/.claude-hdt`) とは独立に HDT の Google データへ到達できる (越境

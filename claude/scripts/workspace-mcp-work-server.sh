@@ -3,7 +3,7 @@
 # Usage: workspace-mcp-work-server.sh [start|stop|status]
 #
 # Serves Google Workspace tools for the work account
-# (denden047-work@gmail.com, used for paid services and work sign-ups since
+# (denden047.work@gmail.com, used for paid services and work sign-ups since
 # 2026-11-23) as a single shared streamable-http endpoint on port 8325, so that
 # parallel Claude Code sessions do not race on the OAuth refresh_token
 # (Issue workspace-mcp #506/#667).
@@ -25,7 +25,7 @@ LOG_FILE="$HOME/.claude/debug/workspace-mcp-work.log"
 # .envrc exports USER_GOOGLE_EMAIL / WORKSPACE_MCP_CREDENTIALS_DIR for their own
 # per-project stdio server. Inheriting those here made the shared server serve
 # the wrong Google account until the next reboot.
-USER_GOOGLE_EMAIL_VALUE="denden047-work@gmail.com"
+USER_GOOGLE_EMAIL_VALUE="denden047.work@gmail.com"
 CREDENTIALS_DIR_VALUE="$HOME/.config/google-workspace-mcp/work"
 
 # Resolve claude-settings repo root from either invocation path:

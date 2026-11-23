@@ -124,7 +124,7 @@ flowchart TB
         wp["workspace-personal :8322<br/>sh.mn.nat@gmail.com"]
         sc["scrapling :8323"]
         wh["workspace-hdt :8324<br/>n.muramatsu@hyper-digitaltwins.com"]
-        ww["workspace-work :8325<br/>denden047-work@gmail.com"]
+        ww["workspace-work :8325<br/>denden047.work@gmail.com"]
     end
 
     personal -->|"direnv .envrc が接続先を選ぶ"| z
@@ -171,7 +171,7 @@ flowchart TB
 | `workspace-personal` | `8322` | [`workspace-mcp-personal-server.sh`](./scripts/workspace-mcp-personal-server.sh) | uvx | `sh.mn.nat@gmail.com` |
 | `scrapling` | `8323` | [`scrapling-mcp-server.sh`](./scripts/scrapling-mcp-server.sh) | `mcp-servers/scrapling/` | Claude Code ⇄ Codex 共有 |
 | `workspace-hdt` | `8324` | [`workspace-mcp-hdt-server.sh`](./scripts/workspace-mcp-hdt-server.sh) | uvx | `n.muramatsu@hyper-digitaltwins.com` |
-| `workspace-work` | `8325` | [`workspace-mcp-work-server.sh`](./scripts/workspace-mcp-work-server.sh) | uvx | `denden047-work@gmail.com` (仕事と課金) |
+| `workspace-work` | `8325` | [`workspace-mcp-work-server.sh`](./scripts/workspace-mcp-work-server.sh) | uvx | `denden047.work@gmail.com` (仕事と課金) |
 
 > 各サーバの credentials・モード切替・接続確認の手順は [`../specs/mcp-operations.md`](../specs/mcp-operations.md) を参照。
 

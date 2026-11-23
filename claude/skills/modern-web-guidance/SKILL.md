@@ -6,7 +6,7 @@ description: |
   DO NOT trigger for: backend (SQL, ORMs, API routes), infra/scripts (CI/CD, Docker, Actions, Python/Go, Git), or tooling/trivial (Vite, tsconfig, ESLint, tests, copy/renames, 3P docs), etc.
 ---
 
-<!-- Generated from modern-web-guidance@1.0.0 by nanokit tools/modern-web-guidance/sync-skill.sh. Do not edit; re-run the script. -->
+<!-- Generated from modern-web-guidance@1.0.1 by nanokit tools/modern-web-guidance/sync-skill.sh. Do not edit; re-run the script. -->
 
 # Modern Web Guidance
 
@@ -16,13 +16,13 @@ Search and retrieve standardized modern web best practices at the **start** of i
 
 ### Step 1. Search Use Cases
 
-Run `modern-web-guidance` (the nanokit wrapper on PATH) using a **2–5 word action-oriented query** for a **single web platform capability or UI pattern**:
+Run `modern-web-guidance` (the nanokit wrapper on PATH) using a **2–5 word action-oriented English query** for a **single web platform capability or UI pattern**:
 - **Keep queries focused and generic**: Describe the user-visible capability (`<verb> + <UI/platform object>`, optionally paired with the target HTML/CSS/JS feature name if known). Omit framework/library names (`React`, `Vue`, `Tailwind`, etc.) and app/domain nouns (product, route, or component/file names). Split multi-feature tasks into separate `search` calls.
 - **Name implied UI primitives**: When the user's prompt expresses intent without naming the UI primitive (e.g. "confirm first", "delete with confirmation", "pick a date"), translate the domain intent into the implied UI component or platform mechanism (e.g. search `"confirmation modal dialog"` or `"confirm dialog"` rather than `"confirm destructive action"`, or `"date picker input"` rather than `"pick a date"`).
 - **Example**: Search `"light dismiss dialog"` or `"responsive data table"`, **not** `"dialog"` (too terse), `"responsive table dark mode"` (compound — split into two searches), or `"close React settings modal on outside click"` (framework/app noise).
 
 ```sh
-modern-web-guidance search "<query>" --skill-version 2026_11_09-5bcc021b
+modern-web-guidance search "<query>" --skill-version 2026_11_10-47b4c80e
 ```
 
 > **Note**: Returns `[{ "id", "description" }, ...]`. Judge results by their `description` fields:

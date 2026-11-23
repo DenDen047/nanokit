@@ -14,7 +14,7 @@
 #
 # node は fnm 管理なので、cron / launchd からは PATH が通らない。opencli と同じく対話のセッション用。
 set -euo pipefail
-MWG=(npx -y "modern-web-guidance@1.0.0")
+MWG=(npx -y "modern-web-guidance@1.0.1")
 
 case "${1:-}" in
   install | update | uninstall)

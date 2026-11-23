@@ -31,7 +31,7 @@ pixi global sync         # Install/sync tools from pixi-global.toml
 `claude/CLAUDE.md` and `claude/skills/*` are the global agent sources. Two mechanisms distribute them, and `./nanokit deploy` runs both:
 
 - **dotter** symlinks tool-specific files under `~/.claude/` (scripts, output styles, ccstatusline config). The mappings live in `.dotter/global.toml` — that file is the source of truth, do not restate it elsewhere. Reflect changes with `dotter deploy`.
-- **`./nanokit agent-config-sync`** distributes the shared instructions, skills, Codex config, and `settings.json`. It symlinks `claude/CLAUDE.md` → `~/.codex/AGENTS.md` and each `claude/skills/<name>` → both `~/.claude/skills/<name>` and `~/.agents/skills/<name>`. A `SessionStart` hook (`agent-config-sync-reconnect.sh`) re-runs it idempotently every session: **silent on success, `systemMessage` warning only when something is out of sync** (added after skill distribution silently drifted in 2026-07). `sync-config.py` does not abort the whole run on one collision — it skips that item, distributes the rest, and reports explicitly (`rc=2`). Deleting a skill directory is enough to retire it: the sync removes the links it made for that skill, and only dangling links that point into `claude/skills/`.
+- **`./nanokit agent-config-sync`** distributes the shared instructions, skills, Codex config, Antigravity config, and `settings.json`. It symlinks `claude/CLAUDE.md` → `~/.codex/AGENTS.md` and `~/.gemini/config/AGENTS.md`, and each `claude/skills/<name>` → `~/.claude/skills/<name>`, `~/.agents/skills/<name>`, and `~/.gemini/config/skills/<name>`. A `SessionStart` hook (`agent-config-sync-reconnect.sh`) re-runs it idempotently every session: **silent on success, `systemMessage` warning only when something is out of sync** (added after skill distribution silently drifted in 2026-07). `sync-config.py` does not abort the whole run on one collision — it skips that item, distributes the rest, and reports explicitly (`rc=2`). Deleting a skill directory is enough to retire it: the sync removes the links it made for that skill, and only dangling links that point into `claude/skills/`.
 
 Individual skill mappings do not belong in `.dotter/global.toml`; `agent-config-sync` discovers every directory containing `SKILL.md`.
 
@@ -54,6 +54,12 @@ Individual skill mappings do not belong in `.dotter/global.toml`; `agent-config-
 Codex's portable settings (`model`, `model_reasoning_effort`, `approval_policy`, `web_search`, …) are managed here too. Edit `codex/config.toml`; reflect with `./nanokit agent-config-sync` (`--diff` previews). The live file can't be a symlink because the Codex desktop app writes host-specific state (`[projects.*]` trust levels) back into it, and nanokit is a public repo — so the sync upserts only the managed keys idempotently and preserves other sections. `codex-install` runs it automatically.
 
 On a new host the Codex plugin is declared in `claude/settings.json` via `extraKnownMarketplaces` + `enabledPlugins`. If it doesn't install itself, run `claude plugin install codex@openai-codex`; install the `codex` CLI that skills call through `codex exec` with `./nanokit codex-install`.
+
+### Antigravity CLI
+
+`./nanokit antigravity-install` installs Google's Antigravity CLI (`agy`) and then runs `agent-config-sync`. Google ships it only as a self-updating native binary through its install script, so it lives in `~/.local/bin/agy` outside pixi and `./nanokit upgrade` leaves it alone. That script always ends with `agy install`, which appends a PATH line to `~/.zshrc` (a symlink into this repo) and four other shell profiles, so nanokit runs it with a throwaway `HOME`.
+
+Antigravity reads its global customizations from `~/.gemini/config/`. Besides the shared `AGENTS.md` and skills, the sync links `antigravity/rules/*.md` there (`personal-memory.md` inlines the personal memory index, since Antigravity has no `@import`), merges the named hooks in `antigravity/hooks.json` into the live `hooks.json` while keeping hook names it does not own, and registers the shared MCPs with `agy mcp add`. Antigravity truncates a rule file at 24,000 bytes after inlining.
 
 ## Upstream updates (`./nanokit upgrade`)
 

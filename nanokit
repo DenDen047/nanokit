@@ -76,8 +76,9 @@ show_help() {
     echo "  codex-install   🧠 Install OpenAI Codex CLI via npm (optional)"
     echo "  codex-update    🔄 Update Codex CLI to the latest version"
     echo "  codex-uninstall 🧹 Remove Codex CLI"
-    echo "  agent-config-sync ⚙️  Sync shared instructions, skills, and portable Codex settings (--diff to preview)"
+    echo "  agent-config-sync ⚙️  Sync shared instructions, skills, and portable Codex/Antigravity settings (--diff to preview)"
     echo "  codex-config-sync ⚙️  Backward-compatible alias for agent-config-sync"
+    echo "  antigravity-install 🪐 Install Google Antigravity CLI (agy) and sync shared agent config"
     echo "  gemini-install   ✨ Install Google Gemini CLI via npm (optional)"
     echo "  gemini-update    🔄 Update Gemini CLI to the latest version"
     echo "  gemini-uninstall 🧹 Remove Gemini CLI"
@@ -158,6 +159,18 @@ register_shared_http_mcp() {
             print_success "Codex MCP '$name' -> $url"
         fi
     fi
+
+    # Antigravity writes ~/.gemini/config/mcp_config.json; `agy mcp add` replaces an existing entry.
+    if command -v agy &> /dev/null; then
+        if agy mcp list 2>/dev/null | awk -v n="$name" -v u="$url" '$1 == n && $2 == "http" && $4 == u { found = 1 } END { exit !found }'; then
+            [[ "$diff_only" == true ]] || print_info "Antigravity MCP '$name' already points to $url"
+        elif [[ "$diff_only" == true ]]; then
+            echo "MCP DIFF: Antigravity '$name' -> $url"
+        else
+            agy mcp add "$name" "$url" >/dev/null
+            print_success "Antigravity MCP '$name' -> $url"
+        fi
+    fi
 }
 
 # Register one stdio MCP (a command) in every installed local agent client.
@@ -198,6 +211,17 @@ register_shared_stdio_mcp() {
             fi
             codex mcp add "$name" -- "$cmd" "$@" >/dev/null
             print_success "Codex MCP '$name' -> $cmd $args"
+        fi
+    fi
+
+    if command -v agy &> /dev/null; then
+        if agy mcp list 2>/dev/null | awk -v n="$name" -v c="$cmd $args" '$1 == n && $2 == "stdio" { line = $0; sub(/^[^ ]+ +[^ ]+ +[^ ]+ +/, "", line); if (line == c) found = 1 } END { exit !found }'; then
+            [[ "$diff_only" == true ]] || print_info "Antigravity MCP '$name' already runs $cmd $args"
+        elif [[ "$diff_only" == true ]]; then
+            echo "MCP DIFF: Antigravity '$name' -> $cmd $args"
+        else
+            agy mcp add "$name" -- "$cmd" "$@" >/dev/null
+            print_success "Antigravity MCP '$name' -> $cmd $args"
         fi
     fi
 }
@@ -774,6 +798,43 @@ codex_uninstall() {
     fi
 
     print_success "🧹 Codex CLI uninstalled"
+}
+
+# Antigravity CLI (agy): Google ships it only as a self-updating native binary
+# through its install script, so it lives in ~/.local/bin outside pixi, like the
+# npm-installed Codex CLI. The script always ends with `agy install`, which
+# appends a PATH line to ~/.zshrc (a symlink into this repo), ~/.zprofile,
+# ~/.bash_profile, ~/.profile and fish config. Running it with a throwaway HOME
+# keeps those edits out; ~/.local/bin is already on PATH via zshrc.
+antigravity_install() {
+    print_ascii_art
+    local bin_dir="$HOME/.local/bin"
+    if [[ -x "$bin_dir/agy" ]]; then
+        print_info "agy already installed ($("$bin_dir/agy" --version 2>/dev/null || echo unknown)); it self-updates in the background"
+    else
+        print_step "Installing Antigravity CLI (agy) into $bin_dir..."
+        local tmp_home
+        tmp_home="$(mktemp -d)"
+        if ! curl -fsSL https://antigravity.google/cli/install.sh -o "$tmp_home/install.sh" \
+            || ! HOME="$tmp_home" bash "$tmp_home/install.sh" --dir "$bin_dir"; then
+            rm -rf "$tmp_home"
+            print_error "Antigravity CLI install failed"
+            exit 1
+        fi
+        rm -rf "$tmp_home"
+        print_success "Antigravity CLI installed: $("$bin_dir/agy" --version 2>/dev/null || echo unknown)"
+    fi
+    echo ""
+
+    # Shared instructions, memory rule, skills, hooks, and MCP registrations.
+    # MCP registration finds agy on PATH, so make sure the install dir is on it.
+    export PATH="$bin_dir:$PATH"
+    agent_config_sync
+    echo ""
+
+    print_info "Next step (interactive, run manually):"
+    print_info "  agy    # first run opens Google sign-in in the browser"
+    print_success "🪐 Antigravity CLI setup completed!"
 }
 
 # Sync the shared instruction/skill sources to both clients while upserting only
@@ -1426,6 +1487,9 @@ main() {
             ;;
         "agent-config-sync")
             agent_config_sync "${@:2}"
+            ;;
+        "antigravity-install")
+            antigravity_install
             ;;
         "gemini-install")
             gemini_install

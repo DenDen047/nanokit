@@ -393,14 +393,15 @@ curl -fsSL https://claude.ai/install.sh | bash
 
 This will:
 1. Symlink Claude-specific settings from `nanokit/claude/` to `~/.claude/` with dotter.
-2. Link `claude/CLAUDE.md` to `~/.codex/AGENTS.md`.
-3. Link every `claude/skills/*/SKILL.md` directory to both `~/.claude/skills/` and `~/.agents/skills/`.
+2. Link `claude/CLAUDE.md` to `~/.codex/AGENTS.md` and `~/.gemini/config/AGENTS.md` (Antigravity).
+3. Link every `claude/skills/*/SKILL.md` directory to `~/.claude/skills/`, `~/.agents/skills/`, and `~/.gemini/config/skills/`.
 4. Upsert portable keys from `codex/config.toml` into the stateful `~/.codex/config.toml` without touching host-specific sections.
 5. Link nanokit-managed Codex command rules from `codex/rules/*.rules` into `~/.codex/rules/`.
-6. Register client-safe HTTP MCPs (`scrapling`, `zotero`, `deepwiki`, `exa`) in both CLIs.
-7. Register Claude Code plugin marketplaces and plugins.
+6. Register client-safe HTTP MCPs (`scrapling`, `zotero`, `deepwiki`, `exa`) in every installed CLI (Claude Code, Codex, Antigravity).
+7. Link `antigravity/rules/*.md` into `~/.gemini/config/rules/` and merge the named hooks in `antigravity/hooks.json` into `~/.gemini/config/hooks.json`.
+8. Register Claude Code plugin marketplaces and plugins.
 
-Client-scoped MCPs such as `workspace-hdt` / `workspace-personal` / `workspace-work` are intentionally not added to Codex user scope; `claude-settings` selects them per project so organization credentials do not leak across clients.
+Client-scoped MCPs such as `workspace-hdt` / `workspace-personal` / `workspace-work` are intentionally not added to the Codex or Antigravity user scope; `claude-settings` selects them per project so organization credentials do not leak across clients.
 
 ### Plugins
 
@@ -427,11 +428,13 @@ claude plugin install everything-claude-code@everything-claude-code
 | File | Description |
 |------|-------------|
 | `claude/settings.json` | Global settings (hooks, env vars, plugins, statusLine) |
-| `claude/CLAUDE.md` | Global instructions for Claude Code and Codex |
-| `claude/skills/*` | Shared skill sources for `~/.claude/skills` and `~/.agents/skills` |
+| `claude/CLAUDE.md` | Global instructions for Claude Code, Codex, and Antigravity |
+| `claude/skills/*` | Shared skill sources for `~/.claude/skills`, `~/.agents/skills`, and `~/.gemini/config/skills` |
 | `codex/config.toml` | Portable Codex top-level settings |
 | `codex/rules/*.rules` | Global Codex command rules linked into `~/.codex/rules/` |
 | `codex/sync-config.py` | Safe, idempotent config/instruction/skill/rule synchronizer |
+| `antigravity/rules/personal-memory.md` | Antigravity rule that inlines the personal memory index (`MEMORY.md`) |
+| `antigravity/hooks.json` | Antigravity `SessionStart` hooks that start the resident MCP servers |
 | `claude/scripts/zotero-mcp-server.sh` | Zotero MCP server lifecycle script |
 | `claude/scripts/nanokit-upgrade.sh` | Upstream update runner behind `./nanokit upgrade` (see `CLAUDE.md`) |
 

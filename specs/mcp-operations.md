@@ -20,9 +20,9 @@
 新ホストでは `dotter deploy` 後に HTTP MCP を手動登録する (`~/.claude.json` /
 `~/.codex/config.toml` は dotter 管理外の state)。登録先はサービスで分ける。
 
-- **`scrapling` / `zotero` / `deepwiki` / `exa`** — `agent-config-sync` が両 CLI (Claude / Codex の user scope) へ登録する。`deepwiki` と `exa` はリモート HTTP MCP でキー不要、常駐プロセスを持たない。
-- **`moneyforward`** — マネーフォワード ME の家計・資産を読むだけの MCP。実体は自宅の Proxmox の LXC 215 にあり、`ssh moneyforward` で起動する stdio サーバー (鍵はこのサーバーしか起動できない)。`agent-config-sync` が両 CLI の user scope へ登録するが、`~/.ssh/moneyforward_ed25519` がある Mac だけに限る。CT の作り方と鍵は frogiraffe の `homelab/ct/moneyforward/`。
-- **`workspace-*`** — Claude 個人アカウントの user scope のみ。Codex user scope へは入れない (認証境界は claude-settings の project adapter が維持する)。
+- **`scrapling` / `zotero` / `deepwiki` / `exa`** — `agent-config-sync` が入っている CLI すべて (Claude Code / Codex / Antigravity の user scope) へ登録する。Antigravity では `~/.gemini/config/hooks.json` の SessionStart hook が zotero / scrapling / workspace-personal / workspace-work を起動する (claude-settings の frogiraffe などが使う)。`deepwiki` と `exa` はリモート HTTP MCP でキー不要、常駐プロセスを持たない。
+- **`moneyforward`** — マネーフォワード ME の家計・資産を読むだけの MCP。実体は自宅の Proxmox の LXC 215 にあり、`ssh moneyforward` で起動する stdio サーバー (鍵はこのサーバーしか起動できない)。`agent-config-sync` が各 CLI の user scope へ登録するが、`~/.ssh/moneyforward_ed25519` がある Mac だけに限る。CT の作り方と鍵は frogiraffe の `homelab/ct/moneyforward/`。
+- **`workspace-*`** — Claude 個人アカウントの user scope のみ。Codex と Antigravity の user scope へは入れない (認証境界は claude-settings の project adapter が維持する)。
 
 ---
 

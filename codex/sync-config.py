@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sync nanokit's portable Codex config and shared agent files into $HOME."""
+"""Sync nanokit's portable Codex config and shared agent files (Claude Code, Codex, Antigravity) into $HOME."""
 
 from __future__ import annotations
 
@@ -18,6 +18,8 @@ RULES_SOURCE = NANOKIT_ROOT / "codex" / "rules"
 INSTRUCTIONS_SOURCE = NANOKIT_ROOT / "claude" / "CLAUDE.md"
 SKILLS_SOURCE = NANOKIT_ROOT / "claude" / "skills"
 SETTINGS_SOURCE = NANOKIT_ROOT / "claude" / "settings.json"
+ANTIGRAVITY_SOURCE = NANOKIT_ROOT / "antigravity"
+ANTIGRAVITY_HOOKS_SOURCE = ANTIGRAVITY_SOURCE / "hooks.json"
 KEY_RE = re.compile(r"^([A-Za-z0-9_-]+)\s*=")
 SECTION_RE = re.compile(r"^\s*\[")
 # Hook commands that another app installs into the live settings.json and owns.
@@ -40,6 +42,11 @@ def home_path() -> Path:
 def codex_home() -> Path:
     override = os.environ.get("CODEX_HOME")
     return Path(os.path.expanduser(override)) if override else home_path() / ".codex"
+
+
+def antigravity_config_dir() -> Path:
+    """Global customization folder the Antigravity CLI and app share (rules, skills, hooks, MCP)."""
+    return home_path() / ".gemini" / "config"
 
 
 def live_config_path() -> Path:
@@ -156,11 +163,37 @@ def settings_change() -> tuple[Path, str, str] | None:
     return live, old_text, new_text
 
 
+def antigravity_hooks_change() -> tuple[Path, str, str]:
+    """Merge nanokit's named Antigravity hooks into ~/.gemini/config/hooks.json.
+
+    Antigravity keys hooks.json by hook name, so nanokit owns only the names it
+    declares and keeps every other name (hooks added through /hooks or by hand).
+    """
+    live = antigravity_config_dir() / "hooks.json"
+    try:
+        source_obj = json.loads(ANTIGRAVITY_HOOKS_SOURCE.read_text())
+    except (OSError, ValueError) as exc:
+        raise SyncConflict(f"cannot read {ANTIGRAVITY_HOOKS_SOURCE}: {exc}") from exc
+    old_text = live.read_text() if live.exists() else ""
+    try:
+        live_obj = json.loads(old_text) if old_text.strip() else {}
+    except ValueError as exc:
+        raise SyncConflict(f"invalid JSON in {live}: {exc}") from exc
+    if not isinstance(live_obj, dict):
+        raise SyncConflict(f"{live} is not a JSON object")
+    merged = dict(source_obj)
+    for name, hook in live_obj.items():
+        merged.setdefault(name, hook)
+    return live, old_text, json.dumps(merged, indent=2, ensure_ascii=False) + "\n"
+
+
 def atomic_write(path: Path, text: str) -> None:
     """Write text, atomically replacing an existing regular file OR symlink."""
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(path.name + ".nanokit.tmp")
     tmp.write_text(text)
+    if path.exists():
+        shutil.copymode(path, tmp)
     os.replace(tmp, path)
 
 
@@ -180,6 +213,8 @@ def is_previous_nanokit_link(path: Path) -> bool:
         or raw.startswith("nanokit/claude/")
         or "/nanokit/codex/" in raw
         or raw.startswith("nanokit/codex/")
+        or "/nanokit/antigravity/" in raw
+        or raw.startswith("nanokit/antigravity/")
     )
 
 
@@ -219,15 +254,19 @@ def plan_link(source: Path, destination: Path, *, replace_empty_file: bool = Fal
 def desired_links() -> list[tuple[Path, Path, bool]]:
     links: list[tuple[Path, Path, bool]] = [
         (INSTRUCTIONS_SOURCE, codex_home() / "AGENTS.md", True),
+        (INSTRUCTIONS_SOURCE, antigravity_config_dir() / "AGENTS.md", True),
     ]
     for source in sorted(RULES_SOURCE.glob("*.rules")):
         links.append((source, codex_home() / "rules" / source.name, False))
+    for source in sorted((ANTIGRAVITY_SOURCE / "rules").glob("*.md")):
+        links.append((source, antigravity_config_dir() / "rules" / source.name, False))
     skill_dirs = sorted(
         path for path in SKILLS_SOURCE.iterdir() if path.is_dir() and (path / "SKILL.md").is_file()
     )
     for source in skill_dirs:
         links.append((source, home_path() / ".claude" / "skills" / source.name, False))
         links.append((source, home_path() / ".agents" / "skills" / source.name, False))
+        links.append((source, antigravity_config_dir() / "skills" / source.name, False))
     return links
 
 
@@ -238,7 +277,11 @@ def stale_skill_links() -> list[Path]:
     made by anything else (plugins, other repos) are never touched.
     """
     stale: list[Path] = []
-    for root in (home_path() / ".claude" / "skills", home_path() / ".agents" / "skills"):
+    for root in (
+        home_path() / ".claude" / "skills",
+        home_path() / ".agents" / "skills",
+        antigravity_config_dir() / "skills",
+    ):
         if not root.is_dir():
             continue
         for link in sorted(root.iterdir()):
@@ -281,13 +324,20 @@ def main() -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
+    # A broken Antigravity hooks.json must not stop the Claude/Codex sync.
+    conflicts: list[str] = []
+    try:
+        hooks_live, hooks_old, hooks_new = antigravity_hooks_change()
+    except (OSError, SyncConflict) as exc:
+        conflicts.append(str(exc))
+        hooks_live, hooks_old, hooks_new = antigravity_config_dir() / "hooks.json", "", ""
+
     # Plan links one at a time so a single stale/conflicting path can't abort the
     # whole sync. (2026-07: one non-symlink dir sitting in ~/.claude/skills made the
     # old all-or-nothing comprehension raise SyncConflict and skip ALL 40 Claude-side
     # skill links, while the clean ~/.agents side succeeded -- an invisible failure.)
     # Collect conflicts instead of raising, apply everything safe, and report loudly.
     link_actions: list[tuple[Path, Path, str]] = []
-    conflicts: list[str] = []
     for source, destination, replace_empty in desired_links():
         try:
             action = plan_link(source, destination, replace_empty_file=replace_empty)
@@ -300,17 +350,20 @@ def main() -> int:
     stale = stale_skill_links()
     config_changed = old_text != new_text
     settings_changed = settings is not None and settings[1] != settings[2]
+    hooks_changed = hooks_old != hooks_new
     if args.diff:
         print_config_diff(live, old_text, new_text)
         if settings_changed:
             print_config_diff(settings[0], settings[1], settings[2])
+        if hooks_changed:
+            print_config_diff(hooks_live, hooks_old, hooks_new)
         for source, destination, action in link_actions:
             print(f"{action}: {destination} -> {source}")
         for link in stale:
             print(f"remove stale link: {link} -> {os.readlink(link)}")
         for msg in conflicts:
             print(f"WOULD SKIP (conflict): {msg}", file=sys.stderr)
-        if not config_changed and not settings_changed and not link_actions and not stale and not conflicts:
+        if not (config_changed or settings_changed or hooks_changed or link_actions or stale or conflicts):
             print("All shared agent settings are already in sync.")
         return 2 if conflicts else 0
 
@@ -328,6 +381,12 @@ def main() -> int:
             print(f"✓ reflected settings.json: {s_live}")
         else:
             print(f"✓ settings.json already in sync: {s_live}")
+
+    if hooks_changed:
+        atomic_write(hooks_live, hooks_new)
+        print(f"✓ reflected Antigravity hooks: {hooks_live}")
+    elif hooks_new:
+        print(f"✓ Antigravity hooks already in sync: {hooks_live}")
 
     failures: list[str] = []
     for source, destination, action in link_actions:

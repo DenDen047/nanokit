@@ -1,10 +1,10 @@
-# Claude Code / Codex グローバル設定
+# Claude Code / Codex / Antigravity グローバル設定
 
 ## このファイルについて
 
 原本は `<nanokit>/claude/CLAUDE.md`。配布の仕組みと編集手順は nanokit リポジトリの `CLAUDE.md` を参照する。
 
-共有 skill では利用中のクライアントに実在する tool を選ぶ。Claude Code plugin や account-level Connector にしかない tool を Codex 側で推測して呼ばず、代替 adapter が無ければ利用不能と明示する。組織固有の `workspace-hdt` / `workspace-personal` / `workspace-work` は Codex user scope へ入れず、claude-settings の project adapter で認証境界を保つ。
+共有 skill では利用中のクライアントに実在する tool を選ぶ。Claude Code plugin や account-level Connector にしかない tool を Codex や Antigravity 側で推測して呼ばず、代替 adapter が無ければ利用不能と明示する。組織固有の `workspace-hdt` / `workspace-personal` / `workspace-work` は Codex や Antigravity の user scope へ入れず、claude-settings の project adapter で認証境界を保つ。
 
 ## コーディング基本則 (Karpathy 4 tenets)
 

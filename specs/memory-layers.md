@@ -6,7 +6,7 @@ Claude Code のパーソナライゼーション用メモリは、置き場ご�
 
 | 層 | 置き場 | ロード | 書く人 |
 |---|---|---|---|
-| グローバル索引 | `~/.config/claude-memory/personal/MEMORY.md` | 全プロジェクト・毎セッション (`~/.claude/CLAUDE.md` の `@import`) | 人 (週次レビューで昇格。「覚えて」と明示された時は `--add-index` でその場で 1 行) |
+| グローバル索引 | `~/.config/claude-memory/personal/MEMORY.md` | 全プロジェクト・毎セッション (`~/.claude/CLAUDE.md` の `@import`。Antigravity は `~/.gemini/config/rules/personal-memory.md` が取り込み、24,000 バイトを超えた分は切り捨てられる) | 人 (週次レビューで昇格。「覚えて」と明示された時は `--add-index` でその場で 1 行) |
 | グローバル本体 | 同ディレクトリの `*.md`。1 ファイル 1 事実、frontmatter は `name` / `description` / `metadata.type` (user / feedback / reference) | 索引・保留・退避のポインタから辿ったときだけ | SessionEnd の抽出 |
 | 保留 | 同ディレクトリの `PENDING.md` | ロードされない | SessionEnd の抽出 |
 | 退避 | 同ディレクトリの `ARCHIVE.md` | ロードされない。必要なとき grep | 剪定と週次レビュー |

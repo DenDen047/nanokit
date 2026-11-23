@@ -1,0 +1,10 @@
+{
+  "nanokit-mcp-servers": {
+    "SessionStart": [
+      { "type": "command", "command": "bash ~/.claude/scripts/zotero-mcp-server.sh start >&2", "timeout": 20 },
+      { "type": "command", "command": "bash ~/.claude/scripts/scrapling-mcp-server.sh start >&2", "timeout": 45 },
+      { "type": "command", "command": "bash ~/.claude/scripts/workspace-mcp-personal-server.sh start >&2", "timeout": 45 },
+      { "type": "command", "command": "bash ~/.claude/scripts/workspace-mcp-work-server.sh start >&2", "timeout": 45 }
+    ]
+  }
+}

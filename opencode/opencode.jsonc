@@ -2,7 +2,8 @@
   "$schema": "https://opencode.ai/config.json",
   // 無検閲のエージェントの送り先 (frogiraffe OKF decisions/uncensored-agent-opencode-abliteration.md)。
   // OpenCode 2 は起動時の -m が無いので、ここで標準のモデルを決める。
-  "model": "abliteration-ai/abliterated-model-large-v2",
+  // 標準は PT80 の Qwen3.8-Flash-Next (-U 版、2026-11-26 決定)。PT80 が止まっているときは pt80llm up か /models で切り替える。
+  "model": "pt80-llm/qwen3.8-flash-next-u",
   // 会話を opencode.ai の公開ページにする /share を塞ぐ。
   "share": "disabled",
   // OpenCode 自身の配信 (Zen) を外す。無料のモデルは会話を学習に使うことがあり、
@@ -23,6 +24,26 @@
         "qwen3.8-27b-rvn": {
           "modelID": "qwen3.8-27b-rvn",
           "name": "Local Qwen3.8 27B RVN (Q3_K_S, 無検閲)",
+          "capabilities": { "tools": true, "input": ["text"], "output": ["text"] },
+          "compatibility": { "reasoningField": "reasoning_content" },
+          // サーバーの文脈は 131,072。出力に 16K を残す。
+          "limit": { "context": 131072, "output": 16384 }
+        }
+      }
+    },
+    // PT80 (A100 80GB) の Strata で動かす Qwen3.8-Flash-Next (OrcaRouter の -U 版、IQ3_XXS)。
+    // Mac の pt80llm up が起動とトンネル (127.0.0.1:18080) を受け持ち、鍵を ~/.config/pt80-llm/api-key に置く。
+    "pt80-llm": {
+      "name": "PT80 LLM",
+      "package": "@opencode/ai/providers/openai-compatible",
+      "settings": {
+        "baseURL": "http://127.0.0.1:18080/v1",
+        "apiKey": "{file:~/.config/pt80-llm/api-key}"
+      },
+      "models": {
+        "qwen3.8-flash-next-u": {
+          "modelID": "qwen3.8-flash-next-u-iq3_xxs",
+          "name": "Local PT80 Qwen3.8 Flash-Next (IQ3_XXS, -U)",
           "capabilities": { "tools": true, "input": ["text"], "output": ["text"] },
           "compatibility": { "reasoningField": "reasoning_content" },
           // サーバーの文脈は 131,072。出力に 16K を残す。
